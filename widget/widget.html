@@ -1,0 +1,40 @@
+<!-- ===== 수소 인허가 챗봇 위젯 =====
+     azzas3d.com 의 모든 페이지 </body> 바로 앞에 이 블록을 통째로 붙여 넣는다.
+     챗봇 본체는 우리 서버에 그대로 있고, 여기서는 "창(iframe)"으로 빌려 보여줄 뿐이다.
+     주소가 바뀌면 아래 BOT_URL 한 줄만 고친다. -->
+<style>
+  #h2bot-btn { position: fixed; right: 20px; bottom: 20px; z-index: 99999;
+    width: 60px; height: 60px; border-radius: 50%; border: 0; cursor: pointer;
+    background: #007aff; color: #fff; font-size: 26px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  #h2bot-box { position: fixed; right: 20px; bottom: 92px; z-index: 99999;
+    width: 400px; height: 620px; max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 112px); border-radius: 16px; overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,.3); background: #fff; display: none; }
+  #h2bot-box iframe { width: 100%; height: 100%; border: 0; }
+  @media (max-width: 480px) {  /* 폰에서는 화면 가득 */
+    #h2bot-box { right: 0; bottom: 0; width: 100vw; height: 100vh;
+      max-width: none; max-height: none; border-radius: 0; }
+  }
+</style>
+<button id="h2bot-btn" title="수소시설 인허가 물어보기">💬</button>
+<div id="h2bot-box"></div>
+<script>
+(function () {
+  var BOT_URL = "https://hydrogen-bot.tmdfoqhdl030.workers.dev";
+  var btn = document.getElementById("h2bot-btn");
+  var box = document.getElementById("h2bot-box");
+  var loaded = false;
+  btn.onclick = function () {
+    if (!loaded) {   // 처음 누를 때만 창을 만든다 (페이지 첫 로딩을 느리게 하지 않도록)
+      var f = document.createElement("iframe");
+      f.src = BOT_URL; f.title = "수소시설 인허가 가이드";
+      f.setAttribute("allow", "clipboard-write");
+      box.appendChild(f); loaded = true;
+    }
+    var open = box.style.display === "block";
+    box.style.display = open ? "none" : "block";
+    btn.textContent = open ? "💬" : "✕";
+  };
+})();
+</script>

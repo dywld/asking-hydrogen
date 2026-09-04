@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>수소시설 인허가 가이드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  /* 밝고 넓은 한 장짜리 화면. 사용자 말만 말풍선, 답은 본문처럼 쓴다.
+     글자 크기는 세 단계(13 / 15.5 / 22)만 쓴다. 그 이상 섞으면 엉성해 보인다. */
+  :root {
+    --bg: #ffffff;
+    --surface: #f4f6fa;        /* 카드·입력창 바탕 */
+    --line: #e4e8ee;
+    --ink: #1b2430;
+    --ink-2: #5b6675;          /* 보조 글 */
+    --accent: #2f6fed;
+    --accent-soft: #e9f0ff;
+    --ok: #1c7c4a;  --ok-soft: #e6f5ec;
+    --warn: #8a5a00; --warn-soft: #fff6e0;
+    --radius: 14px;
+    --fs-s: 13px; --fs: 15.5px; --fs-l: 22px;
+    --w: 780px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: var(--fs)/1.65 Pretendard, -apple-system, "Apple SD Gothic Neo",
+          "Malgun Gothic", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── 상단 ── */
+  header {
+    flex: none; height: 56px; display: flex; align-items: center; gap: 10px;
+    padding: 0 18px; border-bottom: 1px solid var(--line); background: #fff;
+    position: relative; z-index: 5;
+  }
+  .logo {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    background: linear-gradient(150deg, #6ea8ff, #2f6fed);
+    color: #fff; font-weight: 700; font-size: 15px; display: grid; place-items: center;
+  }
+  header h1 { font-size: var(--fs); font-weight: 700; margin: 0; letter-spacing: -.01em; }
+  header .st { font-size: var(--fs-s); color: var(--ink-2); margin-left: 2px; }
+  header .sp { flex: 1; }
+  .ibtn {
+    font: inherit; font-size: var(--fs-s); color: var(--ink-2);
+    background: none; border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .ibtn:hover { border-color: var(--accent); color: var(--accent); }
+  .ibtn svg { width: 15px; height: 15px; }
+
+  /* 설정은 톱니 뒤에 숨긴다. 화면 앞에 나와 있으면 개발자 옵션처럼 보인다. */
+  .pop {
+    position: absolute; right: 18px; top: 52px; width: 280px;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 12px 32px rgba(20,30,50,.12); padding: 6px 4px; display: none;
+  }
+  .pop.open { display: block; }
+  .pop label {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px; font-size: var(--fs-s); color: var(--ink-2); gap: 8px;
+  }
+  .pop select, .pop input[type=date] {
+    font: inherit; font-size: var(--fs-s); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 5px 8px; background: #fff;
+  }
+  .pop .hint { padding: 4px 12px 8px; font-size: 12px; color: var(--ink-2); }
+
+  /* ── 대화 ── */
+  main { flex: 1 1 auto; overflow-y: auto; }
+  #log { max-width: var(--w); margin: 0 auto; padding: 28px 20px 24px; }
+
+  /* 처음 화면 */
+  .hero { padding: 48px 0 12px; }
+  .hero h2 { font-size: var(--fs-l); font-weight: 700; margin: 0 0 6px; letter-spacing: -.02em; }
+  .hero p { margin: 0 0 22px; color: var(--ink-2); }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card {
+    text-align: left; font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid transparent; border-radius: var(--radius); padding: 14px 16px; cursor: pointer;
+  }
+  .card:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .card small { display: block; color: var(--ink-2); font-size: var(--fs-s); margin-top: 2px; }
+  .card.tool { border-color: var(--line); background: #fff; }
+
+  .banner {
+    background: var(--accent-soft); color: var(--ink); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 20px; font-size: var(--fs-s);
+  }
+
+  .turn { margin: 0 0 28px; }
+  .turn.me { display: flex; justify-content: flex-end; }
+  .me .bubble {
+    max-width: 78%; background: var(--accent-soft); color: var(--ink);
+    padding: 10px 16px; border-radius: 18px 18px 4px 18px; white-space: pre-wrap;
+  }
+  .ai { display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
+  .ai .avatar {
+    width: 30px; height: 30px; border-radius: 9px; margin-top: 2px;
+    background: linear-gradient(150deg, #6ea8ff, #2f6fed); color: #fff;
+    font-weight: 700; font-size: 14px; display: grid; place-items: center;
+  }
+  .ai .body { min-width: 0; white-space: pre-wrap; word-break: break-word; }
+  .ai .body .h { font-weight: 700; margin: 14px 0 2px; }
+  .ai .body .h:first-child { margin-top: 0; }
+  .ai .body .num { font-weight: 600; }
+  .ai .body b { font-weight: 700; }
+
+  /* 인용 표시. 본문 안에서는 조용한 알약 모양, 번호가 있으면 근거 카드와 짝이 맞는다.
+     누르면 법령정보센터·KGS 원문으로 간다. */
+  .cite {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface); color: var(--ink-2); border-radius: 6px;
+    padding: 0 6px; font-size: var(--fs-s); vertical-align: 1px; white-space: nowrap;
+    text-decoration: none;
+  }
+  a.cite:hover { background: var(--accent-soft); color: var(--accent); }
+  .cite .n {
+    background: var(--accent); color: #fff; border-radius: 4px;
+    font-size: 11px; padding: 0 4px; line-height: 16px; font-weight: 600;
+  }
+
+  /* 근거에서 확인되지 않은 수치·조문번호. 눌러 보면 근거로 내려간다. */
+  mark.unv {
+    background: var(--warn-soft); color: var(--warn); border-bottom: 2px dotted var(--warn);
+    padding: 0 2px; border-radius: 3px; cursor: pointer;
+  }
+
+  .stage { color: var(--ink-2); font-size: var(--fs-s); display: flex; align-items: center; gap: 8px; }
+  .stage i {
+    width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  .caret { display: inline-block; width: 2px; height: 1em; background: var(--accent);
+           vertical-align: -2px; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0 } }
+
+  /* 표 */
+  .tblwrap { overflow-x: auto; margin: 10px 0 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .tblwrap table { border-collapse: collapse; width: 100%; font-size: var(--fs-s); }
+  .tblwrap th, .tblwrap td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tblwrap tr:last-child td { border-bottom: 0; }
+  .tblwrap th { background: var(--surface); font-weight: 600; color: var(--ink-2); }
+
+  /* 확인 필요 */
+  .warn {
+    margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+    background: var(--warn-soft); color: var(--warn); font-size: var(--fs-s);
+  }
+  .meta { margin-top: 10px; font-size: 12px; color: var(--ink-2); display: flex; gap: 10px; flex-wrap: wrap; }
+  .meta .tag { background: var(--surface); border-radius: 6px; padding: 1px 8px; }
+  .meta .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .judged { color: var(--ink-2); opacity: .55; text-decoration: line-through; text-decoration-color: var(--warn); text-decoration-thickness: 1px; }
+  .uncited { color: var(--ink-2); border-bottom: 1px dashed var(--line); }
+
+  /* ── 근거 카드 ── */
+  .srcs { margin-top: 16px; }
+  .srcs .cap { font-size: var(--fs-s); color: var(--ink-2); margin-bottom: 8px; display: flex; gap: 10px; align-items: center; }
+  .srcs .cap .more { color: var(--accent); cursor: pointer; }
+  /* 근거는 기본으로 접는다. 카드 12장이 답변 아래에 쭉 깔리면 어수선해서. */
+  .srcs .cap .tog { color: var(--accent); cursor: pointer; user-select: none; }
+  .srcs .cap .tog::before { content: '▸ '; }
+  .srcs.open .cap .tog::before { content: '▾ '; }
+  .srcs:not(.open) .src, .srcs:not(.open) .cap .more { display: none; }
+  .src {
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
+    background: #fff; display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start;
+  }
+  .src.used { border-color: #cfe0ff; background: #f8faff; }
+  .src.flash { box-shadow: 0 0 0 3px var(--warn-soft); border-color: var(--warn); }
+  .src .n {
+    width: 22px; height: 22px; border-radius: 6px; background: var(--surface); color: var(--ink-2);
+    font-size: 12px; font-weight: 600; display: grid; place-items: center; margin-top: 1px;
+  }
+  .src.used .n { background: var(--accent); color: #fff; }
+  .src .t { font-size: var(--fs-s); line-height: 1.5; min-width: 0; }
+  .src .t b { font-weight: 600; }
+  .src .t span { color: var(--ink-2); }
+  .src .flag { font-size: 11px; background: var(--warn-soft); color: var(--warn); padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .src .flag.ok { background: var(--ok-soft); color: var(--ok); }
+  .src .act { display: flex; gap: 10px; font-size: var(--fs-s); white-space: nowrap; }
+  .src .act a, .src .act span { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .src pre {
+    grid-column: 1 / -1; white-space: pre-wrap; font: inherit; font-size: var(--fs-s);
+    color: var(--ink); margin: 2px 0 0; max-height: 320px; overflow-y: auto;
+    background: var(--surface); border-radius: 8px; padding: 10px 12px; line-height: 1.6;
+  }
+  .src img.pg { grid-column: 1 / -1; width: 100%; border: 1px solid var(--line); border-radius: 8px; }
+  .src.hidden { display: none; }
+  /* 서식·별표 파일 단추. 법령정보센터에서 받아 온 HWP·PDF 와 원문 팝업으로 간다. */
+  .byl a, .form a {
+    display: inline-block; font-size: 11px; line-height: 18px; padding: 0 6px; border-radius: 4px;
+    background: var(--accent-soft); color: var(--accent); text-decoration: none; margin-left: 4px;
+    vertical-align: 1px; white-space: nowrap;
+  }
+  .byl a:hover, .form a:hover { background: var(--accent); color: #fff; }
+  .byl a.gov, .form a.gov { background: var(--ok-soft); color: var(--ok); }
+  .form { border-bottom: 1px dotted var(--accent); }
+  /* 바로 신청. 답변이 허가·검사 절차를 말할 때 신청처로 가는 문을 단다. */
+  .apply {
+    margin-top: 14px; padding: 10px 14px; border: 1px solid #cfe0ff; border-radius: 12px;
+    background: #f8faff; font-size: var(--fs-s); display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .apply .cap { color: var(--ink-2); margin-right: 4px; }
+  .apply a {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px;
+    background: var(--accent); color: #fff; text-decoration: none; font-weight: 500;
+  }
+  .apply a.sub { background: #fff; color: var(--accent); border: 1px solid #cfe0ff; }
+  .apply .note { flex-basis: 100%; color: var(--ink-2); font-size: 11px; }
+
+  /* 이어질 질문 */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip {
+    font-size: var(--fs-s); padding: 7px 13px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); color: var(--ink); background: #fff;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  /* ── 계산기 · 공유 (가운데 창) ── */
+  .modal-bg { position: fixed; inset: 0; background: rgba(20,30,50,.35); display: none; z-index: 20; }
+  .modal-bg.open { display: grid; place-items: center; }
+  .modal {
+    width: min(560px, calc(100vw - 32px)); background: #fff; border-radius: var(--radius);
+    padding: 20px 22px; box-shadow: 0 20px 60px rgba(20,30,50,.25); max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { margin: 0 0 4px; font-size: var(--fs); }
+  .modal .sub { color: var(--ink-2); font-size: var(--fs-s); margin: 0 0 14px; }
+  .modal .row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .modal select, .modal input[type=text], .modal input[type=number] {
+    font: inherit; font-size: var(--fs-s); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 10px; background: #fff; flex: 1; min-width: 120px;
+  }
+  .modal .btn {
+    font: inherit; font-size: var(--fs-s); border: 0; border-radius: 10px; padding: 8px 14px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  .modal .btn.ghost { background: var(--surface); color: var(--ink); }
+  .modal .close { float: right; border: 0; background: none; font-size: 18px; cursor: pointer; color: var(--ink-2); }
+  .result { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .result .big { display: flex; gap: 18px; margin: 6px 0 10px; }
+  .result .big div { flex: 1; background: var(--surface); border-radius: 10px; padding: 10px 12px; }
+  .result .big small { display: block; color: var(--ink-2); font-size: 12px; }
+  .result .big strong { font-size: var(--fs-l); font-weight: 700; }
+  .result ul { margin: 6px 0 0; padding-left: 18px; font-size: var(--fs-s); color: var(--ink-2); }
+  .result .tblwrap { margin-top: 8px; }
+  .result tr.hit td { background: var(--accent-soft); font-weight: 600; }
+  .share-url { display: flex; gap: 8px; }
+  .share-url input { flex: 1; }
+
+  /* ── 입력 ── */
+  footer { flex: none; background: #fff; border-top: 1px solid var(--line); }
+  .composer {
+    max-width: var(--w); margin: 0 auto; padding: 12px 20px 16px;
+    display: flex; gap: 10px; align-items: flex-end;
+  }
+  textarea {
+    flex: 1; resize: none; font: inherit; color: var(--ink);
+    padding: 11px 16px; border: 1px solid var(--line); border-radius: 16px;
+    background: var(--surface); min-height: 46px; max-height: 140px; outline: none;
+  }
+  textarea:focus { border-color: var(--accent); background: #fff; }
+  .send {
+    width: 46px; height: 46px; border-radius: 14px; border: 0; flex: none; cursor: pointer;
+    background: var(--accent); color: #fff; display: grid; place-items: center;
+  }
+  .send:disabled { background: #c9d3e3; cursor: default; }
+  .send svg { width: 20px; height: 20px; }
+  .foot { text-align: center; font-size: 12px; color: var(--ink-2); padding: 0 20px 10px; }
+  .modebar { max-width: var(--w); margin: 0 auto; padding: 8px 20px 0; display: flex; gap: 8px; font-size: 12px; color: var(--ink-2); }
+  .modebar .on { color: var(--accent); }
+
+  /* 헤더 제목은 좁은 화면에서도 한 줄. 세 줄로 접히면 앱이 아니라 문서처럼 보인다. */
+  header h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+  /* 피드백 */
+  .fb { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+  .fb button { font: inherit; font-size: 12px; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 2px 9px; cursor: pointer; color: var(--ink-2); }
+  .fb button:hover, .fb button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .fb textarea { width: 100%; margin-top: 8px; min-height: 56px; font-size: var(--fs-s); }
+  .fb .thanks { font-size: 12px; color: var(--ok); }
+
+  /* 되묻기 */
+  .clarify { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: var(--surface); font-size: var(--fs-s); color: var(--ink-2); }
+  .clarify .chips { margin-top: 8px; }
+
+  /* 원문 패널 — 인용을 누르면 새 창 대신 옆에서 열린다 */
+  .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw); background: #fff; border-left: 1px solid var(--line);
+            box-shadow: -12px 0 32px rgba(20,30,50,.12); transform: translateX(100%); transition: transform .2s; z-index: 30; display: flex; flex-direction: column; }
+  .drawer.open { transform: none; }
+  .drawer .dh { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .drawer .dh b { flex: 1; font-size: var(--fs-s); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drawer .dh a { font-size: var(--fs-s); color: var(--accent); text-decoration: none; white-space: nowrap; }
+  .drawer pre { flex: 1; overflow-y: auto; margin: 0; padding: 14px 16px; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: var(--fs-s); line-height: 1.65; }
+  body { overflow-x: hidden; }
+  .drawer mark { background: var(--warn-soft); color: inherit; }
+
+  /* 지난 대화 */
+  .hist { position: absolute; left: 18px; top: 52px; width: 300px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+          box-shadow: 0 12px 32px rgba(20,30,50,.12); padding: 6px 0; display: none; max-height: 70vh; overflow-y: auto; }
+  .hist.open { display: block; }
+  .hist .row { padding: 9px 14px; font-size: var(--fs-s); cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  .hist .row:hover { background: var(--surface); }
+  .hist .row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist .row small { color: var(--ink-2); }
+  .hist .row .x { color: var(--ink-2); cursor: pointer; }
+  .hist .empty { padding: 12px 14px; font-size: var(--fs-s); color: var(--ink-2); }
+  .scope { margin-top: 18px; font-size: var(--fs-s); color: var(--ink-2); line-height: 1.7; }
+  .scope b { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: 1fr; }
+    .me .bubble { max-width: 90%; }
+    .ai { grid-template-columns: 1fr; gap: 6px; }
+    .ai .avatar { display: none; }
+    .src { grid-template-columns: 22px 1fr; }
+    .src .act { grid-column: 2; }
+    header { padding: 0 12px; gap: 6px; height: 52px; }
+    header h1 { font-size: 15px; }
+    header .st, .ibtn .lbl { display: none; }
+    .ibtn { padding: 6px 8px; }
+    #log { padding: 18px 14px 20px; }
+    .hero { padding: 24px 0 8px; }
+    .hero h2 { font-size: 20px; }
+    .tblwrap th, .tblwrap td { padding: 6px 8px; }
+    .hist { left: 12px; right: 12px; width: auto; }
+    .pop { right: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">H</div>
+  <h1>수소시설 인허가 가이드</h1>
+  <span class="st" id="status"></span>
+  <span class="sp"></span>
+  <button class="ibtn" id="histbtn" title="지난 대화">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="lbl">지난 대화</span>
+  </button>
+  <div class="hist" id="hist"></div>
+  <button class="ibtn" id="calc" title="안전거리 계산기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h3M13 12h3M8 16h3M13 16h3"/></svg><span class="lbl">계산기</span>
+  </button>
+  <button class="ibtn" id="share" title="대화 공유">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span class="lbl">공유</span>
+  </button>
+  <button class="ibtn" id="reset" title="새 대화">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">새 대화</span>
+  </button>
+  <button class="ibtn" id="gear" title="설정">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+  <div class="pop" id="pop">
+    <label>검색 범위
+      <select id="country"><option value="">한국 + 일본</option><option value="한국">한국만</option><option value="일본">일본만</option></select>
+    </label>
+    <label>시설 유형
+      <select id="facility"><option value="">전체</option><option value="생산">생산</option><option value="저장">저장</option><option value="운반">운반</option><option value="충전">충전</option><option value="사용">사용</option><option value="판매">판매</option></select>
+    </label>
+    <label>기준일
+      <input type="date" id="asof">
+    </label>
+    <div class="hint">기준일을 두면 그날 시행 중인 조문으로 답합니다. 비우면 현행 + 시행 예정을 함께 봅니다.</div>
+    <label>체크리스트 형식
+      <input type="checkbox" id="checklist">
+    </label>
+    <div class="hint">허가·신고·검사를 단계별 표로 정리합니다. "뭐가 필요해?" 류 질문은 자동으로 켜집니다.</div>
+    <label>답변 모델
+      <select id="mode"><option value="daily">평소</option><option value="demo">발표</option></select>
+    </label>
+    <div class="hint">발표 모델은 더 정확하지만 하루 20번만 쓸 수 있습니다.</div>
+  </div>
+</header>
+
+<main><div id="log"></div></main>
+
+<footer>
+  <div class="modebar" id="modebar"></div>
+  <div class="composer">
+    <textarea id="q" rows="1" placeholder="무엇이든 물어보세요"></textarea>
+    <button class="send" id="go" title="보내기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+  </div>
+  <div class="foot">법령 검색 결과를 바탕으로 한 참고용 안내입니다. 실제 인허가는 관할 관청과 원문을 확인해 주세요.</div>
+</footer>
+
+<!-- 안전거리 계산기: 표에서 바로 찾는다. AI 를 거치지 않아 틀릴 자리가 없다. -->
+<div class="modal-bg" id="calcbg">
+  <div class="modal">
+    <button class="close" data-close="calcbg">✕</button>
+    <h3>안전거리 계산기</h3>
+    <p class="sub">처리·저장능력과 보호시설 등급을 고르면 별표·KGS Code 표의 해당 칸을 그대로 보여줍니다.</p>
+    <div class="row">
+      <select id="ctable"></select>
+    </div>
+    <div class="row">
+      <input type="text" id="ccap" inputmode="numeric" placeholder="처리·저장능력 (예: 15000)">
+      <button class="btn" id="crun">찾기</button>
+    </div>
+    <div id="cunit" class="sub"></div>
+    <div id="cres"></div>
+  </div>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="dh"><b id="dtitle"></b><a id="dlink" href="#" target="_blank" rel="noopener">원본 사이트 ↗</a><button class="close" data-close="drawer">✕</button></div>
+  <pre id="dbody"></pre>
+</div>
+
+<div class="modal-bg" id="sharebg">
+  <div class="modal">
+    <button class="close" data-close="sharebg">✕</button>
+    <h3>대화 공유</h3>
+    <p class="sub">지금까지의 질문·답변·근거를 저장하고 주소를 만듭니다. 주소를 아는 사람은 누구나 볼 수 있습니다.</p>
+    <div id="sharebody"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const log = $('#log'), main = document.querySelector('main');
+let messages = [], turns = [], busy = false, STATUS = {};
+
+fetch('/api/status').then(r => r.json()).then(d => {
+  STATUS = d;
+  $('#status').textContent = `법령 ${d.articles.toLocaleString()}조각` + (d.has_key ? '' : ' · 키 없음');
+  if (d.need_code && !localStorage.getItem('botCode')) {
+    const c = prompt('접근 코드를 입력하세요');
+    if (c) localStorage.setItem('botCode', c.trim());
+  }
+  modebar();
+});
+
+$('#gear').onclick = e => { e.stopPropagation(); $('#pop').classList.toggle('open'); $('#hist').classList.remove('open'); };
+$('#histbtn').onclick = e => { e.stopPropagation(); renderHist(); $('#hist').classList.toggle('open'); $('#pop').classList.remove('open'); };
+document.addEventListener('click', e => {
+  if (!$('#pop').contains(e.target) && !$('#gear').contains(e.target)) $('#pop').classList.remove('open');
+  if (!$('#hist').contains(e.target) && !$('#histbtn').contains(e.target)) $('#hist').classList.remove('open');
+});
+
+// ── 지난 대화 (이 브라우저에만 저장) ─────────────────────────────
+// 새로고침하면 대화가 사라지는 게 시중 서비스와의 가장 큰 체감 차이였다.
+// 서버에 안 보내고 localStorage 에 최근 12개만 둔다.
+let convId = null;
+function loadHist() { try { return JSON.parse(localStorage.getItem('convs') || '[]'); } catch (e) { return []; } }
+function saveConv() {
+  if (!turns.length) return;
+  try {
+    let list = loadHist();
+    if (!convId) convId = Date.now().toString(36);
+    list = list.filter(c => c.id !== convId);
+    list.unshift({id: convId, t: new Date().toISOString().slice(0, 16).replace('T', ' '), title: turns[0].q, turns, messages});
+    localStorage.setItem('convs', JSON.stringify(list.slice(0, 12)));
+  } catch (e) {}
+}
+function renderHist() {
+  const box = $('#hist'), list = loadHist();
+  box.innerHTML = '';
+  if (!list.length) { box.innerHTML = '<div class="empty">아직 저장된 대화가 없습니다. 이 브라우저에만 남습니다.</div>'; return; }
+  list.forEach(c => {
+    const r = document.createElement('div');
+    r.className = 'row';
+    r.innerHTML = `<span>${esc(c.title)}</span><small>${esc(c.t.slice(5))}</small><span class="x" title="지우기">✕</span>`;
+    r.querySelector('.x').onclick = e => { e.stopPropagation(); localStorage.setItem('convs', JSON.stringify(list.filter(x => x.id !== c.id))); renderHist(); };
+    r.onclick = () => { $('#hist').classList.remove('open'); openConv(c); };
+    box.appendChild(r);
+  });
+}
+function openConv(c) {
+  log.innerHTML = '';
+  messages = c.messages || []; turns = []; convId = c.id;
+  for (const t of c.turns) {
+    addMe(t.q);
+    const ai = addAI();
+    Object.assign(ai, t); ai.turn = t;
+    render(ai, t.text || '');
+    turns.push(t);
+  }
+  scroll();
+}
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $('#' + b.dataset.close).classList.remove('open'));
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+['#asof', '#checklist', '#country', '#facility', '#mode'].forEach(s => $(s).addEventListener('change', modebar));
+
+// 지금 어떤 조건으로 묻는지 입력창 위에 작게 보여준다. 설정이 톱니 뒤에 숨어 있어서.
+function modebar() {
+  const bits = [];
+  if ($('#asof').value) bits.push(`<span class="on">기준일 ${$('#asof').value}</span>`);
+  if ($('#checklist').checked) bits.push('<span class="on">체크리스트</span>');
+  if ($('#country').value) bits.push($('#country').value + '만');
+  if ($('#facility').value) bits.push('유형 ' + $('#facility').value);
+  if ($('#mode').value === 'demo') bits.push('발표 모델');
+  if (STATUS.semantic === false) bits.push('뜻 검색 꺼짐');
+  $('#modebar').innerHTML = bits.join('<span>·</span>');
+}
+
+const SUGGEST = [
+  ['수소충전소를 세우려면 어떤 허가가 필요해?', '허가 종류와 절차'],
+  ['수소충전소는 제1종보호시설에서 몇 미터 떨어져야 해?', '안전거리 수치'],
+  ['수소충전소 인허가 체크리스트 만들어줘', '단계별 표 · 서식 · 관할'],
+  ['수소법에서 최근 바뀐 내용이 뭐야?', '개정 전후 비교'],
+  ['규제특례에는 어떤 종류가 있어?', '실증특례 · 임시허가'],
+  ['일본은 저탄소수소를 어떻게 인정받아?', '해외 법령'],
+];
+
+if (/^\/s\/[A-Za-z0-9]{6,12}$/.test(location.pathname)) loadShare(location.pathname.split('/')[2]);
+else greet();
+
+function greet() {
+  log.innerHTML = '';
+  messages = []; turns = []; convId = null;
+  const h = document.createElement('div');
+  h.className = 'hero';
+  h.innerHTML = '<h2>무엇을 도와드릴까요?</h2>'
+    + '<p>국내외 법령 32,217조각에서 근거 조문을 찾아 답합니다. 이어서 되물어도 앞 얘기를 기억합니다.</p>'
+    + '<div class="cards"></div>'
+    + '<div class="scope"><b>할 수 있는 것</b> 한국 법령 본문·별표·KGS Code 상세기준, 일본 저탄소수소법의 허가·절차·수치·벌칙. 문장마다 근거 번호가 붙고, 근거에서 확인 안 된 수치는 표시하거나 뺍니다.<br>'
+    + '<b>못 하는 것</b> 미국·유럽 등 다른 나라 법령 전문, 지자체 조례, 개별 사업장의 판단. 자료에 없으면 없다고 답합니다. 참고용이며 실제 인허가는 관할 관청과 원문을 확인해 주세요.</div>';
+  const cards = h.querySelector('.cards');
+  SUGGEST.forEach(([q, sub]) => {
+    const b = document.createElement('button');
+    b.className = 'card';
+    b.innerHTML = `${esc(q)}<small>${esc(sub)}</small>`;
+    b.onclick = () => { $('#q').value = q; send(); };
+    cards.appendChild(b);
+  });
+  const t = document.createElement('button');
+  t.className = 'card tool';
+  t.innerHTML = '안전거리 계산기<small>용량만 넣으면 표에서 바로 찾음 · AI 없음</small>';
+  t.onclick = openCalc;
+  cards.appendChild(t);
+  log.appendChild(h);
+  if (history.state !== null || location.pathname !== '/') history.replaceState(null, '', '/');
+  $('#q').focus();
+}
+$('#reset').onclick = greet;
+
+function scroll() { main.scrollTop = main.scrollHeight; }
+// 답변이 길면 끝만 보이고 첫 줄을 놓친다. 질문을 화면 위쪽에 두고, 그 뒤로는 움직이지 않는다.
+function scrollToTurn(row) {
+  main.scrollTop = row.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - 12;
+}
+// 사용자가 직접 굴려서 맨 아래까지 내려 읽고 있을 때만 따라간다.
+// 답변이 짧은 동안은 화면이 넘치지 않아 '맨 아래'가 늘 참이므로, 직접 굴렸는지를 따로 본다.
+let userScrolled = false;
+['wheel', 'touchmove'].forEach(ev => main.addEventListener(ev, () => { userScrolled = true; }, {passive: true}));
+function nearBottom() { return userScrolled && main.scrollHeight - main.scrollTop - main.clientHeight < 80; }
+
+function addMe(text) {
+  const r = document.createElement('div');
+  r.className = 'turn me';
+  const b = document.createElement('div');
+  b.className = 'bubble'; b.textContent = text;
+  r.appendChild(b); log.appendChild(r); scrollToTurn(r); userScrolled = false;
+}
+function addAI() {
+  const r = document.createElement('div');
+  r.className = 'turn ai';
+  r.innerHTML = '<div class="avatar">H</div><div class="wrap"><div class="body"></div></div>';
+  log.appendChild(r);
+  return {row: r, wrap: r.querySelector('.wrap'), body: r.querySelector('.body')};
+}
+
+$('#go').onclick = send;
+$('#q').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+$('#q').addEventListener('input', e => {
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
+});
+
+function shortLaw(law) {
+  if (law.startsWith('KGS')) return 'KGS Code';
+  if (/^[^\x00-\x7F가-힣]/.test(law)) return '일본 법령';
+  return law.replace(/\s*\[요약자료\]/, '').replace(/(.{16}).+/, '$1…');
+}
+
+async function send() {
+  const text = $('#q').value.trim();
+  if (!text || busy) return;
+  busy = true; $('#go').disabled = true;
+  $('#q').value = ''; $('#q').style.height = 'auto';
+  const hero = log.querySelector('.hero'); if (hero) hero.remove();
+  addMe(text);
+  messages.push({role: 'user', text});
+
+  const ai = addAI();
+  ai.q = text;
+  const stage = document.createElement('div');
+  stage.className = 'stage';
+  stage.innerHTML = '<i></i><span>법령을 찾는 중</span>';
+  ai.body.replaceWith(stage);
+  const caret = document.createElement('span');
+  caret.className = 'caret';
+  let full = '', started = false;
+
+  const start = () => {
+    if (started) return;
+    started = true;
+    stage.replaceWith(ai.body);
+  };
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({messages, country: $('#country').value,
+                            mode: $('#mode').value, facility: $('#facility').value,
+                            as_of: $('#asof').value, checklist: $('#checklist').checked,
+                            code: localStorage.getItem('botCode') || ''})
+    });
+    if (!r.ok) {
+      const info = await r.json().catch(() => ({}));
+      if (r.status === 401) {
+        localStorage.removeItem('botCode');
+        const c = prompt('접근 코드가 필요합니다. 코드를 입력하세요');
+        if (c) localStorage.setItem('botCode', c.trim());
+        throw new Error('접근 코드를 확인해 주세요. 코드를 넣고 다시 물어봐 주세요.');
+      }
+      throw new Error(info.error || ('서버 오류 ' + r.status));
+    }
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === 'sources') {
+          ai.sources = ev.sources;
+          if (ev.sources.length && !started) {
+            const laws = [...new Set(ev.sources.map(s => shortLaw(s.law)))].slice(0, 2);
+            stage.querySelector('span').textContent =
+              `${laws.join(' · ')} 등 ${ev.sources.length}건 찾음 · 읽는 중`;
+          }
+        }
+        else if (ev.type === 'cited') ai.cited = ev.refs;
+        else if (ev.type === 'followups') ai.followups = ev.items;
+        else if (ev.type === 'verify') { ai.warnings = ev.warnings; ai.nums = ev.nums; ai.refs = ev.refs; ai.removed = ev.removed; }
+        else if (ev.type === 'replace') { full = ev.t; ai.body.innerHTML = fmt(full); }
+        else if (ev.type === 'judge') ai.judged = ev.bad;
+        else if (ev.type === 'uncited') ai.uncited = ev.items;
+        else if (ev.type === 'clarify') ai.clarify = ev;
+        else if (ev.type === 'lowconf') ai.lowconf = true;
+        else if (ev.type === 'done') { ai.model = ev.model; ai.cached = ev.cached; ai.cachedAt = ev.cached_at; ai.kind = ev.kind; ai.approved = ev.approved; }
+        else if (ev.type === 'text') {
+          start();
+          full += ev.t;
+          const follow = nearBottom();
+          ai.body.innerHTML = fmt(full);
+          ai.body.appendChild(caret);
+          if (follow) scroll();
+        }
+      }
+    }
+  } catch (e) {
+    full += (full ? '\n\n' : '') + '⚠️ ' + (e && e.message ? e.message : e);
+  }
+  start();
+  render(ai, full);
+  messages.push({role: 'model', text: full});
+  const turn = {q: text, text: full, sources: ai.sources, cited: ai.cited, followups: ai.followups,
+              warnings: ai.warnings, nums: ai.nums, refs: ai.refs, lowconf: ai.lowconf,
+              model: ai.model, cached: ai.cached, judged: ai.judged, approved: ai.approved,
+              clarify: ai.clarify, uncited: ai.uncited, removed: ai.removed, srcOpen: ai.srcOpen};
+  turns.push(turn); ai.turn = turn;
+  saveConv();
+  busy = false; $('#go').disabled = false;
+  $('#q').focus();
+}
+
+// 답변 한 턴을 최종 형태로 그린다. 스트리밍이 끝났을 때와 공유 화면을 열 때 둘 다 쓴다.
+function render(ai, full) {
+  const order = numberSources(ai.sources, ai.cited);
+  ai.body.innerHTML = fmt(full, order);
+  markUnverified(ai.body, ai.nums, ai.refs, ai.wrap);
+  markUncited(ai.body, ai.judged, 'judged', '검수 모델이 근거에서 확인하지 못한 문장입니다');
+  markUncited(ai.body, ai.uncited, 'uncited', '근거 번호가 붙지 않은 문장입니다. 원문을 확인해 주세요');
+  attachWarnings(ai.wrap, ai.warnings, ai.lowconf ? '이 주제의 법령이 자료에 없을 수 있습니다' : '');
+  attachMeta(ai.wrap, ai);
+  if (ai.clarify) attachClarify(ai.wrap, ai.clarify);
+  if (order.length) attachSources(ai.wrap, order, ai);
+  wireForms(ai.body, order);
+  attachApply(ai.wrap, full, order);
+  if (ai.followups) attachFollowups(ai.wrap, ai.followups);
+  wireCites(ai.body, order);
+}
+
+// ── 서식 내려받기 · 별표 원문 · 바로 신청 ──────────────────────────
+// 근거 표기에서 서식·별표 번호를 읽는다. '[별지 제8호서식]' → {kind:'서식', no:8, br:0}
+function bylOf(law, ref) {
+  if (!law || !ref || /^KGS|요약자료/.test(law) || !/[가-힣]/.test(law)) return null;
+  let m = ref.match(/별지\s*제?\s*(\d+)\s*호(?:의\s*(\d+))?\s*서식/);
+  if (m) return {kind: '서식', no: +m[1], br: +(m[2] || 0)};
+  m = ref.match(/별표\s*(\d+)(?:\s*의\s*(\d+))?/);
+  if (m) return {kind: '별표', no: +m[1], br: +(m[2] || 0)};
+  return null;
+}
+const BYL_CACHE = {};
+async function bylInfo(law, b) {
+  const key = `${law}|${b.kind}|${b.no}|${b.br}`;
+  if (!(key in BYL_CACHE)) {
+    BYL_CACHE[key] = fetch(`/api/byl?law=${encodeURIComponent(law)}&kind=${encodeURIComponent(b.kind)}&no=${b.no}&br=${b.br}`)
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  return BYL_CACHE[key];
+}
+function bylButtons(law, b, r, withGov) {
+  const q = `law=${encodeURIComponent(law)}&kind=${encodeURIComponent(b.kind)}&no=${b.no}&br=${b.br}`;
+  let h = '';
+  if (r.pdf) h += `<a href="/api/byl/file?${q}&fmt=pdf" target="_blank" rel="noopener" title="${esc(r.title)} · PDF 열기">PDF</a>`;
+  if (r.han) h += `<a href="/api/byl/file?${q}&fmt=hwp" title="${esc(r.title)} · 한글 파일 내려받기">HWP</a>`;
+  if (withGov && r.gov) h += `<a class="gov" href="${esc(r.gov)}" target="_blank" rel="noopener" title="정부24 민원 신청">정부24 신청 ↗</a>`;
+  return h;
+}
+// 근거 카드: 서식·별표면 파일 단추를 달고, '원본 사이트'를 법령 첫 화면 대신 그 서식·별표 팝업으로 바꾼다.
+async function fillByl(el, s) {
+  const b = bylOf(s.law, s.ref);
+  if (!b) return;
+  const r = await bylInfo(s.law, b);
+  if (!r) return;
+  s.link = r.link;
+  const a = el.querySelector('.act a[target]');
+  if (a) { a.href = r.link; a.textContent = (b.kind === '서식' ? '서식 원문 ↗' : '별표 원문 ↗'); }
+  const box = el.querySelector('.byl');
+  if (box) box.innerHTML = bylButtons(s.law, b, r, true);
+  if (r.gov) addGov(el.closest('.wrap'), r);
+}
+// 본문 속 '별지 제8호서식' 글자에 파일 단추를 붙인다. 어느 법령의 서식인지는 같은 문장의 인용 번호로 안다.
+function wireForms(body, order) {
+  const FORM = /별지\s*제?\s*\d+\s*호(?:의\s*\d+)?\s*서식/g;
+  const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  for (let n; (n = walker.nextNode());) {
+    FORM.lastIndex = 0;
+    if (!n.parentElement.closest('.cite, .form, a') && FORM.test(n.data)) nodes.push(n);
+  }
+  nodes.forEach(node => {
+    const frag = document.createDocumentFragment();
+    let last = 0; FORM.lastIndex = 0;
+    for (let m; (m = FORM.exec(node.data));) {
+      frag.appendChild(document.createTextNode(node.data.slice(last, m.index)));
+      const sp = document.createElement('span');
+      sp.className = 'form'; sp.textContent = m[0];
+      frag.appendChild(sp); last = m.index + m[0].length;
+    }
+    frag.appendChild(document.createTextNode(node.data.slice(last)));
+    node.replaceWith(frag);
+  });
+  body.querySelectorAll('.form').forEach(async sp => {
+    const b = bylOf('법령', sp.textContent);
+    if (!b) return;
+    // 같은 줄(문단·항목) 안에서 뒤따르는 인용 → 그 법령. 없으면 답변에 쓰인 첫 시행규칙.
+    const line = sp.closest('div, li, p, td') || body;
+    let law = null;
+    for (const a of line.querySelectorAll('a.cite')) {
+      if (a.compareDocumentPosition(sp) & Node.DOCUMENT_POSITION_PRECEDING) {
+        const n = a.querySelector('.n'); const hit = n && order.find(s => String(s.n) === n.textContent);
+        if (hit && /시행규칙/.test(hit.law)) { law = hit.law; break; }
+      }
+    }
+    if (!law) { const hit = order.find(s => s.used && /시행규칙/.test(s.law)) || order.find(s => /시행규칙/.test(s.law)); law = hit && hit.law; }
+    if (!law) return;
+    const r = await bylInfo(law, b);
+    if (!r) return;
+    sp.title = `${law} · ${r.title}`;
+    sp.insertAdjacentHTML('beforeend', bylButtons(law, b, r, false));
+    if (r.gov) addGov(sp.closest('.wrap'), r);
+  });
+}
+// 신청처. 답변이 어떤 절차를 말하는지 보고 신청 페이지로 가는 단추를 단다.
+// 실제 신청은 로그인·공동인증서가 있어야 하므로 여기서 대신 넣어 주지는 않는다.
+const APPLY_KGS = /기술검토|완성검사|중간검사|정기검사|수시검사|안전성\s*확인|정밀안전검진|시설검사|검사를\s*받/;
+const APPLY_GOV = /허가|신고|등록/;
+function attachApply(wrap, text, order) {
+  const t = text || '';
+  const links = [];
+  // 기술검토와 시설검사(완성·중간·정기)는 사이버지사 메뉴가 다르다. 말한 쪽으로 바로 보낸다.
+  if (/기술검토/.test(t)) links.push({label: '가스안전공사 사이버지사 · 기술검토 신청 ↗', url: 'https://cyber.kgs.or.kr/seq.Seq09Outline.ex.do'});
+  if (/완성검사|중간검사|정기검사|수시검사|시설검사|검사를\s*받/.test(t)) links.push({label: '가스안전공사 사이버지사 · 시설검사 신청 ↗', url: 'https://cyber.kgs.or.kr/seq.Seq02OutlineV2.ex.do', sub: links.length > 0});
+  if (!links.length && APPLY_KGS.test(t)) links.push({label: '가스안전공사 사이버지사 ↗', url: 'https://cyber.kgs.or.kr/'});
+  if (APPLY_GOV.test(t)) {
+    const m = t.match(/[가-힣]{1,12}(?:허가|신고|등록)/);
+    const q = m ? m[0].replace(/^(?:의|을|를|은|는|에|이|가)/, '') : '고압가스 허가';
+    links.push({label: `정부24 · ${q} 민원 찾기 ↗`, url: 'https://www.gov.kr/portal/search?srhQuery=' + encodeURIComponent(q), sub: true});
+  }
+  if (!links.length) return;
+  const el = document.createElement('div');
+  el.className = 'apply';
+  el.innerHTML = '<span class="cap">바로 신청</span>'
+    + links.map(l => `<a class="${l.sub ? 'sub' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('')
+    + '<span class="note">신청 사이트는 로그인(공동인증서)이 필요합니다. 준비 서류와 서식은 위 답변의 단추로 받으세요.</span>';
+  wrap.appendChild(el);
+}
+// 법령정보센터가 서식에 정부24 민원 주소를 달아 둔 경우, 신청 바에 그 주소를 앞세운다.
+function addGov(wrap, r) {
+  if (!wrap) return;
+  let el = wrap.querySelector('.apply');
+  if (!el) { el = document.createElement('div'); el.className = 'apply'; el.innerHTML = '<span class="cap">바로 신청</span>'; wrap.appendChild(el); }
+  if ([...el.querySelectorAll('a')].some(a => a.href === r.gov)) return;
+  el.querySelector('.cap').insertAdjacentHTML('afterend',
+    `<a href="${esc(r.gov)}" target="_blank" rel="noopener">정부24 · ${esc(r.title)} 신청 ↗</a>`);
+}
+
+// 답변 속 인용을 누르면 새 창 대신 옆 패널에 원문을 띄운다. 작은 ↗ 는 그대로 원본 사이트.
+function wireCites(body, order) {
+  body.querySelectorAll('a.cite').forEach(a => {
+    const n = a.querySelector('.n');
+    const hit = n && order.find(s => String(s.n) === n.textContent);
+    if (!hit) return;
+    a.onclick = e => { e.preventDefault(); openDrawer(hit); };
+  });
+}
+function openDrawer(s) {
+  $('#dtitle').textContent = `${s.law} ${s.ref}${s.title ? ' · ' + s.title : ''}`;
+  $('#dlink').href = s.link || '#';
+  $('#dbody').textContent = (s.parts || []).map(tidySource).join('\n\n─────\n\n');
+  $('#drawer').classList.add('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#drawer').classList.remove('open'); });
+
+function attachClarify(wrap, cl) {
+  const el = document.createElement('div');
+  el.className = 'clarify';
+  el.innerHTML = `${esc(cl.text)}<div class="chips"></div>`;
+  const chips = el.querySelector('.chips');
+  (cl.options || []).forEach(t => {
+    const c = document.createElement('span');
+    c.className = 'chip'; c.textContent = t;
+    c.onclick = () => { $('#q').value = t; send(); };
+    chips.appendChild(c);
+  });
+  wrap.appendChild(el);
+}
+
+function attachMeta(wrap, ai) {
+  const bits = [];
+  // 👍👎 는 항상 붙는다. 시중 서비스가 정답셋을 키우는 방법이 이것이다.
+  const fb = document.createElement('span');
+  fb.className = 'fb';
+  fb.innerHTML = '<button data-v="up" title="도움이 됐어요">👍</button><button data-v="down" title="틀렸거나 부족해요">👎</button>';
+  fb.querySelectorAll('button').forEach(b => b.onclick = async () => {
+    fb.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+    let reason = '';
+    if (b.dataset.v === 'down') {
+      reason = prompt('무엇이 틀렸거나 부족했나요? (선택)') || '';
+    }
+    try {
+      await fetch('/api/feedback', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({vote: b.dataset.v, reason, q: ai.q || '', answer: (ai.body.innerText || '').slice(0, 1500),
+                              sources: (ai.sources || []).slice(0, 8).map(s => s.law + ' ' + s.ref)})});
+      const t = document.createElement('span'); t.className = 'thanks'; t.textContent = '고맙습니다'; fb.appendChild(t);
+    } catch (e) {}
+  });
+  bits.push(fb.outerHTML);
+  if (ai.approved) bits.push('<span class="tag ok">사람이 확인한 답변</span>');
+  else if (ai.cached) bits.push(`<span class="tag">저장된 답변${ai.cachedAt ? ' · ' + esc(ai.cachedAt) : ''}</span>`);
+  if (ai.removed && ai.removed.length) bits.push(`<span class="tag">근거 확인 안 되어 뺀 내용 ${ai.removed.length}곳</span>`);
+  if (ai.judged && ai.judged.length) bits.push(`<span class="tag">검수에서 근거 불일치 ${ai.judged.length}문장 — 회색</span>`);
+  else if (ai.judged) bits.push('<span class="tag ok">검수 통과 · 모든 문장 근거 일치</span>');
+  if (ai.uncited && ai.uncited.length) bits.push(`<span class="tag">근거 번호 없는 문장 ${ai.uncited.length} — 점선 아래줄</span>`);
+  if (ai.kind === 'ollama') bits.push('<span class="tag">로컬 모델로 답변</span>');
+  if (ai.nums && ai.nums.length || ai.refs && ai.refs.length) {
+    const n = (ai.nums || []).length + (ai.refs || []).length;
+    bits.push(`<span class="tag">근거에서 확인 안 된 표기 ${n}개 — 점선 밑줄</span>`);
+  }
+  const el = document.createElement('div');
+  el.className = 'meta'; el.innerHTML = bits.join('');
+  // outerHTML 로 넣으면 onclick 이 사라진다. 진짜 요소로 바꿔 끼운다.
+  el.querySelector('.fb').replaceWith(fb);
+  wrap.appendChild(el);
+}
+
+// 근거 번호는 서버가 매긴 것(모델이 [3] 으로 인용한 번호)을 그대로 쓴다.
+// 인용된 것을 앞에 세우되 번호는 바꾸지 않는다 — 바꾸면 본문의 [3] 이 엉뚱한 카드를 가리킨다.
+function numberSources(list, cited) {
+  if (!list || !list.length) return [];
+  const used = new Set(cited || []);
+  return list.slice().sort((a, b) => (used.has(b.ref) ? 1 : 0) - (used.has(a.ref) ? 1 : 0))
+             .map((s, i) => Object.assign({}, s, {n: s.n || i + 1, used: used.has(s.ref)}));
+}
+
+// 검수(다른 모델)가 근거 없다고 본 문장을 회색으로. 지우지는 않는다 — 사람이 판단할 수 있게.
+function markUncited(body, judged, cls, title) {
+  if (!judged || !judged.length) return;
+  const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const j of judged) {
+    const key = j.replace(/[\s\[\]\d,.]+/g, '').slice(0, 24);
+    if (key.length < 8) continue;
+    for (const node of nodes) {
+      if (!node.parentElement || node.parentElement.closest('.judged, .uncited')) continue;
+      if (node.data.replace(/[\s\[\]\d,.]+/g, '').includes(key)) {
+        const span = document.createElement('span');
+        span.className = cls;
+        span.title = title;
+        node.replaceWith(span); span.appendChild(node);
+        break;
+      }
+    }
+  }
+}
+
+// 인용 표시를 원문 주소로 잇는다. 근거 카드에 있으면 그 주소, 없으면 표기에서 만든다.
+function citeLink(inner, hit) {
+  if (hit && hit.link) return hit.link;
+  const kgs = inner.match(/KGS\s*([A-Z]{2}\d{3})/);
+  if (kgs) return 'https://cyber.kgs.or.kr/kgscode.codeSearch.listV2.ex.do?pblcCd=' + kgs[1];
+  const m = inner.match(/^(.+?(?:법|령|규칙))\s*(제\d+조(?:의\d+)?)?/);
+  if (m && /[가-힣]/.test(m[1])) {
+    let path = '법령/' + m[1].replace(/\s+/g, '');
+    if (m[2]) path += '/' + m[2];
+    return 'https://www.law.go.kr/' + encodeURI(path);
+  }
+  return '';
+}
+
+function fmt(t, order) {
+  let s = esc(t);
+  s = mdTables(s);
+  s = s
+    .replace(/^\s*#{1,4}\s+(.+?)\s*#*\s*$/gm, '<div class="h">$1</div>')
+    .replace(/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/^\s*[\*\-]\s+/gm, '• ')
+    .replace(/^\s*(\d+)[.)]\s+/gm, '<span class="num">$1.</span> ')
+    .replace(/\n{3,}/g, '\n\n');
+  // [3] · [7, 8] — 자료 번호 인용. 근거 카드 번호로 잇는다.
+  s = s.replace(/\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]/g, (m, grp) => grp.split(',').map(x => {
+    const n = x.trim();
+    const hit = order && order.find(y => String(y.n) === n);
+    if (!hit) return `<span class="cite"><span class="n">${n}</span></span>`;
+    return `<a class="cite" href="${esc(hit.link)}" target="_blank" rel="noopener" title="${esc(hit.law + ' ' + hit.ref)}"><span class="n">${n}</span>${esc(shortLaw(hit.law))} ${esc(hit.ref)}</a>`;
+  }).join(' '));
+  // [고압가스 안전관리법 시행규칙 별표 8] / [KGS FP216 2.1.1.1] / [법 제4조]
+  return s.replace(/\[([^\[\]\n]{2,70}?)\]/g, (m, inner) => {
+    if (!/제\d+조|별표\s*\d|KGS\s*[A-Z]{2}\d{3}|第[〇一二三四五六七八九十百]+条/.test(inner)) return m;
+    let n = '', hit = null;
+    if (order) {
+      hit = order.find(s => inner.includes(s.ref.replace(/[\[\]]/g, '')) ||
+                            (s.jp && inner.includes(s.jp)));
+      if (hit) n = `<span class="n">${hit.n}</span>`;
+    }
+    const href = citeLink(inner, hit);
+    if (href) return `<a class="cite" href="${esc(href)}" target="_blank" rel="noopener" title="원문 보기">${n}${inner}</a>`;
+    return `<span class="cite">${n}${inner}</span>`;
+  });
+}
+
+// 근거에서 확인되지 않은 수치·조문번호에 점선 밑줄. 태그 안은 건드리지 않게 글자 마디만 바꾼다.
+function markUnverified(body, nums, refs, wrap) {
+  const items = [...(nums || []), ...(refs || [])].filter(Boolean);
+  if (!items.length) return;
+  const re = new RegExp(items.map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*')).join('|'), 'g');
+  const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    if (node.parentElement.closest('.cite, mark')) continue;
+    if (!re.test(node.data)) { re.lastIndex = 0; continue; }
+    re.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = re.exec(node.data))) {
+      frag.appendChild(document.createTextNode(node.data.slice(last, m.index)));
+      const mk = document.createElement('mark');
+      mk.className = 'unv'; mk.textContent = m[0];
+      mk.title = '근거 조문에서 이 표기를 찾지 못했습니다. 눌러서 근거를 확인하세요.';
+      mk.onclick = () => {
+        const box = wrap.querySelector('.srcs');
+        if (!box) return;
+        box.classList.add('open');
+        box.scrollIntoView({behavior: 'smooth', block: 'start'});
+        box.querySelectorAll('.src').forEach(s => { s.classList.add('flash'); setTimeout(() => s.classList.remove('flash'), 1600); });
+      };
+      frag.appendChild(mk);
+      last = m.index + m[0].length;
+    }
+    frag.appendChild(document.createTextNode(node.data.slice(last)));
+    node.replaceWith(frag);
+  }
+}
+
+function mdTables(s) {
+  const lines = s.split('\n');
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*\|.*\|\s*$/.test(lines[i]) ||
+        !/^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
+      out.push(lines[i]);
+      continue;
+    }
+    const rows = [];
+    const head = splitRow(lines[i]);
+    i += 2;
+    while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(splitRow(lines[i])); i++; }
+    i--;
+    out.push('<div class="tblwrap"><table><thead><tr>'
+      + head.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>'
+      + rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('')
+      + '</tbody></table></div>');
+  }
+  return out.join('\n');
+}
+function splitRow(l) {
+  return l.trim().replace(/^\||\|$/g, '').split('|')
+    .map(c => c.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'));
+}
+function esc(t) { return (t || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+function attachWarnings(wrap, warns, lowconf) {
+  const list = (warns || []).slice();
+  if (lowconf) list.unshift(lowconf);
+  if (!list.length) return;
+  const el = document.createElement('div');
+  el.className = 'warn';
+  el.innerHTML = '확인이 필요합니다 · ' + list.map(esc).join('<br>');
+  wrap.appendChild(el);
+}
+
+function attachFollowups(wrap, items) {
+  if (!items || !items.length) return;
+  const box = document.createElement('div');
+  box.className = 'chips';
+  items.forEach(t => {
+    const c = document.createElement('span');
+    c.className = 'chip'; c.textContent = t;
+    c.onclick = () => { box.remove(); $('#q').value = t; send(); };
+    box.appendChild(c);
+  });
+  wrap.appendChild(box);
+}
+
+// PDF 표에서 뽑은 원문은 칸마다 줄이 바뀌어 있다. 짧은 줄만 이어 붙여 읽히게 만든다.
+function tidySource(text) {
+  const lines = String(text).split('\n').map(l => l.trim());
+  const out = [];
+  for (const line of lines) {
+    if (!line) { if (out.length && out[out.length - 1] !== '') out.push(''); continue; }
+    const prev = out.length ? out[out.length - 1] : null;
+    const fresh = /^(\d{1,2}[.)]|[가-힣][.)]|\[|■|제\d+조|별표)/.test(line);
+    if (prev && prev !== '' && !fresh && (prev.length < 42 || line.length < 20)) {
+      out[out.length - 1] = prev + ' ' + line;
+    } else out.push(line);
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function attachSources(wrap, list, ai) {
+  const used = list.filter(s => s.used).length;
+  const box = document.createElement('div');
+  box.className = 'srcs' + (ai && ai.srcOpen ? ' open' : '');
+  const cap = document.createElement('div');
+  cap.className = 'cap';
+  cap.innerHTML = `<span class="tog">근거 ${list.length}건${used ? ` · 답변에 인용 ${used}건` : ''}</span>`;
+  // 펼침 상태는 답변마다 기억한다. 지난 대화를 다시 열어도 그대로.
+  cap.querySelector('.tog').onclick = () => {
+    const open = box.classList.toggle('open');
+    if (ai) { ai.srcOpen = open; if (ai.turn) ai.turn.srcOpen = open; saveConv(); }
+  };
+  box.appendChild(cap);
+  const show = Math.max(3, used);
+  list.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'src' + (s.used ? ' used' : '') + (i >= show ? ' hidden' : '');
+    let flag = s.future ? `<span class="flag">시행예정 ${esc(s.effective_date || '')}</span>` : '';
+    if (s.revised) flag = `<span class="flag ok">개정판 · ${esc(s.revised)} 시행</span>`;
+    if (s.pair_of) flag = `<span class="flag">현행판 · 비교용</span>`;
+    if (s.kind === '별지서식') flag += `<span class="flag ok">서식</span>`;
+    const parts = s.parts.length > 1 ? ` <span>· ${s.parts.length}곳</span>` : '';
+    const pg = s.page && s.code ? `<span class="pg">PDF ${s.page}쪽</span>` : '';
+    el.innerHTML = `<div class="n">${s.n}</div>`
+      + `<div class="t"><b>${esc(s.law)} ${esc(s.ref)}</b>${flag}`
+      + `${s.title ? `<br><span>${esc(s.title)}</span>` : ''}${parts}</div>`
+      + `<div class="act"><span class="open">원문</span>${pg}<span class="byl"></span>`
+      + `<a href="${esc(s.link)}" target="_blank" rel="noopener">원본 사이트 ↗</a></div>`
+      + `<pre hidden></pre>`;
+    const pre = el.querySelector('pre'), op = el.querySelector('.open');
+    pre.textContent = s.parts.map(tidySource).join('\n\n─────\n\n');
+    op.onclick = () => { pre.hidden = !pre.hidden; op.textContent = pre.hidden ? '원문' : '접기'; };
+    fillByl(el, s);
+    const pgb = el.querySelector('.pg');
+    if (pgb) pgb.onclick = () => {
+      let img = el.querySelector('img.pg');
+      if (img) { img.hidden = !img.hidden; return; }
+      img = document.createElement('img');
+      img.className = 'pg'; img.alt = `${s.law} ${s.page}쪽`;
+      img.src = `/api/page?code=${s.code}&page=${s.page}`;
+      img.onerror = () => { img.replaceWith(Object.assign(document.createElement('span'), {textContent: '이 서버에는 PDF 원문이 없습니다'})); };
+      el.appendChild(img);
+    };
+    box.appendChild(el);
+  });
+  if (list.length > show) {
+    const more = document.createElement('span');
+    more.className = 'more';
+    more.textContent = `나머지 ${list.length - show}건 보기`;
+    more.onclick = () => { box.querySelectorAll('.src.hidden').forEach(e => e.classList.remove('hidden')); more.remove(); };
+    cap.appendChild(more);
+  }
+  wrap.appendChild(box);
+}
+
+// ── 안전거리 계산기 ──────────────────────────────────────────────
+let TABLES = null;
+$('#calc').onclick = openCalc;
+async function openCalc() {
+  $('#calcbg').classList.add('open');
+  if (!TABLES) {
+    TABLES = (await fetch('/api/distance').then(r => r.json())).tables;
+    $('#ctable').innerHTML = TABLES.map(t => `<option value="${t.id}">${esc(t.name)} — ${esc(t.ref)}</option>`).join('');
+    $('#ctable').onchange = () => { $('#cunit').textContent = '단위 · ' + TABLES.find(t => t.id === $('#ctable').value).unit; };
+    $('#ctable').onchange();
+  }
+  $('#ccap').focus();
+}
+$('#crun').onclick = runCalc;
+$('#ccap').addEventListener('keydown', e => { if (e.key === 'Enter') runCalc(); });
+async function runCalc() {
+  const cap = $('#ccap').value.replace(/[^\d]/g, '');
+  if (!cap) return $('#ccap').focus();
+  const r = await fetch(`/api/distance?table=${$('#ctable').value}&cap=${cap}`);
+  const d = await r.json();
+  const box = $('#cres');
+  if (!r.ok) { box.innerHTML = `<div class="result">${esc(d.error)}</div>`; return; }
+  const capTxt = Number(cap).toLocaleString();
+  box.innerHTML = `<div class="result">
+    <div><b>${esc(capTxt)}</b> → <b>${esc(d.label)}</b> 구간 <a class="cite" href="${esc(d.link)}" target="_blank" rel="noopener">${esc(d.ref)}</a></div>
+    <div class="big">${d.columns.map((c, i) => `<div><small>${esc(c)}</small><strong>${esc(d.values[i])}</strong></div>`).join('')}</div>
+    ${d.extra ? `<div class="sub">단서 · ${esc(d.extra)}</div>` : ''}
+    <ul>${d.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+    <div class="tblwrap"><table><thead><tr><th>구간</th>${d.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>
+      ${d.rows.map(rw => `<tr class="${rw.label === d.label ? 'hit' : ''}"><td>${esc(rw.label)}</td>${rw.values.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}
+    </tbody></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" id="cask">이 조건으로 챗봇에 묻기</button></div>
+  </div>`;
+  $('#cask').onclick = () => {
+    $('#calcbg').classList.remove('open');
+    $('#q').value = `${d.name.split(' — ')[0]} 처리·저장능력 ${capTxt}일 때 제1종·제2종 보호시설 안전거리와 예외 조건은?`;
+    send();
+  };
+}
+
+// ── 대화 공유 ────────────────────────────────────────────────────
+$('#share').onclick = async () => {
+  const body = $('#sharebody');
+  $('#sharebg').classList.add('open');
+  if (!turns.length) { body.innerHTML = '<p class="sub">아직 저장할 대화가 없습니다. 먼저 질문해 주세요.</p>'; return; }
+  body.innerHTML = '<p class="sub">저장하는 중…</p>';
+  try {
+    const r = await fetch('/api/share', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({turns})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+    const url = location.origin + d.path;
+    body.innerHTML = `<div class="share-url"><input type="text" readonly value="${esc(url)}"><button class="btn" id="copy">복사</button></div>
+      <p class="sub" style="margin-top:10px">질문 ${turns.length}개가 저장되었습니다. 받은 사람도 이어서 질문할 수 있습니다.</p>`;
+    $('#copy').onclick = () => { navigator.clipboard.writeText(url).then(() => { $('#copy').textContent = '복사됨'; }); };
+    body.querySelector('input').select();
+  } catch (e) {
+    body.innerHTML = `<p class="sub">저장하지 못했습니다 · ${esc(e.message)}</p>`;
+  }
+};
+
+async function loadShare(id) {
+  log.innerHTML = '<div class="stage"><i></i><span>공유된 대화를 여는 중</span></div>';
+  try {
+    const r = await fetch('/api/share/' + id);
+    if (!r.ok) throw new Error('없는 공유 주소입니다');
+    const d = await r.json();
+    log.innerHTML = '';
+    const b = document.createElement('div');
+    b.className = 'banner';
+    b.textContent = `공유된 대화 · ${d.t} 저장 · 아래에서 이어서 질문할 수 있습니다`;
+    log.appendChild(b);
+    messages = []; turns = [];
+    for (const t of d.turns) {
+      addMe(t.q);
+      messages.push({role: 'user', text: t.q});
+      const ai = addAI();
+      Object.assign(ai, t); ai.turn = t;
+      render(ai, t.text || '');
+      messages.push({role: 'model', text: t.text || ''});
+      turns.push(t);
+    }
+    scroll();
+  } catch (e) {
+    greet();
+    const b = document.createElement('div');
+    b.className = 'banner'; b.textContent = '⚠️ ' + e.message;
+    log.prepend(b);
+  }
+}
+</script>
+</body>
+</html>

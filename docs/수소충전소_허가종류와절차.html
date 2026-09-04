@@ -1,0 +1,493 @@
+<title>수소충전소 허가의 종류와 절차</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root{
+    --ground:#F5F8F9; --surface:#FFFFFF; --sunk:#EDF3F4;
+    --ink:#10222A; --muted:#5B6E76; --faint:#8598A0;
+    --line:#D9E4E7; --line-soft:#E8EFF1;
+    --accent:#0F6E78; --mark:#A9542A; --mark-soft:#F6EAE2;
+    --shadow:0 1px 2px rgba(16,34,42,.05), 0 8px 24px -16px rgba(16,34,42,.28);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0C1216; --surface:#141D22; --sunk:#101A1F;
+      --ink:#E4EDEF; --muted:#94A7AF; --faint:#71858E;
+      --line:#243138; --line-soft:#1C272D;
+      --accent:#57C2C9; --mark:#DE9666; --mark-soft:#2C1F17;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1216; --surface:#141D22; --sunk:#101A1F;
+    --ink:#E4EDEF; --muted:#94A7AF; --faint:#71858E;
+    --line:#243138; --line-soft:#1C272D;
+    --accent:#57C2C9; --mark:#DE9666; --mark-soft:#2C1F17;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+    font-size:16px;line-height:1.78;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:51rem;margin:0 auto;padding:4.5rem 1.5rem 6rem}
+
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.72rem;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    font-weight:500;margin:0 0 1.1rem}
+  h1{font-family:"Noto Serif KR",serif;font-weight:700;
+    font-size:clamp(1.85rem,4.6vw,2.5rem);line-height:1.32;
+    margin:0 0 1rem;text-wrap:balance;letter-spacing:-.01em}
+  .standfirst{font-size:1.04rem;color:var(--muted);margin:0;font-weight:300;max-width:37rem}
+  .meta{display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;margin-top:2rem;
+    padding-top:1.25rem;border-top:1px solid var(--line);
+    font-size:.83rem;color:var(--faint)}
+  .meta b{color:var(--muted);font-weight:500}
+
+  section{margin-top:3.8rem}
+  .chap{display:flex;align-items:baseline;gap:.85rem;margin-bottom:.4rem}
+  .chap-no{font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-weight:500;
+    color:var(--accent);letter-spacing:.06em;flex:none;padding-top:.15rem}
+  h2{font-family:"Noto Serif KR",serif;font-weight:700;font-size:1.28rem;
+    line-height:1.42;margin:0;text-wrap:balance}
+  .sub{color:var(--faint);font-size:.86rem;margin:0 0 1.4rem;padding-left:2.5rem}
+  .body{padding-left:2.5rem}
+  @media (max-width:34rem){.sub,.body{padding-left:0}.wrap{padding:3rem 1.15rem 4rem}}
+
+  h3{font-size:.95rem;font-weight:600;margin:1.9rem 0 .55rem}
+  p{margin:0 0 1rem}
+  strong{font-weight:600}
+  em{font-style:normal;color:var(--accent);font-weight:500}
+  .ref{font-family:"IBM Plex Mono",monospace;font-size:.76rem;color:var(--faint);
+    white-space:nowrap}
+
+  /* 요약 카드 */
+  .keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));
+    gap:.55rem;margin:1.5rem 0}
+  .key{background:var(--surface);border:1px solid var(--line);
+    border-left:3px solid var(--accent);border-radius:2px;
+    padding:.95rem 1.1rem;box-shadow:var(--shadow)}
+  .key .k{font-family:"IBM Plex Mono",monospace;font-size:.67rem;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--faint);
+    display:block;margin-bottom:.3rem}
+  .key .v{font-family:"Noto Serif KR",serif;font-weight:700;font-size:1.02rem;
+    line-height:1.45}
+  .key .n{font-size:.82rem;color:var(--muted);margin-top:.25rem;line-height:1.6}
+
+  /* 절차 단계 */
+  .steps{counter-reset:s;margin:1.5rem 0;display:flex;flex-direction:column;gap:0}
+  .st{display:grid;grid-template-columns:2.1rem 1fr;gap:1rem;
+    padding:1.05rem 0;border-top:1px solid var(--line-soft);align-items:start}
+  .st:first-child{border-top:1px solid var(--line)}
+  .st:last-child{border-bottom:1px solid var(--line)}
+  .st::before{counter-increment:s;content:counter(s,decimal-leading-zero);
+    font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-weight:500;
+    color:var(--accent);padding-top:.2rem}
+  .st-t{font-weight:600;font-size:.98rem;margin-bottom:.15rem;
+    display:flex;flex-wrap:wrap;gap:.5rem;align-items:baseline}
+  .who{font-size:.75rem;font-weight:500;color:var(--mark);
+    background:var(--mark-soft);padding:.08rem .42rem;border-radius:2px}
+  .st-d{font-size:.9rem;color:var(--muted);line-height:1.7}
+  .st-d .ref{display:inline-block;margin-top:.25rem}
+
+  /* 표 */
+  .scroll{overflow-x:auto;margin:1.3rem 0;border:1px solid var(--line);
+    border-radius:2px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:33rem}
+  th,td{padding:.7rem .95rem;text-align:left;vertical-align:top;
+    border-bottom:1px solid var(--line-soft)}
+  thead th{background:var(--sunk);font-weight:600;font-size:.73rem;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--faint);
+    border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  td.name{font-weight:500;color:var(--ink);white-space:nowrap}
+  td.rf{font-family:"IBM Plex Mono",monospace;font-size:.76rem;
+    color:var(--faint);white-space:nowrap}
+
+  .note{background:var(--surface);border:1px solid var(--line);border-radius:2px;
+    padding:1rem 1.15rem;margin:1.3rem 0;font-size:.89rem;color:var(--muted)}
+  .note .lbl{display:block;font-family:"IBM Plex Mono",monospace;font-size:.67rem;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+    font-weight:500;margin-bottom:.45rem}
+  .note.warn{background:var(--mark-soft);border-color:transparent}
+  .note.warn .lbl{color:var(--mark)}
+  .note p:last-child{margin-bottom:0}
+
+  ul{margin:.4rem 0 1rem;padding-left:1.15rem}
+  li{margin-bottom:.42rem}
+  li::marker{color:var(--faint)}
+
+  hr.end{border:0;border-top:1px solid var(--line);margin:4rem 0 1.5rem}
+  .colophon{font-size:.8rem;color:var(--faint);margin:0;line-height:1.8}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line)}
+  a:hover,a:focus-visible{border-bottom-color:var(--accent)}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:1px}
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">보고서 초안 · 고압가스법 중심</p>
+  <h1>수소충전소는 어떤 허가를<br>어떤 순서로 받아야 하는가</h1>
+  <p class="standfirst">
+    수소충전소는 법적으로 “고압가스를 제조하는 시설”이다.
+    그래서 인허가의 뼈대는 고압가스 안전관리법에서 나온다.
+    여기서 출발해 허가의 종류와 절차를 정리한다.
+  </p>
+
+  <div class="meta">
+    <span><b>대상</b> 수소연료 충전시설(자동차용)</span>
+    <span><b>기준법</b> 고압가스 안전관리법</span>
+    <span><b>작성</b> 2026. 8. 31.</span>
+  </div>
+
+  <!-- 00 요약 -->
+  <section>
+    <div class="chap"><span class="chap-no">00</span><h2>먼저 결론</h2></div>
+    <p class="sub">아래 네 가지만 알면 나머지는 세부다.</p>
+    <div class="body">
+      <div class="keys">
+        <div class="key">
+          <span class="k">법적 성격</span>
+          <div class="v">고압가스 제조</div>
+          <div class="n">충전은 법률상 “제조”에 포함된다. 그래서 제조허가 대상이다.</div>
+        </div>
+        <div class="key">
+          <span class="k">허가청</span>
+          <div class="v">시장·군수·구청장</div>
+          <div class="n">제조소 소재지 관할. 특별자치시장·특별자치도지사 포함.</div>
+        </div>
+        <div class="key">
+          <span class="k">먼저 거칠 곳</span>
+          <div class="v">한국가스안전공사</div>
+          <div class="n">허가 신청 전에 기술검토를 받아 그 결과를 첨부한다.</div>
+        </div>
+        <div class="key">
+          <span class="k">끝나는 지점</span>
+          <div class="v">사업 개시 신고</div>
+          <div class="n">완성검사 합격만으로 끝이 아니다. 개시 전에 따로 신고한다.</div>
+        </div>
+      </div>
+
+      <p>즉 <em>기술검토 → 허가 → 공사 중 중간검사 → 완성검사 → 사업 개시 신고</em>가 큰 줄기이고,
+      그 사이에 안전관리자 선임과 안전관리규정 제출이 끼어든다.</p>
+    </div>
+  </section>
+
+  <!-- 01 -->
+  <section>
+    <div class="chap"><span class="chap-no">01</span><h2>왜 “고압가스 제조허가”인가</h2></div>
+    <p class="sub">수소충전소라는 이름의 허가는 따로 없다.</p>
+    <div class="body">
+      <p>고압가스 안전관리법 제4조 제1항은 <strong>“고압가스를 제조(용기 또는 차량에 고정된 탱크에
+      충전하는 것을 포함한다)하려는 자는 그 제조소마다 시장·군수 또는 구청장의 허가를 받아야 한다”</strong>고 정한다.</p>
+
+      <p><em>충전이 제조에 포함된다</em>는 괄호가 핵심이다.
+      수소를 만들어 넣든(제조식), 받아 와서 저장했다가 넣든(저장식),
+      법적으로는 모두 “제조”이고 따라서 제조허가 대상이다. <span class="ref">고압가스법 제4조①</span></p>
+
+      <p>다만 시설의 성격에 따라 <strong>특정제조</strong>와 <strong>일반제조</strong>로 갈린다.
+      석유정제·비료제조 등 대규모 사업장에 딸린 시설로서 일정 규모를 넘으면 특정제조,
+      그 밖은 일반제조다. 수소충전소는 통상 <strong>일반제조</strong>에 해당한다.
+      <span class="ref">고압가스법 시행령 제3조</span></p>
+
+      <div class="note">
+        <span class="lbl">한 걸음 더</span>
+        <p>시설 기준의 실제 수치는 법에 없다. 법이 시행규칙 별표로 넘기고,
+        별표가 다시 <strong>KGS Code</strong>로 넘긴다.
+        수소충전소는 <strong>KGS FP216</strong>(제조식) 또는 <strong>KGS FP217</strong>(저장식)이 최종 기준서다.
+        예컨대 제1종보호시설과의 안전거리는 처리·저장능력에 따라 17m~30m다.
+        <span class="ref">KGS FP216 2.1.1.1</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="chap"><span class="chap-no">02</span><h2>허가의 종류</h2></div>
+    <p class="sub">허가 · 신고 · 등록이 각각 다른 자리에 있다.</p>
+    <div class="body">
+      <div class="scroll">
+        <table>
+          <thead><tr><th>구분</th><th>대상</th><th>누구에게</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="name">제조허가</td>
+              <td>고압가스를 제조(충전)하려는 자 — 제조소마다</td>
+              <td>시장·군수·구청장</td>
+              <td class="rf">법 제4조①</td>
+            </tr>
+            <tr>
+              <td class="name">제조신고</td>
+              <td>대통령령이 정하는 종류·규모 <strong>이하</strong>의 제조</td>
+              <td>시장·군수·구청장</td>
+              <td class="rf">법 제4조②</td>
+            </tr>
+            <tr>
+              <td class="name">저장소 설치허가</td>
+              <td>저장소를 설치하려는 자 — 저장소마다</td>
+              <td>시장·군수·구청장</td>
+              <td class="rf">법 제4조⑤</td>
+            </tr>
+            <tr>
+              <td class="name">판매허가</td>
+              <td>고압가스를 판매하려는 자 — 판매소마다</td>
+              <td>시장·군수·구청장</td>
+              <td class="rf">법 제4조⑤</td>
+            </tr>
+            <tr>
+              <td class="name">변경허가</td>
+              <td>허가사항 중 <strong>중요 사항</strong> 변경</td>
+              <td>허가관청</td>
+              <td class="rf">법 제4조① 후단<br>시행규칙 제4조</td>
+            </tr>
+            <tr>
+              <td class="name">변경신고</td>
+              <td>허가사항 중 경미한 사항 변경</td>
+              <td>허가관청</td>
+              <td class="rf">시행규칙 제4조</td>
+            </tr>
+            <tr>
+              <td class="name">제조등록</td>
+              <td>용기·냉동기·특정설비를 제조하려는 자</td>
+              <td>시장·군수·구청장</td>
+              <td class="rf">법 제5조①</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>변경허가를 받아야 하는 “중요 사항”</h3>
+      <p>시행규칙 제4조가 열거한다. 수소충전소와 관련이 큰 것만 추리면 —</p>
+      <ul>
+        <li>사업소의 위치 변경</li>
+        <li>제조·저장·판매하는 고압가스의 종류 변경</li>
+        <li>저장설비의 교체 설치, 저장설비의 위치 또는 능력 변경</li>
+        <li>처리설비의 위치 또는 능력 변경</li>
+        <li>방호벽의 변경</li>
+        <li>압력용기 중 산업통상자원부령이 정하는 설비의 교체 설치</li>
+      </ul>
+      <p>다만 저장하는 고압가스의 종류를 변경하는 경우라도
+      <strong>한국가스안전공사가 안전에 지장이 없다고 확인</strong>하면 제외된다.
+      <span class="ref">시행규칙 제4조 제2호 가목</span></p>
+
+      <div class="note warn">
+        <span class="lbl">확인 필요</span>
+        <p>제조허가의 <strong>법정 처리기간</strong>은 법령에 명시가 없다.
+        반면 제조<em>신고</em>는 “신고를 받은 날부터 <strong>2일 이내</strong>에 수리 여부를 통지”하도록 되어 있고,
+        그 기간 내 통지가 없으면 수리한 것으로 본다. <span class="ref">법 제4조③④</span><br>
+        실무 처리기간은 지자체 민원 처리 기준을 따로 확인해야 한다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="chap"><span class="chap-no">03</span><h2>절차 — 순서대로</h2></div>
+    <p class="sub">각 단계의 주체를 함께 표시했다.</p>
+    <div class="body">
+      <div class="steps">
+
+        <div class="st">
+          <div>
+            <div class="st-t">기술검토 신청 <span class="who">한국가스안전공사</span></div>
+            <div class="st-d">
+              허가를 신청하기 <strong>전에</strong> 받는다.
+              별지 제8호서식 신청서에 시설 설치계획서, 시설·기술기준 검토에 필요한 도면과 설명서를 첨부해
+              한국가스안전공사에 제출한다.
+              <span class="ref">시행규칙 제7조</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">제조허가 신청 <span class="who">시·군·구청</span></div>
+            <div class="st-d">
+              별지 제1호서식 허가신청서에 <strong>사업계획서</strong>, 법인인 경우 <strong>정관</strong>,
+              그리고 앞 단계에서 받은 <strong>기술검토서</strong>를 첨부한다.
+              변경허가를 신청할 때는 변경되는 부분만 첨부하면 된다.
+              <span class="ref">시행규칙 제5조</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">관할 소방서 통보 <span class="who">관청 → 소방서</span></div>
+            <div class="st-d">
+              허가·신고를 받은 관청이 그 사실을 관할 소방서장에게 알린다.
+              신청인이 하는 절차는 아니지만, 소방 협의가 이 시점에 시작된다는 뜻이다.
+              <span class="ref">법 제4조</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">공사 중 — 중간검사 <span class="who">한국가스안전공사</span></div>
+            <div class="st-d">
+              덮기 전에 봐야 하는 공정마다 받는다. 별지 제20호서식으로 신청한다.
+              <ul>
+                <li>기밀시험·내압시험을 할 수 있는 상태의 공정</li>
+                <li>저장탱크를 지하에 매설하기 직전의 공정</li>
+                <li>배관을 지하에 설치할 때 지정 부분을 매몰하기 직전의 공정</li>
+                <li>지정 부분의 비파괴시험 공정</li>
+                <li>방호벽 또는 저장탱크의 기초 설치 공정</li>
+                <li>내진설계 대상 설비의 기초 설치 공정</li>
+              </ul>
+              <span class="ref">법 제16조① · 시행규칙 제28조①②</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">공사 완료 — 완성검사 <span class="who">한국가스안전공사</span></div>
+            <div class="st-d">
+              별지 제21호서식으로 신청하고, 합격하면
+              <strong>별지 제22호서식의 완성검사증명서</strong>를 받는다.
+              변경허가·변경신고 대상 공사도 완성검사 대상이다.
+              <span class="ref">법 제16조③ · 시행규칙 제28조①③⑤</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">안전관리자 선임 · 신고 <span class="who">허가관청</span></div>
+            <div class="st-d">
+              사업 개시 또는 시설 사용 <strong>전에</strong> 선임하고, 선임·해임·퇴직 시
+              <strong>지체 없이</strong> 신고한다. 해임·퇴직일부터 <strong>30일 이내</strong>에 후임을 선임해야 하며,
+              부득이한 경우 관청 승인을 받아 연장할 수 있다.
+              선임 인원과 자격은 시설 구분과 저장능력에 따라 정해진다.
+              <span class="ref">법 제15조</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">안전관리규정 제출 <span class="who">허가관청</span></div>
+            <div class="st-d">
+              사업 개시나 저장소 사용 <strong>전에</strong> 안전관리규정을 정해 제출한다.
+              이때 <strong>한국가스안전공사의 의견서</strong>를 첨부해야 한다.
+              <span class="ref">법 제11조①</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">사업 개시 신고 <span class="who">허가관청</span></div>
+            <div class="st-d">
+              사업 또는 저장소의 사용을 시작하려면 <strong>미리</strong> 신고한다.
+              별지 제9호서식을 쓰며, 중단·폐지·재개도 같은 서식으로 신고한다.
+              폐지 신고 시에는 해당 고압가스를 폐기한 사실을 증명하는 서류를 첨부한다.
+              <span class="ref">법 제7조 · 시행규칙 제11조</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st">
+          <div>
+            <div class="st-t">운영 중 — 정기검사 · 안전성 확보 <span class="who">한국가스안전공사</span></div>
+            <div class="st-d">
+              사업 개시 신고 후 일정 주기로 정기검사를 받는다.
+              안전성향상계획 대상 시설은 <strong>사업 개시 신고 전 또는 개시 후 30일 이내</strong>
+              최초 확인평가를 받고, 이후 시설 구분에 따른 주기로 다시 받는다.
+              <span class="ref">법 제11조의6 · 시행규칙 제20조</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="chap"><span class="chap-no">04</span><h2>고압가스법만으로 끝나지 않는다</h2></div>
+    <p class="sub">부지·건물·환경·소방·전기가 함께 걸린다.</p>
+    <div class="body">
+      <div class="scroll">
+        <table>
+          <thead><tr><th>법</th><th>무엇이 걸리나</th><th>누구에게</th></tr></thead>
+          <tbody>
+            <tr><td class="name">국토계획법</td><td>용도지역에 맞는지 — 안 맞으면 용도 변경 또는 입지 재검토</td><td>시·군·구청</td></tr>
+            <tr><td class="name">건축법</td><td>건축허가, 공사 완료 후 <strong>사용승인</strong></td><td>시·군·구청</td></tr>
+            <tr><td class="name">소방시설법</td><td>건축 인허가 시 소방 동의</td><td>관할 소방서</td></tr>
+            <tr><td class="name">대기환경보전법</td><td>개질기 등 배출시설을 두면 배출시설 신고·허가</td><td>시·도 또는 유역·지방환경청</td></tr>
+            <tr><td class="name">전기사업법</td><td>수전설비 등 전기설비 관련 절차</td><td>산업통상자원부·한국전기안전공사</td></tr>
+            <tr><td class="name">수소법</td><td>수소연료공급시설·수소용품 관련 별도 절차</td><td>시·군·구청 등</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>실제 순서는 <strong>지자체 조례와 사업 성격에 따라 달라진다.</strong>
+      위 표는 “무엇이 걸리는지”의 목록이지, 고정된 순서가 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="chap"><span class="chap-no">05</span><h2>근거 조문 한눈에</h2></div>
+    <p class="sub">보고서에 그대로 붙일 수 있게 정리했다.</p>
+    <div class="body">
+      <div class="scroll">
+        <table>
+          <thead><tr><th>내용</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr><td>제조허가 · 충전이 제조에 포함</td><td class="rf">고압가스법 제4조①</td></tr>
+            <tr><td>제조신고 대상, 2일 내 수리 통지</td><td class="rf">고압가스법 제4조②③④</td></tr>
+            <tr><td>저장소 설치허가 · 판매허가</td><td class="rf">고압가스법 제4조⑤</td></tr>
+            <tr><td>용기등 제조등록</td><td class="rf">고압가스법 제5조①</td></tr>
+            <tr><td>사업 개시 · 중단 · 폐지 신고</td><td class="rf">고압가스법 제7조</td></tr>
+            <tr><td>안전관리규정 제출(공사 의견서 첨부)</td><td class="rf">고압가스법 제11조①</td></tr>
+            <tr><td>안전관리자 선임 · 신고 · 30일 내 후임</td><td class="rf">고압가스법 제15조</td></tr>
+            <tr><td>중간검사 · 완성검사</td><td class="rf">고압가스법 제16조</td></tr>
+            <tr><td>특정제조 허가 대상 규모</td><td class="rf">시행령 제3조</td></tr>
+            <tr><td>변경허가 · 변경신고 대상</td><td class="rf">시행규칙 제4조</td></tr>
+            <tr><td>허가신청 서식과 첨부서류</td><td class="rf">시행규칙 제5조</td></tr>
+            <tr><td>기술검토 신청</td><td class="rf">시행규칙 제7조</td></tr>
+            <tr><td>사업 개시 신고 서식</td><td class="rf">시행규칙 제11조</td></tr>
+            <tr><td>확인평가 시기</td><td class="rf">시행규칙 제20조</td></tr>
+            <tr><td>중간 · 완성검사 공정과 서식</td><td class="rf">시행규칙 제28조</td></tr>
+            <tr><td>수소연료 충전 시설기준(제조식 / 저장식)</td><td class="rf">KGS FP216 / FP217</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section>
+    <div class="chap"><span class="chap-no">06</span><h2>더 확인할 것</h2></div>
+    <p class="sub">단정하지 않고 남겨 둔 부분. 멘토링에서 여쭐 수 있다.</p>
+    <div class="body">
+      <ul>
+        <li><strong>제조허가의 실제 처리기간</strong> — 법령에 없다. 지자체 민원 처리 기준을 봐야 한다.</li>
+        <li><strong>수소충전소가 일반제조로 확정되는 기준</strong> — 시행령 제3조의 규모 요건을 실제 사업 규모에 대입해 확인이 필요하다.</li>
+        <li><strong>수소법과 고압가스법의 적용 관계</strong> — 어느 시설이 어느 법을 따르는지 경계가 실무에서 어떻게 정리되는지.</li>
+        <li><strong>검사를 받지 않았을 때의 제재</strong> — 이번 정리에서는 근거를 확인하지 못했다.</li>
+      </ul>
+
+      <div class="note">
+        <span class="lbl">작성 방법</span>
+        <p>이 초안의 사실관계는 국가법령정보센터에서 수집한 법령 원문과
+        한국가스안전공사 KGS Code를 검색해 확인했다.
+        본문의 조문 번호는 모두 원문에서 직접 대조한 것이다.
+        확인되지 않은 항목은 위와 같이 따로 표시했다.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="end">
+  <p class="colophon">
+    2026 WE-Meet 연구과제 · 강원대학교 에너지신산업혁신융합대학사업단<br>
+    기업 멘토 — 한국가스안전공사 수소안전기술원<br>
+    자료 출처 — 국가법령정보센터(law.go.kr) · 가스기술기준정보시스템(cyber.kgs.or.kr)
+  </p>
+
+</div>

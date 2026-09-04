@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 시험용 페이지라 검색에는 안 걸리게 막는다. 공개할 때 이 줄을 지운다. -->
+<meta name="robots" content="noindex, nofollow">
+<title>수소시설 인허가 가이드 (시험)</title>
+<style>
+  /* 챗봇이 화면을 꽉 채우게 한다. 폰에서 주소창 때문에 잘리는 것을 막으려고
+     100vh 대신 동적 높이(dvh)를 쓰고, 안 되는 브라우저용으로 vh 를 먼저 둔다. */
+  html, body { margin: 0; padding: 0; height: 100%; background: #f2f2f7; }
+  body { display: flex; flex-direction: column;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                      "Malgun Gothic", sans-serif; }
+
+  header { flex: none; padding: 10px 14px; background: #fff;
+           border-bottom: 1px solid #e5e5ea; }
+  header b { font-size: 15px; color: #1c1c1e; }
+  header span { font-size: 12px; color: #8e8e93; margin-left: 8px; }
+
+  .frame { flex: 1 1 auto; min-height: 0; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; }
+
+  footer { flex: none; padding: 8px 14px 14px; font-size: 12px;
+           line-height: 1.5; color: #8e8e93; text-align: center; }
+  footer a { color: #007aff; }
+</style>
+</head>
+<body>
+
+<header>
+  <b>수소시설 인허가 가이드</b><span>시험용 페이지</span>
+</header>
+
+<div class="frame">
+  <!-- 챗봇은 우리 서버에 그대로 있고, 이 창으로 빌려 보여준다.
+       주소가 바뀌면 아래 src 한 줄만 고치면 된다. -->
+  <iframe
+    src="https://hydrogen-bot.tmdfoqhdl030.workers.dev"
+    title="수소시설 인허가 가이드 챗봇"
+    allow="clipboard-write"
+    referrerpolicy="no-referrer"></iframe>
+</div>
+
+<footer>
+  법령 검색 결과를 바탕으로 한 <b>참고용 안내</b>입니다. 법적 효력이 없으며,
+  실제 인허가는 관할 관청과 원문을 확인해 주세요.<br>
+  화면이 비어 있으면 <a href="https://hydrogen-bot.tmdfoqhdl030.workers.dev"
+  target="_blank" rel="noopener">새 창으로 열기</a>
+</footer>
+
+</body>
+</html>

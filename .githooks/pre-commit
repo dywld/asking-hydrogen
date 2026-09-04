@@ -1,0 +1,16 @@
+#!/bin/sh
+# 커밋 전 회귀 검사 — 검색 정확도가 떨어지면 커밋을 막는다.
+#
+# 켜는 법(한 번만):  git config core.hooksPath .githooks
+# 건너뛰기:          git commit --no-verify   (급할 때만. 이유를 커밋 메시지에 적는다)
+#
+# 모델을 부르지 않는 검색 채점(--retrieval)만 돌린다. 1분 안쪽, 무료.
+# 표(distance/facts)의 값이 원문과 어긋나도 막는다.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+export PYTHONIOENCODING=utf-8
+echo "[pre-commit] 표 값 원문 대조"
+python distance.py --check
+python facts.py --check
+echo "[pre-commit] 검색 채점 (eval_set_all.json, 최소 95%)"
+python eval/eval_run.py eval_set_all.json --retrieval --min 0.95 --quiet

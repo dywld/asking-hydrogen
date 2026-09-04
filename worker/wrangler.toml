@@ -1,0 +1,7 @@
+name = "hydrogen-bot"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+[vars]
+# 오라클 서버로 가는 임시 통로 주소. 서버가 터널을 새로 열면 이 값만 바꿔 다시 배포한다.
+ORIGIN = "https://ist-cannon-celebrities-lighter.trycloudflare.com"

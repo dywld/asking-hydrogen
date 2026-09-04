@@ -1,0 +1,505 @@
+<title>수소 인허가, 미국은 왜 다른가</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root{
+    --ground:#F5F8F9;
+    --surface:#FFFFFF;
+    --sunk:#EDF3F4;
+    --ink:#10222A;
+    --muted:#5B6E76;
+    --faint:#8598A0;
+    --line:#D9E4E7;
+    --line-soft:#E8EFF1;
+    --accent:#0F6E78;
+    --mark:#A9542A;
+    --mark-soft:#F6EAE2;
+    --shadow:0 1px 2px rgba(16,34,42,.05), 0 8px 24px -16px rgba(16,34,42,.28);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0C1216; --surface:#141D22; --sunk:#101A1F;
+      --ink:#E4EDEF; --muted:#94A7AF; --faint:#71858E;
+      --line:#243138; --line-soft:#1C272D;
+      --accent:#57C2C9; --mark:#DE9666; --mark-soft:#2C1F17;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1216; --surface:#141D22; --sunk:#101A1F;
+    --ink:#E4EDEF; --muted:#94A7AF; --faint:#71858E;
+    --line:#243138; --line-soft:#1C272D;
+    --accent:#57C2C9; --mark:#DE9666; --mark-soft:#2C1F17;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);
+    font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+    font-size:16px;line-height:1.78;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:50rem;margin:0 auto;padding:4.5rem 1.5rem 6rem}
+
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;font-size:.72rem;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    font-weight:500;margin:0 0 1.1rem;
+  }
+  h1{
+    font-family:"Noto Serif KR",serif;font-weight:700;
+    font-size:clamp(1.9rem,5vw,2.6rem);line-height:1.3;
+    margin:0 0 1rem;text-wrap:balance;letter-spacing:-.01em;
+  }
+  .standfirst{font-size:1.05rem;color:var(--muted);margin:0;font-weight:300;max-width:36rem}
+
+  /* 장 번호 — 순서대로 읽으라는 뜻 */
+  section{margin-top:4rem}
+  .chap{
+    display:flex;align-items:baseline;gap:.85rem;
+    margin-bottom:.4rem;
+  }
+  .chap-no{
+    font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-weight:500;
+    color:var(--accent);letter-spacing:.06em;flex:none;
+    padding-top:.15rem;
+  }
+  h2{
+    font-family:"Noto Serif KR",serif;font-weight:700;
+    font-size:1.3rem;line-height:1.42;margin:0;text-wrap:balance;
+  }
+  .sub{color:var(--faint);font-size:.86rem;margin:0 0 1.5rem;padding-left:2.5rem}
+  .body{padding-left:2.5rem}
+  @media (max-width:34rem){
+    .sub,.body{padding-left:0}
+    .wrap{padding:3rem 1.15rem 4rem}
+  }
+
+  h3{font-size:.95rem;font-weight:600;margin:1.9rem 0 .55rem}
+  p{margin:0 0 1rem}
+  strong{font-weight:600}
+  em{font-style:normal;color:var(--accent);font-weight:500}
+
+  /* 흐름 도해 */
+  .flow{
+    display:flex;flex-direction:column;gap:.45rem;margin:1.4rem 0;
+    font-size:.92rem;
+  }
+  .step{
+    display:grid;grid-template-columns:5rem 1fr;gap:1.1rem;align-items:start;
+    background:var(--surface);border:1px solid var(--line);
+    border-left:3px solid var(--accent);border-radius:2px;
+    padding:.9rem 1.1rem;box-shadow:var(--shadow);
+  }
+  .step.hi{border-left-color:var(--mark)}
+  .step-k{
+    font-family:"Noto Serif KR",serif;font-weight:700;font-size:.95rem;
+    line-height:1.5;
+  }
+  .step-k small{
+    display:block;font-family:"IBM Plex Mono",monospace;font-weight:400;
+    font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--faint);margin-top:.1rem;
+  }
+  .step-v{color:var(--muted);line-height:1.7}
+
+  /* 표 */
+  .scroll{overflow-x:auto;margin:1.3rem 0;border:1px solid var(--line);
+    border-radius:2px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:32rem}
+  th,td{padding:.7rem .95rem;text-align:left;vertical-align:top;
+    border-bottom:1px solid var(--line-soft)}
+  thead th{background:var(--sunk);font-weight:600;font-size:.73rem;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--faint);
+    border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  td.name{font-weight:500;color:var(--ink);white-space:nowrap}
+  td .en{display:block;font-family:"IBM Plex Mono",monospace;
+    font-size:.71rem;color:var(--faint);font-weight:400}
+  table.vs td:nth-child(3){color:var(--mark);font-weight:500}
+  table.vs th:nth-child(3){color:var(--mark)}
+
+  /* 상자 */
+  .note{background:var(--surface);border:1px solid var(--line);
+    border-radius:2px;padding:1rem 1.15rem;margin:1.3rem 0;
+    font-size:.89rem;color:var(--muted)}
+  .note .lbl{display:block;font-family:"IBM Plex Mono",monospace;
+    font-size:.67rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;margin-bottom:.45rem}
+  .note.warn{background:var(--mark-soft);border-color:transparent}
+  .note.warn .lbl{color:var(--mark)}
+  .note p:last-child{margin-bottom:0}
+
+  ul{margin:.4rem 0 1rem;padding-left:1.15rem}
+  li{margin-bottom:.42rem}
+  li::marker{color:var(--faint)}
+
+  /* 자문자답 */
+  .check{margin:1.4rem 0;border-top:1px solid var(--line)}
+  details{border-bottom:1px solid var(--line-soft);padding:.15rem 0}
+  summary{
+    cursor:pointer;padding:.75rem .2rem;font-weight:500;font-size:.93rem;
+    list-style:none;display:flex;gap:.7rem;align-items:baseline;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::before{
+    content:"?";font-family:"IBM Plex Mono",monospace;color:var(--accent);
+    font-size:.8rem;flex:none;
+  }
+  details[open] summary{color:var(--accent)}
+  .ans{padding:0 .2rem .9rem 1.9rem;font-size:.9rem;color:var(--muted)}
+  .ans p:last-child{margin-bottom:0}
+
+  /* 용어 */
+  dl{margin:1.3rem 0;display:flex;flex-direction:column;gap:0}
+  dt{
+    font-weight:600;font-size:.93rem;padding-top:.9rem;
+    border-top:1px solid var(--line-soft);
+  }
+  dl>dt:first-child{border-top:1px solid var(--line)}
+  dt span{
+    font-family:"IBM Plex Mono",monospace;font-weight:400;font-size:.74rem;
+    color:var(--faint);margin-left:.5rem;
+  }
+  dd{margin:.15rem 0 .9rem;font-size:.9rem;color:var(--muted)}
+
+  .src{font-size:.82rem;color:var(--faint);line-height:1.85}
+  .src a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+  .src a:hover,.src a:focus-visible{color:var(--accent);border-bottom-color:var(--accent)}
+  a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);
+    outline-offset:2px;border-radius:1px}
+  hr.end{border:0;border-top:1px solid var(--line);margin:4rem 0 1.5rem}
+  .colophon{font-size:.8rem;color:var(--faint);margin:0}
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">공부용 정리 · 캘리포니아</p>
+  <h1>수소 인허가,<br>미국은 왜 다른가</h1>
+  <p class="standfirst">
+    한국 법을 먼저 본 사람이 미국 자료를 열면 제일 먼저 당황한다.
+    안전거리 수치가 아무리 찾아도 안 나오기 때문이다.
+    그 이유부터 풀어 간다.
+  </p>
+
+  <!-- 1 -->
+  <section>
+    <div class="chap"><span class="chap-no">01</span><h2>연방법에는 수치가 없다</h2></div>
+    <p class="sub">가장 먼저 넘어야 할 오해.</p>
+    <div class="body">
+      <p>한국은 <strong>고압가스 안전관리법 시행규칙 별표</strong>를 펴면 “제1종보호시설로부터 17m”가 적혀 있다.
+      중앙정부가 전국에 똑같이 적용되는 숫자를 정해 두기 때문이다.</p>
+
+      <p>미국 연방법에는 그런 게 없다. 연방이 다루는 건 <em>딱 세 가지</em>다.</p>
+      <ul>
+        <li><strong>OSHA</strong> — 근로자 안전. 수소 저장·취급 (29 CFR 1910.103)</li>
+        <li><strong>DOT · PHMSA</strong> — 운송. 튜브트레일러·탱크로리 (49 CFR)</li>
+        <li><strong>EPA</strong> — 배출과 위험물질</li>
+      </ul>
+
+      <p>충전소를 <em>어디에 얼마나 떨어뜨려 지을지</em>는 연방 소관이 아니다.
+      그건 주와 지방의 일이다. 미국은 헌법상 안전·건축 규제 권한이 주에 있어서 그렇다.</p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <div class="chap"><span class="chap-no">02</span><h2>그래서 층이 셋이다</h2></div>
+    <p class="sub">이 그림 하나면 미국 구조는 설명된다.</p>
+    <div class="body">
+      <div class="flow">
+        <div class="step">
+          <div class="step-k">연방<small>Federal</small></div>
+          <div class="step-v">운송 · 근로자 안전 · 배출만.<br>충전소 입지 기준은 없음.</div>
+        </div>
+        <div class="step hi">
+          <div class="step-k">주<small>State</small></div>
+          <div class="step-v"><strong>실제 시설기준이 여기 있다.</strong><br>
+            캘리포니아의 모든 관할구역에서 <strong>California Fire Code</strong>가 강제된다.
+            환경검토는 <strong>CEQA</strong>가 맡는다.</div>
+        </div>
+        <div class="step">
+          <div class="step-k">지방<small>Local</small></div>
+          <div class="step-v"><strong>도장을 찍는 곳.</strong><br>
+            시·카운티의 소방서장 또는 건축허가 부서가 승인한다.
+            용도지역과 조례도 이 층이 정한다.</div>
+        </div>
+      </div>
+
+      <p>한국으로 치면 <em>주 = 시행규칙·별표</em>, <em>지방 = 시·군·구청</em>쯤 된다.
+      다만 결정적 차이가 있다. 한국은 시행규칙이 전국에 하나지만,
+      미국은 <strong>주마다 다르고, 같은 주 안에서도 시마다 다르다.</strong></p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <div class="chap"><span class="chap-no">03</span><h2>NFPA 2 — 한국에 없는 개념</h2></div>
+    <p class="sub">가장 헷갈리는 지점. 여기만 넘으면 나머지는 쉽다.</p>
+    <div class="body">
+      <p><strong>NFPA 2 (Hydrogen Technologies Code)</strong>는 미국화재예방협회라는
+      <em>민간단체</em>가 만든 책이다. 국회가 만든 법이 아니다.</p>
+
+      <p>그런데 주나 시가 “우리 관할에서는 이 책을 쓴다”고 <strong>채택(adopt)</strong>하면,
+      그 순간부터 법과 똑같은 강제력을 갖는다.
+      실무자가 실제로 펴 보는 건 법전이 아니라 이쪽이다.</p>
+
+      <div class="note">
+        <span class="lbl">한국에 굳이 대보면</span>
+        <p><strong>KGS Code</strong>와 비슷한 자리다. 둘 다 “법이 넘긴 최종 상세기준”이다.
+        다만 KGS Code는 <em>공공기관</em>(한국가스안전공사)이 만들고 법이 직접 위임하는 반면,
+        NFPA 2는 <em>민간</em>이 만들고 지자체가 갖다 쓴다.
+        그래서 미국은 <strong>어느 도시가 몇 년판을 채택했는지</strong>까지 확인해야 한다.</p>
+      </div>
+
+      <p>전기 설비도 같은 방식이다. <strong>NFPA 70</strong>(전기기준)이 채택되어 걸린다.</p>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <div class="chap"><span class="chap-no">04</span><h2>어떤 허가를 받아야 하나</h2></div>
+    <p class="sub">사업 형태와 부지 조건에 따라 걸리는 게 달라진다.</p>
+    <div class="body">
+      <div class="scroll">
+        <table>
+          <thead><tr><th>허가</th><th>누가 내주나</th><th>언제 걸리나</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="name">건축허가<span class="en">Building Permit</span></td>
+              <td>시·카운티 건축부서</td>
+              <td>충전설비를 설치하면 항상.</td>
+            </tr>
+            <tr>
+              <td class="name">소방 승인<span class="en">Fire Approval</span></td>
+              <td>관할 소방서</td>
+              <td>이격거리·방호 등 Fire Code 적합 여부. 사실상 모든 사업.</td>
+            </tr>
+            <tr>
+              <td class="name">조건부 사용허가<span class="en">Conditional Use Permit</span></td>
+              <td>도시계획부서</td>
+              <td>용도지역이 바로 맞지 않을 때. 주민의견·환경검토가 따라온다.</td>
+            </tr>
+            <tr>
+              <td class="name">환경검토<span class="en">CEQA Review</span></td>
+              <td>해당 인허가청</td>
+              <td>재량적 허가가 걸릴 때. 면제되는 사업도 많다.</td>
+            </tr>
+            <tr>
+              <td class="name">대기 배출허가<span class="en">Air Permit</span></td>
+              <td>지역 대기관리국</td>
+              <td>개질기처럼 배출설비를 둘 때. 부지에서 수소를 만들지 않으면 대개 해당 없음.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>여기서 <strong>AHJ</strong>라는 말이 계속 나온다.
+      <em>Authority Having Jurisdiction</em>, 우리말로 “관할 승인권자”다.
+      소방서장일 수도 있고 건축부서장일 수도 있는데,
+      <strong>지역마다 누구인지가 다르다.</strong> 그래서 이름을 특정하지 않고 이렇게 부른다.</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <div class="chap"><span class="chap-no">05</span><h2>CEQA는 “허가의 성격”으로 갈린다</h2></div>
+    <p class="sub">한국 환경영향평가법과 발동 조건이 다르다.</p>
+    <div class="body">
+      <p><strong>CEQA</strong>(California Environmental Quality Act)는
+      캘리포니아판 환경영향평가법이다. 그런데 언제 걸리는지가 한국과 다르다.</p>
+
+      <div class="scroll">
+        <table class="vs">
+          <thead><tr><th></th><th>한국 환경영향평가법</th><th>캘리포니아 CEQA</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="name">발동 조건</td>
+              <td>사업 <strong>규모</strong>가 기준을 넘으면</td>
+              <td>허가가 <strong>재량적</strong>이면</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>“재량적”이란 공무원이 <em>줄지 말지를 판단하는</em> 허가를 말한다. 조건부 사용허가(CUP)가 그렇다.
+      반대로 요건만 맞으면 무조건 내주는 허가(건축허가)는 <strong>비재량</strong>이고, CEQA가 붙지 않는다.</p>
+
+      <p>실제로 애너하임의 한 수소충전소 개선사업은 CUP를 받으면서
+      <strong>Class 3 면제</strong>(소규모 설치)로 정리됐다.
+      캘리포니아는 이런 판단을 <strong>CEQAnet</strong>에 공개해 둬서 선례를 찾아볼 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <div class="chap"><span class="chap-no">06</span><h2>지금 캘리포니아는 이걸 줄이는 중</h2></div>
+    <p class="sub">최근 2년 사이 법이 두 번 바뀌었다. 이야깃거리가 되는 대목.</p>
+    <div class="body">
+      <p><strong>SB 1291 (2022)</strong> — 캘리포니아의 모든 시·카운티가
+      수소충전소용 <em>신속 인허가 절차</em>를 마련하도록 의무화했다.</p>
+
+      <p><strong>SB 1418 (2024)</strong> — 여기서 한 걸음 더 나갔다.
+      아래 세 조건을 <strong>모두</strong> 만족하는 부지는
+      건축허가 같은 <em>비재량 허가로 행정 승인</em>해야 한다. 심사도 보건·안전 요건으로만 제한된다.</p>
+      <ul>
+        <li>산업 또는 상업 용도지역일 것</li>
+        <li>주거 세대가 없을 것</li>
+        <li>기존에 주유소로 쓰이던 부지일 것</li>
+      </ul>
+      <p>조례 마련 기한은 인구 25만 이상 <strong>2025. 9. 30.</strong>,
+      25만 미만 <strong>2028. 9. 30.</strong>이다.</p>
+
+      <div class="note">
+        <span class="lbl">여기가 재미있는 지점</span>
+        <p>허가를 <em>비재량</em>으로 바꾸면 <strong>CEQA도 함께 빠진다.</strong>
+        재량 판단이 없으면 환경검토가 발동하지 않기 때문이다.
+        환경법을 손대지 않고, 허가 하나의 성격만 바꿔서 절차 전체를 줄인 셈이다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <div class="chap"><span class="chap-no">07</span><h2>한국과 나란히 놓으면</h2></div>
+    <p class="sub">이 표가 결론이다.</p>
+    <div class="body">
+      <div class="scroll">
+        <table class="vs">
+          <thead><tr><th>항목</th><th>한국</th><th>캘리포니아</th></tr></thead>
+          <tbody>
+            <tr><td class="name">수치를 정하는 곳</td>
+              <td>중앙정부<br>시행규칙 별표 · KGS Code</td>
+              <td>주와 지방<br>Fire Code · NFPA 2</td></tr>
+            <tr><td class="name">허가청</td>
+              <td>시장·군수·구청장</td>
+              <td>소방서장 또는 건축부서 (AHJ)</td></tr>
+            <tr><td class="name">최종 상세기준</td>
+              <td>공공기관이 제정<br>(한국가스안전공사)</td>
+              <td>민간 표준을 채택<br>(NFPA)</td></tr>
+            <tr><td class="name">환경검토 대상</td>
+              <td>사업 규모로 결정</td>
+              <td>허가가 재량적인지로 결정</td></tr>
+            <tr><td class="name">지역 간 편차</td>
+              <td>전국 동일</td>
+              <td>시·카운티마다 다름</td></tr>
+            <tr><td class="name">최근 흐름</td>
+              <td>규제특례로 개별 완화<br>(실증특례·규제자유특구)</td>
+              <td>입법으로 절차 단축<br>(SB 1291 · SB 1418)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>한 줄로 외운다면</h3>
+      <p>한국은 <strong>법전 한 권을 펴면 답이 나오고</strong>,
+      미국은 <strong>어느 도시냐부터 물어야 답이 나온다.</strong></p>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <div class="chap"><span class="chap-no">08</span><h2>스스로 확인해 보기</h2></div>
+    <p class="sub">답이 바로 안 나오면 해당 장으로 돌아가면 된다.</p>
+    <div class="body">
+      <div class="check">
+        <details>
+          <summary>미국 연방법에는 왜 안전거리 수치가 없나?</summary>
+          <div class="ans"><p>안전·건축 규제 권한이 주에 있기 때문이다.
+          연방은 운송(DOT)·근로자 안전(OSHA)·배출(EPA)만 다룬다.</p></div>
+        </details>
+        <details>
+          <summary>NFPA 2는 법인가?</summary>
+          <div class="ans"><p>아니다. 민간단체가 만든 표준이다.
+          다만 주나 시가 채택하면 그때부터 법과 같은 강제력을 갖는다.</p></div>
+        </details>
+        <details>
+          <summary>AHJ가 누구인지 하나로 말할 수 있나?</summary>
+          <div class="ans"><p>없다. 지역마다 소방서장일 수도, 건축부서장일 수도 있다.
+          그래서 “관할 승인권자”라는 총칭을 쓴다.</p></div>
+        </details>
+        <details>
+          <summary>CEQA는 언제 걸리나?</summary>
+          <div class="ans"><p>허가가 <strong>재량적</strong>일 때. 사업 규모가 아니라 허가의 성격으로 갈린다.
+          한국 환경영향평가법과 여기가 다르다.</p></div>
+        </details>
+        <details>
+          <summary>SB 1418이 CEQA를 어떻게 건드렸나?</summary>
+          <div class="ans"><p>직접 건드리지 않았다. 특정 조건의 부지를
+          <strong>비재량 허가</strong>로 바꿨더니, 재량 판단이 사라져 CEQA가 자동으로 빠졌다.</p></div>
+        </details>
+        <details>
+          <summary>KGS Code와 NFPA 2의 차이는?</summary>
+          <div class="ans"><p>자리는 같다 — 법이 넘긴 최종 상세기준.
+          다만 KGS Code는 공공기관이 만들고 법이 직접 위임하지만,
+          NFPA 2는 민간이 만들고 지자체가 갖다 쓴다.</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 용어 -->
+  <section>
+    <div class="chap"><span class="chap-no">09</span><h2>약어 정리</h2></div>
+    <p class="sub">자료를 읽다 막히면 여기.</p>
+    <div class="body">
+      <dl>
+        <dt>AHJ<span>Authority Having Jurisdiction</span></dt>
+        <dd>관할 승인권자. 소방서장 또는 건축부서장. 지역마다 다르다.</dd>
+        <dt>CUP<span>Conditional Use Permit</span></dt>
+        <dd>조건부 사용허가. 용도지역이 바로 맞지 않을 때 받는 재량적 허가.</dd>
+        <dt>CEQA<span>California Environmental Quality Act</span></dt>
+        <dd>캘리포니아 환경질법. 우리 환경영향평가법에 해당.</dd>
+        <dt>NFPA<span>National Fire Protection Association</span></dt>
+        <dd>미국화재예방협회. NFPA 2(수소), NFPA 70(전기) 등 표준을 만든다.</dd>
+        <dt>CFR<span>Code of Federal Regulations</span></dt>
+        <dd>연방규정집. 우리 시행령·시행규칙 묶음쯤 된다.</dd>
+        <dt>OSHA<span>Occupational Safety and Health Administration</span></dt>
+        <dd>연방 산업안전보건청. 우리 산업안전보건법 소관 기관에 해당.</dd>
+        <dt>PHMSA<span>Pipeline and Hazardous Materials Safety Administration</span></dt>
+        <dd>연방 교통부 산하. 위험물 운송·배관 담당.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <!-- 확인 필요 -->
+  <section>
+    <div class="chap"><span class="chap-no">10</span><h2>아직 확실치 않은 것</h2></div>
+    <p class="sub">단정하지 않고 남겨 둔 부분.</p>
+    <div class="body">
+      <div class="note warn">
+        <span class="lbl">확인 필요</span>
+        <p><strong>대기 배출허가</strong>가 수소충전소에 통상 걸리는지는 단정할 수 없다.
+        관할 대기관리국(예: 남부해안 SCAQMD)마다 기준이 다르고,
+        부지에서 수소를 직접 만드는지 여부에 따라 갈린다.</p>
+      </div>
+      <p>그 밖에 더 알아볼 만한 것들.</p>
+      <ul>
+        <li>시·카운티별 편차를 어느 수준까지 봐야 하는지 — 도시 하나를 예시로 고정하는 편이 나을 수 있다</li>
+        <li>NFPA 2를 캘리포니아가 몇 년판으로 채택했는지</li>
+        <li>SB 1418 시행 이후 실제로 절차가 얼마나 짧아졌는지</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 출처 -->
+  <section>
+    <div class="chap"><span class="chap-no">11</span><h2>출처</h2></div>
+    <p class="sub">전부 공개 자료다. 원문으로 바로 갈 수 있다.</p>
+    <div class="body">
+      <ul class="src">
+        <li>캘리포니아 주정부 경제개발청(GO-Biz) — <a href="https://business.ca.gov/industries/zero-emission-vehicles/hydrogen-readiness/">Hydrogen Fueling Station Readiness</a> · SB 1291 · SB 1418 · 조례 기한</li>
+        <li>캘리포니아 주 상원 — <a href="https://sd30.senate.ca.gov/news/press-release/governor-signs-archuleta-bill-streamline-permitting-process-hydrogen-fueling">SB 1418 보도자료</a></li>
+        <li>California County News — <a href="https://www.californiacountynews.org/news/2025/02/burke-public-law-update-expedited-review-hydrogen-fueling-station-permits-sb-1418">SB 1418 해설</a> · 행정 승인 3요건</li>
+        <li>미국 에너지부 H2Tools — <a href="https://h2tools.org/codes-standards-permitting-tools">Codes &amp; Standards, Permitting Tools</a> · AHJ · NFPA 2 · NFPA 70</li>
+        <li>CALSTART EnergIIZE — <a href="https://energiize.org/wp-content/uploads/2025/09/6-06-2022-Permitting-H2.pdf">Hydrogen Fueling Station Permit Planning Tool</a> · 허가 단계</li>
+        <li>캘리포니아 CEQAnet — <a href="https://ceqanet.lci.ca.gov/2021060125">Iwatani Hydrogen Fueling Upgrade</a> · CUP + Class 3 면제 사례</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr class="end">
+  <p class="colophon">2026. 8. 26. 정리 · 공부용</p>
+
+</div>

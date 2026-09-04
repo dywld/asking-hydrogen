@@ -1,0 +1,151 @@
+{
+ "t": "2026-09-03 09:50",
+ "set": "eval_set",
+ "git": "600953d",
+ "kind": "full",
+ "n": 20,
+ "content": 18,
+ "ref": 20,
+ "rows": [
+  {
+   "n": 1,
+   "q": "수소충전소를 세우려면 어떤 허가가 필요해?",
+   "type": "허가",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 2,
+   "q": "고압가스 제조허가는 누구에게 신청해?",
+   "type": "허가",
+   "content": false,
+   "ref": true
+  },
+  {
+   "n": 3,
+   "q": "허가 신청 전에 받아야 하는 기술검토는 어디서 받아?",
+   "type": "절차",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 4,
+   "q": "고압가스 제조허가 신청서는 몇 호 서식이야?",
+   "type": "서식",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 5,
+   "q": "고압가스 제조신고를 하면 며칠 안에 수리 여부를 알려줘?",
+   "type": "절차",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 6,
+   "q": "완성검사는 누가 하나?",
+   "type": "검사",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 7,
+   "q": "중간검사는 어떤 공정에서 받아야 해?",
+   "type": "검사",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 8,
+   "q": "완성검사에 합격하면 뭘 받아?",
+   "type": "검사",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 9,
+   "q": "사업을 시작하기 전에 따로 신고해야 해?",
+   "type": "절차",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 10,
+   "q": "안전관리규정은 언제 제출하고 뭘 첨부해?",
+   "type": "절차",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 11,
+   "q": "안전관리자가 퇴직하면 며칠 안에 새로 뽑아야 해?",
+   "type": "안전관리",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 12,
+   "q": "수소충전소는 제1종보호시설에서 몇 미터 떨어져야 해?",
+   "type": "수치",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 13,
+   "q": "제1종보호시설이 뭐야?",
+   "type": "수치",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 14,
+   "q": "수소충전소 방호벽 높이는 얼마야?",
+   "type": "수치",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 15,
+   "q": "액화석유가스 충전시설 안전관리자는 몇 명 선임해?",
+   "type": "수치",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 16,
+   "q": "규제특례에는 어떤 종류가 있어?",
+   "type": "특례",
+   "content": false,
+   "ref": true
+  },
+  {
+   "n": 17,
+   "q": "실증특례 유효기간은 몇 년이야?",
+   "type": "특례",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 18,
+   "q": "강원 액화수소 특구는 어디에 있고 언제까지야?",
+   "type": "특구",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 19,
+   "q": "일본은 저탄소수소를 어떻게 인정받아?",
+   "type": "일본",
+   "content": true,
+   "ref": true
+  },
+  {
+   "n": 20,
+   "q": "수소충전소 부지 임대료 상한은 얼마야?",
+   "type": "없는것",
+   "content": true,
+   "ref": true
+  }
+ ]
+}
