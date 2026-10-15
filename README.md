@@ -67,27 +67,7 @@ KGS FP216   "제1종보호시설 17m 이상"             ← 여기가 답
 시행령·시행규칙 중 별표가 빠진 법령은 **없습니다**(54종 전부 수록).
 「○○법」 본법에는 원래 별표가 거의 없고, 수치는 시행령·시행규칙에 있습니다.
 
-## 구성 (폴더 안내)
-
-처음 보는 사람은 **최상위 파일 + `data/`** 만 보면 됩니다. 나머지 폴더는 필요할 때만 엽니다.
-
-```
-├── app.py               서버 시작점 — python app.py
-├── search.py            법령 검색 (뇌의 핵심)
-├── rerank.py · facts.py · forms.py · distance.py · ollama_fallback.py
-├── index.html           화면
-├── warm_questions.txt   서버 뜰 때 미리 돌릴 질문
-├── data/                로봇이 외운 법령 데이터 (jsonl·json)
-├── pipeline/            법령 원문 수집·가공 — 데이터 다시 만들 때만
-├── eval/                정확도 채점 — 정답셋·채점 기록·결과표
-├── tools/               발표 준비·보고서 생성 도구
-├── docs/                문서 — 진행 기록(PROGRESS.md), 해외 인허가 정리, 보고서
-├── widget/              다른 홈페이지에 끼워 넣는 위젯
-├── worker/              공개 주소 중계(Cloudflare Worker)
-└── .githooks/           커밋 전 자동 검사
-```
-
-### 최상위 — 서버가 돌 때 쓰는 것
+## 구성
 
 | 파일 | 역할 |
 |---|---|
@@ -95,29 +75,16 @@ KGS FP216   "제1종보호시설 17m 이상"             ← 여기가 답
 | `search.py` | 법령 검색(BM25 + 뜻 벡터) · 조문↔별표 연결 · 시설유형 분류 · 기준일 · 개정 비교 |
 | `rerank.py` | 재순위(크로스인코더) — 상위 후보를 질문과 함께 다시 읽어 줄 세움 (`BOT_RERANK=1`) |
 | `distance.py` | 안전거리 계산기 — 별표·KGS 표에서 바로 찾음, `--check` 로 원문 대조 |
-| `facts.py` | 확정 자료(수수료·서식·기간·안전거리) — 표 값을 근거 맨 앞에, `--check` 로 원문 대조 |
-| `forms.py` | 별지 서식 파일 안내·내려받기 |
 | `ollama_fallback.py` | 제미나이가 전부 막히면 로컬 LLM(Ollama)으로 답변 (`BOT_OLLAMA`) |
-| `index.html` | 화면 — 대화 · 인용 링크 · 미확인 수치 밑줄 · 계산기 · 공유 |
-| `.githooks/pre-commit` | 커밋 전 표 대조 + 검색 채점. 95% 미만이면 커밋 거부 |
-
-### `eval/` — 정확도 채점
-
-| 파일 | 역할 |
-|---|---|
 | `eval_run.py` | 정답셋 채점 · `--retrieval` 은 모델 없이 검색만 · 결과를 `eval_history/` 에 남김 |
 | `eval_dashboard.py` | 채점 이력을 그림 한 장으로 → `정확도추이.html` |
 | `eval_candidates.py` | 이용자 질문 기록에서 정답셋 후보 뽑기 |
-| `eval_from_facts.py` | 확정 자료·안전거리 표에서 정답이 보증된 문항 자동 생성 → `eval_set_facts.json` |
+| `facts.py` | 확정 자료(수수료·서식·기간·안전거리) — 표 값을 근거 맨 앞에, `--check` 로 원문 대조 |
+| `demo_prepare.py` | 발표 질문을 미리 돌려 사람이 승인할 답 만들기 (`BOT_DEMO_LOCK=1`) |
+| `.githooks/pre-commit` | 커밋 전 표 대조 + 검색 채점. 95% 미만이면 커밋 거부 |
 | `eval_set_all.json` | 정답셋 112문항(20 + 50 + 후보 8 + 확정 자료 35) |
-| `정확도측정*.md` | 채점 결과표 |
-
-실행은 최상위에서: `python eval/eval_run.py eval_set_all.json --retrieval`
-
-### `pipeline/` — 법령 원문 수집·가공 (한 번 돌리고 마는 것)
-
-| 파일 | 역할 |
-|---|---|
+| `eval_from_facts.py` | 확정 자료·안전거리 표에서 정답이 보증된 문항 자동 생성 → `eval_set_facts.json` |
+| `index.html` | 화면 — 대화 · 인용 링크 · 미확인 수치 밑줄 · 계산기 · 공유 |
 | `extract_annex.py` | 법령 PDF에서 별표를 뽑아 조각내기 |
 | `fetch_annex_web.py` | 국가법령정보센터에서 개별 별표 PDF 수집 |
 | `ingest_annex_pdfs.py` | 수집한 별표 PDF를 데이터에 합류 |
@@ -126,39 +93,17 @@ KGS FP216   "제1종보호시설 17m 이상"             ← 여기가 답
 | `fetch_law_text.py` | 법령 본문 조문 수집(헤드리스 크롬) |
 | `fetch_kgs_code.py` | KGS Code 상세기준 PDF 188종 수집 |
 | `ingest_kgs_code.py` | KGS Code 를 항목번호(2.1.1.1) 단위로 조각내기 |
-| `embed_local.py` / `embed_index.py` | 뜻 벡터 색인 만들기(공개 모델 / 제미나이) |
 | `export_dataset.py` | 팀 배포용 파일 만들기(원본/추가분 분리) |
-
-### `tools/`
-
-| 파일 | 역할 |
-|---|---|
-| `demo_prepare.py` | 발표 질문을 미리 돌려 사람이 승인할 답 만들기 (`BOT_DEMO_LOCK=1`) |
-| `make_report_kr.py` | `docs/` 의 보고서 docx 생성 |
 
 ## 실행
 
-### 가장 쉬운 방법 — 더블클릭
-
-1. 이 저장소를 받아서 압축 풀기 (Code → Download ZIP)
-2. **`start.bat`** 더블클릭 (맥은 `start.command`)
-3. 검은 창이 알아서 진행합니다: 파이썬 확인 → 필요한 것 설치 → 구글 키 물어봄(한 번만) → 서버 켬 → 브라우저 자동 열림
-4. 다음부터는 더블클릭하면 바로 열립니다. 검은 창을 닫으면 서버가 꺼집니다.
-
-- 파이썬이 없으면 설치 페이지가 열립니다. 설치 화면 맨 아래 **"Add python.exe to PATH"** 에 꼭 체크하세요.
-- 구글 키는 https://aistudio.google.com/apikey 에서 무료로 받습니다(클릭 두 번). 사람마다 따로 받으세요 — 하루 한도가 각자 생깁니다.
-- 키 없이 Enter 만 쳐도 켜집니다. 법령 검색은 되고 답변 문장만 안 나옵니다.
-- 처음 켤 때 1~2분 걸립니다(법령 32,217조각 색인). 두 번째부터는 10초.
-
-### 명령어로 직접
-
 ```bash
-pip install -r requirements.txt
+pip install pymupdf          # 별표 추출에만 필요
 echo "발급받은_키" > key.txt   # https://aistudio.google.com/apikey
 python app.py                # http://localhost:8000
 ```
 
-`key.txt`는 `.gitignore`에 있어 올라가지 않습니다. **키를 깃허브에 올리지 마세요** — 공개되면 몇 분 안에 남이 한도를 다 쓰고 구글이 키를 막습니다.
+`key.txt`는 `.gitignore`에 있어 올라가지 않습니다.
 
 선택 옵션(환경변수):
 
@@ -232,13 +177,13 @@ sudo journalctl -u hydrogen-bot -f     # 로그
 
 ## 진행 상황과 남은 과제
 
-자세한 내용은 [docs/PROGRESS.md](docs/PROGRESS.md) 참조.
+자세한 내용은 [PROGRESS.md](PROGRESS.md) 참조.
 
 - [x] 한국 법령 데이터 — 본문 · 별표 · KGS Code 상세기준까지 완료
 - [x] 오라클 배포 · 주소 고정 · 공개
-- [x] 미국(캘리포니아) 인허가 체계 정리 → `docs/`
-- [x] 허가의 종류·절차 보고서 초안 → `docs/` (9/4 멘토링 제출물)
-- [x] 일본 인허가 체계 정리 → `docs/`
+- [x] 미국(캘리포니아) 인허가 체계 정리 → `문서/`
+- [x] 허가의 종류·절차 보고서 초안 → `문서/` (9/4 멘토링 제출물)
+- [x] 일본 인허가 체계 정리 → `문서/`
 - [x] 정확도 측정표 — 20문항 내용 19/20 · 근거 20/20
 - [x] 뜻으로 찾는 검색 — 공개 모델(KURE-v1)로 32,217조각 벡터 색인, `embed_local.py`
 - [x] 답변 캐시 · 인용 링크 · 미확인 수치 밑줄 · 체크리스트 · 기준일/개정 비교 · 안전거리 계산기 · 공유 · 로컬 LLM 폴백 · 재순위 · 정확도 대시보드 (9/3)

@@ -29,6 +29,8 @@ data/feedback.jsonl
 
 # 법령정보센터에서 받아 둔 서식·별표 파일 — forms.py 가 필요할 때 다시 받는다
 data/forms/
-
-# 윈도우 바로가기
-*.lnk
+data/review_inbox.json
+data/review_files/
+cf/build/
+cf/.wrangler/
+cf/public/

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시연 모드</title>
+<style>
+:root{--navy:#0b3b7a;--blue:#3182f6;--ink:#191f28;--sub:#6b7684;--bg:#eef1f5}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Pretendard","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:14px;padding:12px 18px;background:#fff;border-bottom:1px solid #e5e8eb}
+.bar h1{font-size:17px;white-space:nowrap}
+.cap{flex:1;display:flex;align-items:center;gap:10px;background:#f2f8ff;border-radius:12px;padding:10px 14px;min-height:46px;font-size:15px;font-weight:600}
+.cap .no{background:var(--blue);color:#fff;border-radius:20px;padding:3px 10px;font-size:13px;white-space:nowrap}
+.cap.go{animation:capIn .4s ease-out}
+@keyframes capIn{from{opacity:.2;transform:translateY(4px)}}
+button{font:inherit;font-weight:700;border:none;border-radius:12px;padding:11px 20px;cursor:pointer;background:var(--blue);color:#fff}
+button:disabled{background:#c9d6ea;cursor:default}
+.dots{display:flex;gap:6px}.dots i{width:9px;height:9px;border-radius:50%;background:#d1d6db;transition:background .3s}.dots i.on{background:var(--blue)}.dots i.done{background:#00b85c}
+.panes{flex:1;display:grid;grid-template-columns:1.15fr 1fr;gap:12px;padding:12px;min-height:0}
+.pane{display:flex;flex-direction:column;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px #0001;transition:box-shadow .3s}
+.pane.hot{box-shadow:0 0 0 3px var(--blue),0 8px 24px #3182f633}
+.pane .t{padding:8px 14px;font-size:13px;font-weight:700;color:var(--sub);border-bottom:1px solid #f2f4f6}
+iframe{flex:1;border:0;width:100%}
+@media (max-width:900px){.panes{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.bar{flex-wrap:wrap}.bar h1{display:none}}
+</style></head>
+<body>
+<div class="bar"><h1>시연 모드</h1><div class="cap" id="cap"><span class="no">준비</span><span id="ct">시작을 누르면 업체 신청부터 공사 처리까지 자동으로 진행합니다.</span></div>
+<div class="dots" id="dots"></div><button id="start">시작</button></div>
+<div class="panes">
+  <div class="pane" id="pa"><div class="t">업체 화면 · 수소 인허가 챗봇</div><iframe id="chat" src="/"></iframe></div>
+  <div class="pane" id="pb"><div class="t">한국가스안전공사 화면 · 서류 검토</div><iframe id="rev" src="/review"></iframe></div>
+</div>
+<script>
+// 시연 모드: 같은 서버의 챗봇(왼쪽)과 공사 화면(오른쪽)을 실제로 눌러 가며 흐름 전체를 보여 준다.
+// 가짜 화면이 아니라 진짜 버튼을 누르므로, 화면 구조가 바뀌면 여기 선택자도 같이 고친다.
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const STEPS = ['업체: 신청서 작성 부탁', '칸 채우기 (일부러 틀림)', '공사에 제출 → AI 검토', '자동 반려', '고쳐서 다시 제출', '공사 접수함', '담당자 승인', '업체에 승인 알림'];
+$('#dots').innerHTML = STEPS.map(() => '<i></i>').join('');
+function cap(i) {
+  $('#cap').classList.remove('go'); void $('#cap').offsetWidth; $('#cap').classList.add('go');
+  $('#cap .no').textContent = `${i + 1} / ${STEPS.length}`;
+  $('#ct').textContent = STEPS[i];
+  [...$('#dots').children].forEach((d, k) => { d.className = k < i ? 'done' : k === i ? 'on' : ''; });
+}
+const hot = id => { $('#pa').classList.toggle('hot', id === 'pa'); $('#pb').classList.toggle('hot', id === 'pb'); };
+async function waitFor(doc, sel, ms = 60000) {
+  const t0 = Date.now();
+  for (;;) {
+    const el = typeof sel === 'function' ? sel() : doc().querySelector(sel);
+    if (el) return el;
+    if (Date.now() - t0 > ms) throw new Error('기다리다 멈춤: ' + sel);
+    await sleep(150);
+  }
+}
+const C = () => $('#chat').contentDocument, R = () => $('#rev').contentDocument;
+const see = el => el.scrollIntoView({block: 'center', behavior: 'smooth'});
+async function type(inp, text) {
+  inp.focus();
+  inp.value = '';
+  for (const ch of text) {
+    inp.value += ch;
+    inp.dispatchEvent(new Event('input', {bubbles: true}));
+    await sleep(45);
+  }
+}
+const btnText = (doc, sel, t) => [...doc().querySelectorAll(sel)].find(b => b.textContent.includes(t));
+
+async function run() {
+  $('#start').disabled = true;
+  const cw = $('#chat').contentWindow;
+  cw.confirm = () => true;                       // 빈칸 확인 창은 시연에서 넘긴다
+  try { cw.localStorage.removeItem('myReceipts'); } catch (e) {}
+  // 1. 질문
+  cap(0); hot('pa');
+  const q = C().querySelector('#q');
+  await type(q, '수소충전소 허가 신청서 작성해줘');
+  await sleep(300);
+  C().querySelector('#go').click();
+  const pf = await waitFor(C, '.pfpick .pf');
+  await sleep(1200);
+  (C().querySelector('.pfpick .pf.on') || pf).click();
+  // 2. 칸 채우기
+  cap(1);
+  await waitFor(C, '.sbform input');
+  await sleep(600);
+  const chip = C().querySelector('.sbform .chip'); if (chip) chip.click();
+  const vals = ['한빛수소(주)', '김하늘', '강원 춘천시 중앙로 12', '033-123-4567', '1234567890', 'info@hanbit.example', '강원 삼척시 수소산업로 7'];
+  const ins = [...C().querySelectorAll('.sbform input')].filter(i => i.offsetParent && !['file', 'checkbox'].includes(i.type));
+  for (const [k, i] of ins.entries()) { if (vals[k] == null) break; see(i); await type(i, vals[k]); await sleep(120); }
+  await sleep(400);
+  const mk = C().querySelector('.sbform .mk'); if (mk && !mk.disabled) mk.click();
+  // 3. 제출
+  const sub = await waitFor(C, () => btnText(C, '.bt2 button', '공사에 제출'));
+  await sleep(1500);
+  cap(2);
+  see(sub); await sleep(600); sub.click();
+  const go = await waitFor(C, '.subm .mk');
+  const box = C().querySelector('.subm input[type=checkbox]'); if (box) box.click();
+  await sleep(700); see(go); go.click();
+  // 4. 자동 반려
+  await waitFor(C, '.subm .rj', 60000);
+  cap(3); see(C().querySelector('.subm .rj'));
+  await sleep(3500);
+  // 5. 고치기: 사업자번호를 바로잡고, 서명하고, 서류를 다 체크해서 다시 낸다
+  cap(4);
+  const ed = C().querySelector('.pfedit');
+  see(ed); await sleep(600);
+  const fixBox = async (label, text) => {
+    for (let n = 0; n < 4; n++) {
+      const inp = [...ed.querySelectorAll('.pg input')].find(i => (i.title || '').includes(label));
+      if (inp) { inp.click(); const big = await waitFor(C, '.pfbub input'); await type(big, text); await sleep(300);
+        (C().querySelector('.pfbub .cl2') || {click() {}}).click(); return true; }
+      const nx = ed.querySelector('.nx'); if (!nx || nx.disabled) break; nx.click(); await sleep(700);
+    }
+    return false;
+  };
+  await fixBox('사업자등록번호', '0000000015');
+  // 서명: 서명 칸이 있는 쪽으로 넘겨서 펜으로 그린다
+  for (let n = 0; n < 4 && !ed.querySelector('.pg .sg'); n++) { const pv = ed.querySelector('.pv'); if (!pv || pv.disabled) break; pv.click(); await sleep(600); }
+  for (let n = 0; n < 4 && !ed.querySelector('.pg .sg'); n++) { const nx = ed.querySelector('.nx'); if (!nx || nx.disabled) break; nx.click(); await sleep(600); }
+  const sg = ed.querySelector('.pg .sg');
+  if (sg) {
+    see(sg); await sleep(400); sg.click();
+    const cv = await waitFor(C, '.sgpad canvas');
+    const r = cv.getBoundingClientRect(), P = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, {clientX: r.left + x, clientY: r.top + y, pointerId: 1, bubbles: true}));
+    P('pointerdown', 30, r.height * .6);
+    for (let x = 30; x < r.width - 30; x += 6) { P('pointermove', x, r.height * (.55 + .18 * Math.sin(x / 14))); await sleep(8); }
+    P('pointerup', r.width - 30, r.height * .6);
+    await sleep(400);
+    C().querySelector('.sgpad .ok').click();
+  }
+  await sleep(800);
+  const sub2 = btnText(C, '.bt2 button', '공사에 제출');
+  see(sub2); await sleep(500); sub2.click();
+  const go2 = await waitFor(C, () => { const m = C().querySelector('.subm .mk'); return m && !C().querySelector('.subm .rj') ? m : null; });
+  C().querySelectorAll('.subm input[type=checkbox]').forEach(c => { if (!c.checked) c.click(); });
+  await sleep(800); see(go2); go2.click();
+  await waitFor(C, '.subm .cmp, .subm .rj', 60000);
+  see(C().querySelector('.subm')); await sleep(4000);
+  // 6. 공사 접수함
+  cap(5); hot('pb');
+  const id = (C().querySelector('.subm .ft').textContent.match(/\d{4}-\d{4}/) || [])[0];
+  $('#rev').contentWindow.location.hash = ''; $('#rev').contentWindow.location.reload();
+  await sleep(800);
+  await waitFor(R, 'tr.row');
+  await sleep(3000);
+  // 7. 승인
+  cap(6);
+  const row = [...R().querySelectorAll('tr.row')].find(r => r.dataset.id === id) || R().querySelector('tr.row');
+  row.scrollIntoView({block: 'center'}); await sleep(500); row.click();
+  const ok = await waitFor(R, '#ok, #sup');
+  await sleep(3000);
+  (R().querySelector('#ok') || ok).click();
+  await waitFor(R, '.done');
+  await sleep(1500);
+  // 8. 업체 알림
+  cap(7); hot('pa');
+  await waitFor(C, '.toast', 40000);
+  await sleep(4000);
+  [...$('#dots').children].forEach(d => d.className = 'done');
+  $('#ct').textContent = '끝. 신청 → AI 검토·자동 반려 → 수정 → 접수 → 승인 → 알림까지 한 번에 이어졌습니다.';
+  hot('');
+  $('#start').disabled = false; $('#start').textContent = '다시 보기';
+}
+$('#start').onclick = () => {
+  if ($('#start').textContent === '다시 보기') { $('#chat').contentWindow.location.reload(); $('#rev').contentWindow.location.reload(); setTimeout(() => run().catch(fail), 1500); return; }
+  run().catch(fail);
+};
+function fail(e) { $('#ct').textContent = '시연이 멈췄습니다: ' + e.message; $('#start').disabled = false; $('#start').textContent = '다시 보기'; }
+</script>
+</body></html>

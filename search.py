@@ -177,10 +177,14 @@ CORE_LAWS = ("고압가스", "수소경제")
 MAKE_CODE = ("KGS AA", "KGS AB", "KGS AC", "KGS AH")
 INSTALL = re.compile(r"(설치|시설|충전소|이격|거리|배치|갖춰|갖추)")
 
+# 암모니아·아르곤 같은 다른 고압가스 질문에 액법·도시가스 코드(FU331·FU431)가 1위로
+# 올라왔다(현장 질문 세트, 2026-10). 이 가스들은 고압가스법 소관이라 '고압가스' 묶음으로 본다.
 GAS = {
     "수소": ("수소",),
     "액화석유가스": ("액화석유가스", "액화 석유", "LPG"),
     "도시가스": ("도시가스",),
+    "고압가스": ("고압가스", "암모니아", "아르곤", "알곤", "질소", "헬륨", "산소", "염소",
+             "독성가스", "특정고압가스"),
 }
 
 
@@ -347,6 +351,10 @@ def embed_query(text):
         return None
     meta = json.loads(EMB_META.read_text(encoding="utf-8"))
     if meta["model"].startswith("local:"):
+        # 이 PC 에서는 공개 모델을 읽는 순간 프로세스가 죽는다(네이티브 segfault,
+        # try 로도 못 잡음). 그래서 끌 수 있게 한다. 끄면 글자 검색만 돈다.
+        if os.environ.get("BOT_LOCAL_EMBED", "1") == "0":
+            return None
         return embed_query_local(meta["model"][6:], text)
     key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not key:
@@ -450,6 +458,9 @@ class Index:
         그런데 "뭐가 필요해?" 에는 제출 서류 이름이 곧 답이라, 따로 뽑아 뒤에 붙인다.
         """
         q = list(dict.fromkeys(tokenize(expand(query))))
+        # 제목 가산은 사용자가 쓴 말로만 잰다. 확장어('검사' → 완성·정기·중간검사)까지 넣으면
+        # 분모가 두 배가 돼서, 기준 이름과 꼭 맞는 조각(AC116 '압력용기 재검사 기준')이 100위로 밀렸다.
+        q0 = set(tokenize(FILLER.sub(" ", query))) or set(q)
         scores = {}
         for i, tf in enumerate(self.tf):
             if self.docs[i].get("kind") != "별지서식":
@@ -490,7 +501,8 @@ class Index:
             self.vecs = (vecs.astype("float32") / norm)
             self.have = have
             self.coverage = cover
-            embed_query("수소")               # 모델을 미리 읽어 첫 질문이 안 늦게
+            if os.environ.get("BOT_LOCAL_EMBED", "1") != "0":
+                embed_query("수소")           # 모델을 미리 읽어 첫 질문이 안 늦게
         except Exception:
             self.vecs = self.have = None     # 없으면 글자 검색만으로 돈다
 
@@ -501,12 +513,17 @@ class Index:
         # 같은 조각이 질문에 두 번 나온다고 점수를 두 배 주면
         # '허가'가 반복되는 긴 정의 조문이 계속 1등으로 올라온다.
         q = list(dict.fromkeys(tokenize(expand(query))))
+        # 제목 가산은 사용자가 쓴 말로만 잰다. 확장어('검사' → 완성·정기·중간검사)까지 넣으면
+        # 분모가 두 배가 돼서, 기준 이름과 꼭 맞는 조각(AC116 '압력용기 재검사 기준')이 100위로 밀렸다.
+        q0 = set(tokenize(FILLER.sub(" ", query))) or set(q)
         want_jp = "일본" in query                 # 일본을 물으면 일본 조문을 끌어올린다
         procedural = bool(PROCEDURE.search(query))
         want_change = bool(CHANGE.search(query))  # "뭐가 바뀌어?" → 개정판을 끌어올린다
         # 질문 자체가 유형을 가리키면("충전소 …") 그 유형 조각을 끌어올린다.
         want = set(facility_tags(query)) | ({facility} if facility else set())
         want_gas = gas_of(query)
+        if "수소" in want_gas:
+            want_gas.add("고압가스")      # 수소충전소·수소 저장도 고압가스법 소관이다
         want_install = bool(INSTALL.search(query))
         scores = {}
         for i, tf in enumerate(self.tf):
@@ -525,7 +542,12 @@ class Index:
                 continue
             # 조문 제목·법령명에 질문 단어가 있으면 본문에만 있는 것보다 훨씬 정확하다.
             head = tokenize(f"{self.docs[i]['law']} {self.docs[i]['title']}")
-            s *= 1 + 0.5 * len(set(q) & set(head)) / max(len(q), 1)
+            s *= 1 + 0.5 * len(q0 & set(head)) / len(q0)
+            # KGS 는 조각마다 기준 이름이 머리에 한 번만 붙어서, 이름을 그대로 물어도
+            # 본문에 '검사'가 많은 다른 코드에 진다. 질문 말이 기준 이름에 거의 다 들어 있으면 끌어올린다.
+            if len(q0) >= 4 and self.docs[i]["law"].startswith("KGS"):
+                if len(q0 & set(head)) / len(q0) >= 0.8:
+                    s *= 1.8
             # 별지 서식은 빈 양식이라 근거로 쓸 내용이 없다. 이름값만 하게 뒤로 민다.
             if self.docs[i].get("kind") == "별지서식":
                 s *= 0.3

@@ -4,6 +4,7 @@
 구조: 질문 → BM25로 법령 조문 검색(무료·즉시) → 제미나이가 조문만 보고 답변.
 API 키가 없어도 검색 결과는 그대로 보여준다(키 없이 화면 확인이 가능해야 해서).
 """
+import base64
 import hashlib
 import json
 import os
@@ -105,7 +106,7 @@ def warm_cache(port):
         if cache_get(_cache_key(q, None, None, None, bool(CHECKLIST_RE.search(q)))):
             continue
         try:
-            body = json.dumps({"messages": [{"role": "user", "text": q}]}).encode()
+            body = json.dumps({"messages": [{"role": "user", "text": q}], "no_ask": True}).encode()
             req = urllib.request.Request(f"http://127.0.0.1:{port}/api/chat", data=body,
                                          headers={"Content-Type": "application/json"})
             with urllib.request.urlopen(req, timeout=300) as r:
@@ -140,6 +141,266 @@ def clarify_for(q):
     return None
 
 
+# ── 사업자 정보 묻기 ──────────────────────────────────────────────
+# 답이 조건에 따라 갈리는 질문은 답하기 전에 조건부터 버튼으로 묻는다.
+# (key, 질문, 보기, 질문에 이미 들어 있으면 안 묻는 표현). 보기 '모름'은 경우별로 다 답한다.
+CAP_OPTS = ["1만 이하", "1만 초과 2만 이하", "2만 초과 3만 이하", "3만 초과 4만 이하",
+            "4만 초과 5만 이하", "5만 초과"]
+# 거리는 종류가 여럿이다. 버튼(시설·능력·주변)은 보호시설 거리용이라 그 밖의 거리면 여기서 멈춘다.
+DIST_OPTS = ["보호시설(학교·주택 등)까지", "사업소 경계까지", "설비끼리", "화기까지"]
+DIST_OTHER = re.compile(r"경계|화기|설비 ?(간|사이|끼리)|설비끼리")
+OTHER = "기타 (직접 입력)"     # 보기에 없으면 글로 받는다
+NEVER = re.compile(r"(?!)")       # 늘 묻는 칸
+# 샌드박스 신청서: 공식 서식(별지 제3·7호)의 칸 순서대로 묻는다. 보기가 None 이면 글로 받는다.
+SANDBOX_ASK = re.compile(r"(샌드박스|실증특례|임시허가|규제특례).{0,12}(신청|초안|준비|작성|써)")
+ASK = [
+    (SANDBOX_ASK, [
+        ("sb_kind", "어떤 신청인가요?", ["실증특례 (시험해 보기)", "임시허가 (바로 판매·운영)"],
+         re.compile(r"실증특례|임시허가")),
+        ("sb_name", "제품·서비스 이름 (신청서 '명칭' 칸)", "예: 수전해 수소 배관 직공급 시스템", NEVER),
+        ("sb_what", "무엇을 하나요? 한두 줄 ('주요내용' 칸)", "예: 수전해 수소를 배관으로 옆 공장에 직접 공급", NEVER),
+        ("sb_area", "실증할 장소 ('구역' 칸)", "예: 강원 삼척시 ○○산업단지", NEVER),
+        ("sb_period", "실증 기간 ('기간' 칸, 법상 기본 2년·최대 4년)", ["1년", "2년", "4년 (최대)"], NEVER),
+        ("sb_scale", "규모 ('규모' 칸)", "예: 수소 500 kg/일, 배관 300 m", NEVER),
+        ("sb_company", "회사명 ('신청인' 칸)", "예: ○○수소㈜", NEVER),
+    ]),
+    (re.compile(r"(안전거리|이격|떨어져|몇 ?m|몇 ?미터|거리.{0,4}(얼마|기준|몇))"), [
+        ("dist", "어떤 거리인가요?", DIST_OPTS,
+         re.compile(r"보호시설|제[12]종|학교|병원|주택")),
+        ("facility", "어떤 시설인가요?", ["제조식 수소충전소", "저장식 수소충전소", "가연성가스 저장설비", OTHER],
+         re.compile(r"제조식|저장식|저장설비|저장탱크|산소")),
+        ("capacity", "처리·저장능력은요? (압축가스 ㎥, 액화가스 ㎏)", CAP_OPTS,
+         re.compile(r"\d{3,}|\d ?(㎥|m3|㎏|kg|톤|만)|만 ?(이하|초과)")),
+        ("near", "주변에 무엇이 있나요?", ["제1종 (학교·병원·1천㎡ 이상 건물 등)", "제2종 (주택 등)", "둘 다"],
+         re.compile(r"제[12]종|학교|병원|주택|보호시설")),
+    ]),
+    (re.compile(r"(수수료|비용이 얼마)"), [
+        ("permit", "어떤 허가·등록의 수수료인가요?",
+         ["고압가스 제조허가", "저장소 설치허가", "판매허가", "변경허가", "수소용품 제조사업 허가"],
+         re.compile(r"(제조|저장소|판매|변경|등록|재발급|수소용품)")),
+    ]),
+    (re.compile(r"(처벌|벌금|벌칙)"), [
+        ("violation", "무엇을 위반한 경우인가요?",
+         ["허가 없이 제조", "신고 없이 제조", "안전관리자 미선임", "시설 손괴"],
+         re.compile(r"(허가 없이|무허가|신고 없이|손괴|안전관리자|미선임)")),
+    ]),
+    (re.compile(r"(지을 수|지어도|세워도|설치할 수|설치 가능|들어설|입지|용도지역|어디에 지)"), [
+        ("zone", "그 땅의 용도(용도지역)는요?",
+         ["주거지역", "상업지역", "공업지역", "녹지지역", "개발제한구역"],
+         re.compile(r"주거|상업|공업|녹지|개발제한|그린벨트")),
+    ]),
+]
+# 처음 화면에서 고르는 사업 종류 → 검색어에 덧붙일 말
+KIND_WORDS = {"수소충전소": "충전소", "수소 생산": "수소 제조", "저장·운송": "저장소 운반",
+              "수소용품 제조": "수소용품 제조사업", "연료전지 발전": "연료전지"}
+
+
+def clean_profile(p):
+    """화면에서 온 사업자 정보. 모르는 키·긴 값은 버린다(프롬프트에 그대로 들어가니까)."""
+    if not isinstance(p, dict):
+        return {}
+    out = {}
+    for k in ("kind", "stage", "region", "facility", "capacity", "near", "zone"):
+        v = p.get(k)
+        if isinstance(v, str) and v.strip() and v != "모름":
+            out[k] = v.strip()[:30]
+    return out
+
+
+def ask_for(q, profile):
+    """조건이 빠진 질문이면 물어볼 단계를 돌려준다. 이미 아는 조건은 묻지 않는다."""
+    for need, steps in ASK:
+        if not need.search(q):
+            continue
+        if steps[0][0] == "dist" and DIST_OTHER.search(q):
+            return None          # 보호시설 거리가 아니면 버튼 없이 원문에서 답한다
+        todo = [({"key": k, "q": text, "text": opts} if isinstance(opts, str)
+                 else {"key": k, "q": text, "options": opts + ["모름"]})
+                for k, text, opts, has in steps
+                if not has.search(q) and k not in profile]
+        # 저장식·저장설비가 아닌 충전소 사업자에게는 시설 보기를 충전소 둘로 줄인다.
+        for s in todo:
+            if s["key"] == "dist":
+                s["stop"] = "보호시설"     # 다른 거리를 고르면 남은 단계는 묻지 않는다
+            if s["key"] == "facility" and profile.get("kind") == "수소충전소":
+                s["options"] = ["제조식 수소충전소", "저장식 수소충전소", OTHER, "모름"]
+        return todo or None
+    return None
+
+
+def profile_note(p, q):
+    """사업자 정보를 답변 지시문으로. 거리 조건이 다 있으면 표의 칸을 코드가 찾아 박는다."""
+    if not p:
+        return ""
+    names = {"kind": "사업", "stage": "단계", "region": "지역", "facility": "시설",
+             "capacity": "처리·저장능력", "near": "주변 건물", "zone": "용도지역"}
+    line = " · ".join(f"{names[k]}: {v}" for k, v in p.items())
+    note = (f"\n\n[사용자 사업 정보] {line}\n"
+            "답을 이 사업에 맞춥니다. 질문과 상관없는 정보는 언급하지 않습니다.")
+    if p.get("region"):
+        note += (f"\n허가·신고 관청을 물으면 '{p['region']}'의 시장·군수·구청장으로 안내합니다. "
+                 f"입지·건축처럼 지자체 조례로 정하는 사항은 '{p['region']} 조례 확인 필요'라고 덧붙입니다.")
+    # 거리: 시설·능력·주변이 모두 정해지면 표에서 값 하나를 꺼낸다(AI가 칸을 잘못 읽을 자리 제거).
+    table = {"제조식": "FP216", "저장식": "FP217", "저장설비": "ANNEX8_FLAM"}
+    fac = p.get("facility", "") + " " + q
+    tid = next((v for k, v in table.items() if k in fac), None)
+    cap = p.get("capacity", "")
+    caps = {o: (i + 1) * 10000 for i, o in enumerate(CAP_OPTS[:-1])}
+    capv = caps.get(cap, 60000 if cap == "5만 초과" else None)
+    if tid and capv and re.search(r"(안전거리|이격|떨어져|몇 ?m|몇 ?미터|거리.{0,4}(얼마|기준|몇))", q) and not DIST_OTHER.search(q):
+        r = distance.lookup(tid, capv)
+        if r:
+            near = p.get("near", "")
+            pick = (f"제1종 {r['values'][0]}" if "제1종" in near else
+                    f"제2종 {r['values'][1]}" if "제2종" in near else
+                    f"제1종 {r['values'][0]} · 제2종 {r['values'][1]}")
+            note += (f"\n[확정 값] {r['name']} {r['ref']} 표의 '{r['label']}' 칸: {pick}. "
+                     "첫 줄에 이 값을 그대로 답합니다.")
+    return note
+
+
+# ── 규제 애로 사례 ────────────────────────────────────────────────
+# 수소경제 포털의 규제애로 개선현황·규제개선 건의(make_reg_cases.py). 질문이 알려진 애로와
+# 겹치면 답 아래에 "이미 알려진 규제 애로 — 이렇게 개선됐다/건의 중" 을 붙인다.
+_reg_cases = None
+REG_STOP = {"수소", "관련", "기준", "경우", "필요", "규정", "문의", "어떻게", "있나요", "되나요",
+            "하나요", "인가요", "가능", "여부", "대한", "위한", "해야", "하는", "있는", "없는",
+            "얼마", "무엇", "뭐야", "알려줘", "설치", "시설", "사업"}
+
+
+def reg_cases():
+    global _reg_cases
+    if _reg_cases is None:
+        f = HERE / "data" / "reg_cases.json"
+        _reg_cases = json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    return _reg_cases
+
+
+def _words(q):
+    out = set()
+    for w in re.findall(r"[가-힣A-Za-z0-9]{2,}", q):
+        w = re.sub(r"(으로|에서|에게|까지|부터|이나|하고|은|는|이|가|을|를|의|에|도|로|와|과)$", "", w)
+        if len(w) >= 2 and w not in REG_STOP:
+            out.add(w)
+    return out
+
+
+def reg_cases_for(q, n=2):
+    """제목에 질문 낱말이 둘 이상, 또는 제목에 하나 + 애로 내용까지 셋 이상 겹치는 사례."""
+    ws = _words(q)
+    if len(ws) < 2:
+        return []
+    scored = []
+    for c in reg_cases():
+        title = c["title"] + " " + c["field"]
+        body = title + " " + c["pain"] + " " + c["law"]
+        t = sum(w in title for w in ws)
+        b = sum(w in body for w in ws)
+        if t >= 2 or (t >= 1 and b >= 3):
+            scored.append((t * 2 + b, c))
+    scored.sort(key=lambda x: -x[0])
+    return [c for _, c in scored[:n]]
+
+
+# 샌드박스(규제특례) 신청을 준비하는 질문이면 신청서 초안 틀로 답한다.
+# 디앨 인터뷰: 신청서 작성과 검토 왕복이 8~9개월의 가장 큰 부분이었다.
+# "허가 신청서 작성해줘" 처럼 서식을 채워 달라는 말. 샌드박스 신청은 위 흐름이 맡는다.
+PERMIT_DRAFT = re.compile(r"(신청서|신고서).{0,10}(작성|써|채워|만들|초안)|(허가|신고|검사).{0,8}(서류|신청).{0,6}(작성|써|채워|만들)")
+SANDBOX_DRAFT = re.compile(r"(샌드박스|실증특례|임시허가|규제특례).{0,12}(신청|초안|준비|작성|써)")
+
+
+# 공식 제출 서류(산업융합촉진법 시행령 제11조의3·제11조의6). 칸을 마음대로 정하면
+# 빠진 서류 때문에 보완 요청이 오간다(디앨 인터뷰: 검토 왕복이 8~9개월의 큰 부분).
+SANDBOX_DOCS = {
+    "실증특례": ("별지 제3호서식 실증을 위한 규제특례 신청서", "시행령 제11조의3",
+             ["실증의 목적과 개요", "관련 법령 및 규제특례가 필요한 사항",
+              "시험·검증의 방법", "규제특례의 구역·기간·규모"],
+             ["손해 및 손해배상 방안(책임보험)"]),
+    "임시허가": ("별지 제7호서식 임시허가 신청서", "시행령 제11조의6",
+             ["임시허가의 목적과 개요", "정비가 필요한 법령 및 내용",
+              "안전성 검증 자료", "주요 이용 대상자 및 임시허가 기간"],
+             ["손해 및 손해배상 방안(책임보험)"]),
+}
+
+
+REVIEW_FILES = HERE / "data" / "review_files"
+
+
+def save_review_files(items):
+    """공사 제출 첨부파일을 저장한다. [{doc, name, data(base64)}] → [{doc, name, k}].
+    한 파일 3MB, 최대 10개. 이름은 글자만 남기고, 폴더 이름은 무작위라 남이 짐작해 열 수 없다."""
+    import base64, uuid
+    out = []
+    if not isinstance(items, list):
+        return out
+    box = uuid.uuid4().hex
+    for i, f in enumerate(items[:10]):
+        if not isinstance(f, dict):
+            continue
+        try:
+            raw = base64.b64decode(str(f.get("data") or "").split(",", 1)[-1], validate=False)
+        except Exception:
+            continue
+        if not raw or len(raw) > 3_000_000:
+            continue
+        name = re.sub(r"[^\w.\-가-힣 ()]", "_", str(f.get("name") or "file"))[:80].strip() or "file"
+        name = f"{i + 1}_{name}"
+        d = REVIEW_FILES / box
+        d.mkdir(parents=True, exist_ok=True)
+        (d / name).write_bytes(raw)
+        out.append({"doc": str(f.get("doc") or "")[:80], "name": name[len(str(i + 1)) + 1:], "k": f"{box}/{name}"})
+    return out
+
+
+def clean_sandbox(d):
+    """화면에서 온 신청서 답. 모르는 키·긴 값은 버린다(프롬프트에 그대로 들어가니까)."""
+    if not isinstance(d, dict):
+        return {}
+    out = {k: d[k].strip()[:120] for k in ("kind", "name", "what", "area", "period", "scale",
+                                           "company", "laws", "bizno", "address", "ceo", "tel",
+                                           "email", "applicant", "date_y", "date_m", "date_d", "type", "why")
+           if isinstance(d.get(k), str) and d[k].strip() and d[k] != "모름"}
+    sig = d.get("sign")                      # 서명 그림은 길이 제한을 따로 둔다
+    if isinstance(sig, str) and sig.startswith("data:image/png;base64,") and len(sig) < 400_000:
+        out["sign"] = sig
+    if out.get("kind") not in ("실증특례", "임시허가"):
+        out.pop("kind", None)
+    return out
+
+
+def sandbox_note(q, cases, info=None):
+    if not SANDBOX_DRAFT.search(q):
+        return ""
+    info = info or {}
+    kind = info.get("kind") or ("임시허가" if "임시허가" in q else "실증특례")
+    form, art, plan, loss = SANDBOX_DOCS[kind]
+    attach = ["사업실시계획서(아래 1장)", "산업융합 신제품·서비스에 해당함을 설명하는 자료",
+              "현행 법령으로 안 되는 사유(기준 없음·맞지 않음·불합리) 설명 자료",
+              "혁신성 및 이용자 편익 증진 설명자료"] \
+        + (["향후 시장 성장 가능성 자료"] if kind == "실증특례" else []) \
+        + loss + ["생명·건강·안전·환경·개인정보 저해 여부 자료"]
+    note = (f"\n\n[신청서 초안] 사용자는 산업융합 규제샌드박스 {kind} 신청을 준비합니다. "
+            f"공식 제출 서류({art}) 순서 그대로 초안을 씁니다. 칸을 더하거나 빼지 않습니다.\n"
+            f"첫 줄: 제출처 산업통상부장관, 신청서 {form}.\n"
+            "1장 사업실시계획서 — " + " / ".join(f"({k}) {t}" for k, t in enumerate(plan, 1)) + "\n"
+            "2장 첨부 서류 목록 — " + " / ".join(f"{k}. {t}" for k, t in enumerate(attach, 1)) + "\n"
+            "채우는 법: '관련 법령' 칸은 근거의 조문으로 법령명·조문·막히는 이유를 쓰고 근거 번호를 답니다. "
+            "안전 관련 칸은 근거의 KGS Code 를 듭니다. 기간·규모·장소·시장성·보험처럼 사업자만 아는 칸은 "
+            "'[직접 입력: 무엇을 쓰는 칸인지]'로 남깁니다. 근거에 없는 조문은 지어내지 않습니다. "
+            "마지막 줄에 '서식 원본과 세부 고시는 산업통상부·KIAT 규제샌드박스 안내에서 확인'을 적습니다.")
+    given = {k: v for k, v in info.items() if k != "kind" and v}
+    if given:
+        names = {"name": "명칭", "what": "주요 내용", "area": "구역", "period": "기간",
+                 "scale": "규모", "company": "신청인"}
+        note += ("\n[사업자가 답한 값] " + " · ".join(f"{names.get(k, k)}: {v}" for k, v in given.items())
+                 + ". 이 값은 해당 칸(구역·기간·규모는 (4)번 칸)에 글자 그대로 옮겨 쓰고, 답하지 않은 칸만 '[직접 입력: …]'으로 남깁니다. "
+                 "1장은 3~5쪽 분량의 사업실시계획서 초안으로, 목차마다 2~4문단을 씁니다.")
+    if cases:
+        note += (" 2장 3번 칸에 참고할 기존 규제 애로 사례: " + " / ".join(
+            f"{c['title']}({c['state']})" for c in cases) + ".")
+    return note
+
+
 # ── 대화 공유 ─────────────────────────────────────────────────────
 # 답변을 서버에 저장하고 짧은 주소(/s/아이디)로 연다. 멘토·팀원에게 결과를 보여줄 때.
 SHARE_DIR = HERE / "data" / "shares"
@@ -167,6 +428,14 @@ def pdf_file_of(code):
     for p in PDF_DIR.glob(f"{code}_*.pdf"):
         return p
     return None
+
+
+def pdf_pages_png(data, limit=10):
+    """채운 PDF 를 쪽마다 PNG(base64)로. 미리보기 전용이라 해상도는 110dpi 로 맞춘다."""
+    import pymupdf
+    doc = pymupdf.open(stream=data, filetype="pdf")
+    return [base64.b64encode(pg.get_pixmap(dpi=110).tobytes("png")).decode("ascii")
+            for pg in list(doc)[:limit]]
 
 
 def render_page(code, page):
@@ -207,8 +476,9 @@ HOST = os.environ.get("BOT_HOST") or "127.0.0.1"
 # 이름이라 404 가 났고, 그 자리가 한 칸 죽어 있었다(실측).
 # 순서: 가벼운 것 먼저(평소) / 좋은 것 먼저(발표).
 MODEL_SETS = {
-    "daily": ["gemini-3.1-flash-lite", "gemini-flash-lite-latest",
-              "gemini-3.5-flash-lite", "gemini-2.5-flash-lite",
+    # 3.1-flash-lite 는 첫 글자까지 15~16초가 걸려(2026-10-12 실측, 다른 lite 는 1초) 뒤로 뺐다.
+    "daily": ["gemini-3.5-flash-lite", "gemini-flash-lite-latest",
+              "gemini-2.5-flash-lite", "gemini-3.1-flash-lite",
               "gemini-3.5-flash", "gemini-3.6-flash",
               "gemini-3-flash-preview", "gemini-2.5-flash",
               "gemini-3.7-flash"],
@@ -487,19 +757,45 @@ def call_model(model, prompt, key):
         return None, (0, json.dumps(d, ensure_ascii=False)[:200])
 
 
+# 오늘 한도가 다 찬(429) 모델. 날짜가 바뀌면 비운다. 메모리에만 두므로 서버를 껐다 켜면 잊는다.
+_exhausted = {"day": "", "models": set()}
+_exh_lock = threading.Lock()
+
+
+def _exh_roll():                              # 호출 전에 잠가 둔 상태에서 부른다
+    today = time.strftime("%Y-%m-%d")
+    if _exhausted["day"] != today:
+        _exhausted["day"] = today
+        _exhausted["models"].clear()
+
+
+def is_exhausted(model):
+    with _exh_lock:
+        _exh_roll()
+        return model in _exhausted["models"]
+
+
+def mark_exhausted(model):
+    with _exh_lock:
+        _exh_roll()
+        _exhausted["models"].add(model)
+
+
 def ask_gemini(question, context, key):
     prompt = (f"{SYSTEM}\n\n=== 검색된 법령 조문 ===\n{context}\n\n"
               f"=== 질문 ===\n{question}")
     last = None
-    for model in MODELS:
+    for model in [m for m in MODELS if not is_exhausted(m)]:
         # 503(붐빔)·429(한도)는 잠깐 뒤 같은 모델이 풀리는 경우가 많아 두 번 시도한다.
         for attempt in range(2):
             text, err = call_model(model, prompt, key)
             if text:
                 return text
             last = (model, err)
-            # 429(한도 소진)는 같은 모델을 다시 불러도 소용없다. 바로 다음 모델로.
+            # 429(한도 소진)는 같은 모델을 다시 불러도 소용없다. 오늘은 건너뛰고 다음 모델로.
             # 503(붐빔)만 잠깐 쉬었다 한 번 더 해본다.
+            if err[0] == 429:
+                mark_exhausted(model)
             if err[0] in (503, 500, 0):
                 time.sleep(2 * (attempt + 1))
                 continue
@@ -516,14 +812,18 @@ def ask_gemini(question, context, key):
 # 단어가 겹치는 걸 찾는 방식이라, 실무자 말투("규제특례 언제 신청해?")로는
 # 엉뚱한 조문이 1등으로 올라온다(실측: 건축법 '규제의 재검토').
 # 그래서 검색 전에 가벼운 모델로 법령 용어를 뽑아 붙인다. 실패하면 원문 그대로 쓴다.
-REWRITE_MODEL = "gemini-3.1-flash-lite"
+REWRITE_MODEL = "gemini-3.5-flash-lite"   # 3.1-flash-lite 는 16초 걸려 바꿈(실측)
+# 앞 모델이 실패(한도·오류)하면 다음으로 넘어간다. 전부 실패하면 원문 질문으로 검색한다.
+REWRITE_CHAIN = [REWRITE_MODEL, "gemini-flash-lite-latest", "gemini-2.5-flash-lite"]
 REWRITE_PROMPT = """다음 질문을 한국 법령 검색어로 바꿔줘.
 - 법령에서 실제 쓰는 용어만 공백으로 나열. 설명·문장 금지.
 - 8단어 이내. 질문에 없는 법령명은 지어내지 마.
+- 이 검색은 수소시설 전용. "충전소"는 수소 충전소로 보고, 전기차·LPG·CNG 등 다른 분야 말로 바꾸지 마.
 예) "규제특례 언제 신청해?" -> 규제특례 실증특례 규제자유특구 신청 요건 특례
 질문: """
 
 _rewrite_cache = {}
+LONG_Q = 100      # 이보다 긴 질문은 점수와 상관없이 검색어로 줄여서 찾는다
 
 # ── 체크리스트 모드 ──────────────────────────────────────────────
 # "충전소 지을 건데 뭐가 필요해?" 에는 문장 답변보다 표가 맞다.
@@ -546,6 +846,113 @@ CHECKLIST_SYSTEM = """
 자료에 없는 단계를 상식으로 채우지 않습니다. 자료에 없으면 그 칸은 "-" 로 둡니다."""
 
 
+AI_REVIEW_PROMPT = """너는 한국가스안전공사 접수 담당자다. 아래 신청서 칸 값이 내용상 말이 되는지만 본다.
+형식(자리수·전화번호 모양)과 빈칸은 이미 다른 검사가 봤으니 보지 마라.
+볼 것: 단위가 이상하거나 규모가 비현실적인 값, 신청 종류와 맞지 않는 내용, 뜻이 없는 글자, 칸끼리 서로 어긋나는 내용.
+정상적인 값(예: 수소 시설에 '압축수소', 실제 같은 주소·회사명)은 절대 지적하지 마라. 애매하면 지적하지 않는다.
+틀렸다고 확신하는 것만, 최대 3개. 문제가 없으면 [] 만 낸다.
+JSON 배열만 출력: [{"key":"칸 key","value":"문제인 칸 값 그대로","title":"20자 이내 제목","why":"60자 이내 이유","sure":true}]
+
+신청 종류: {title}
+칸:
+{rows}"""
+
+
+def ai_review(title, rows):
+    """공사 제출 때 내용 판단. 12초 안에 못 받으면 빈 목록(규칙 검토만 쓴다)."""
+    key = api_key()
+    filled = [r for r in rows if r[2]]
+    if not key or not filled:
+        return []
+    prompt = AI_REVIEW_PROMPT.replace("{title}", title).replace(
+        "{rows}", "\n".join(f"- {k} ({n}): {v}" for k, n, v in filled))
+    body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
+                       "generationConfig": {"temperature": 0, "maxOutputTokens": 400,
+                                            "responseMimeType": "application/json"}}).encode()
+    for model in REWRITE_CHAIN:
+        if is_exhausted(model):
+            continue
+        req = urllib.request.Request(f"{API_BASE}/{model}:generateContent?key={key}", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            d = json.load(urllib.request.urlopen(req, timeout=12))
+            text = "".join(p.get("text", "") for p in d["candidates"][0]["content"]["parts"])
+            out = json.loads(text[text.find("["):text.rfind("]") + 1] or "[]")
+            vals = {k: v for k, _, v in filled}
+            # 확신(sure)하고, 짚은 값이 실제 칸 값과 같은 것만 쓴다(엉뚱한 칸을 짚는 착오를 거른다).
+            return [x for x in out if isinstance(x, dict) and x.get("sure") is True
+                    and str(x.get("value", "")).strip() == vals.get(x.get("key"), "").strip()] if isinstance(out, list) else []
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                mark_exhausted(model)
+        except Exception:
+            pass
+    return []
+
+
+def ai_check_files(files):
+    """올린 첨부파일이 정말 그 서류인지 AI 에 묻는다. [{doc, name, k}] → [{doc, name, ok, why}].
+    PDF 는 앞 2쪽 글자, 그림은 그림 그대로 보낸다. 파일마다 12초, 동시에 묻는다. 실패한 파일은 뺀다."""
+    import base64
+    key = api_key()
+    if not key or not files:
+        return []
+    out = []
+
+    def one(f):
+        p = REVIEW_FILES / f["k"]
+        ext = p.suffix.lower()
+        ask = (f"이 첨부파일이 '{f['doc']}' 서류로 보이는지 판단해라. 파일 이름: {f['name']}\n"
+               '확실히 다른 서류이거나 빈 파일일 때만 ok=false. JSON 만: {"ok":true|false,"why":"40자 이내 이유"}')
+        parts = [{"text": ask}]
+        try:
+            if ext == ".pdf":
+                import pymupdf
+                doc = pymupdf.open(p)
+                text = "".join(doc[i].get_text() for i in range(min(2, len(doc))))[:2500]
+                if text.strip():
+                    parts.append({"text": "파일 내용:\n" + text})
+                else:                               # 스캔본: 첫 쪽을 그림으로
+                    png = doc[0].get_pixmap(dpi=80).tobytes("png")
+                    parts.append({"inline_data": {"mime_type": "image/png", "data": base64.b64encode(png).decode()}})
+            elif ext in (".png", ".jpg", ".jpeg", ".webp"):
+                mt = "image/jpeg" if ext in (".jpg", ".jpeg") else f"image/{ext[1:]}"
+                parts.append({"inline_data": {"mime_type": mt, "data": base64.b64encode(p.read_bytes()).decode()}})
+            elif ext in (".txt", ".csv", ".md"):
+                parts.append({"text": "파일 내용:\n" + p.read_text(encoding="utf-8", errors="replace")[:2500]})
+            else:
+                return                              # 한글·워드 등은 읽지 않는다(이름만으로 판단하지 않음)
+        except Exception:
+            return
+        body = json.dumps({"contents": [{"parts": parts}],
+                           "generationConfig": {"temperature": 0, "maxOutputTokens": 200,
+                                                "responseMimeType": "application/json"}}).encode()
+        for model in REWRITE_CHAIN:
+            if is_exhausted(model):
+                continue
+            req = urllib.request.Request(f"{API_BASE}/{model}:generateContent?key={key}", data=body,
+                                         headers={"Content-Type": "application/json"})
+            try:
+                d = json.load(urllib.request.urlopen(req, timeout=12))
+                t = "".join(x.get("text", "") for x in d["candidates"][0]["content"]["parts"])
+                j = json.loads(t[t.find("{"):t.rfind("}") + 1])
+                out.append({"doc": f["doc"], "name": f["name"], "ok": bool(j.get("ok", True)),
+                            "why": str(j.get("why", ""))[:80]})
+                return
+            except urllib.error.HTTPError as e:
+                if e.code == 429:
+                    mark_exhausted(model)
+            except Exception:
+                pass
+
+    ts = [threading.Thread(target=one, args=(f,)) for f in files[:10]]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join(timeout=15)
+    return out
+
+
 def rewrite_query(question, key):
     if not key or len(question) < 4:
         return question
@@ -557,22 +964,35 @@ def rewrite_query(question, key):
         "contents": [{"parts": [{"text": REWRITE_PROMPT + question}]}],
         "generationConfig": {"temperature": 0, "maxOutputTokens": 300},
     }).encode()
-    req = urllib.request.Request(
-        f"{API_BASE}/{REWRITE_MODEL}:generateContent?key={key}", data=body,
-        headers={"Content-Type": "application/json"})
-    try:
-        d = json.load(urllib.request.urlopen(req, timeout=20))
-        parts = d["candidates"][0]["content"]["parts"]
-        terms = "".join(p.get("text", "") for p in parts).strip()
-    except Exception:
-        return question                     # 한도·오류 시 원래 질문으로 검색
+    terms = None
+    for model in REWRITE_CHAIN:
+        if is_exhausted(model):
+            continue
+        req = urllib.request.Request(
+            f"{API_BASE}/{model}:generateContent?key={key}", data=body,
+            headers={"Content-Type": "application/json"})
+        try:
+            d = json.load(urllib.request.urlopen(req, timeout=20))
+            parts = d["candidates"][0]["content"]["parts"]
+            terms = "".join(p.get("text", "") for p in parts).strip()
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429:               # 한도 소진: 오늘은 이 모델을 다시 부르지 않는다
+                mark_exhausted(model)
+        except Exception:
+            pass                            # 다음 모델로
+    if terms is None:
+        return question                     # 전부 실패: 원래 질문으로 검색
     terms = " ".join(terms.split())[:120]
     # 법령과 무관한 질문에는 모델이 "변환할 수 없습니다" 같은 문장을 돌려준다.
     # 그걸 검색어에 섞으면 엉뚱한 조문이 걸리므로 버린다.
     if "없습니다" in terms or "않습니다" in terms or len(terms) > 90:
         terms = ""
     # 원문도 같이 넣는다. 재작성이 엉뚱해도 원래 단어로는 걸리게.
-    out = f"{question} {terms}" if terms else question
+    # 긴 질문은 앞부분(대개 제목·요지)만 남긴다. 인사·회사 소개·사정 설명이 검색을 흐린다
+    # (실측: 현장 질문 57개 근거 일치 37 → 41, 원문 전체를 붙이면 39).
+    head = question[:40] if len(question) > LONG_Q else question
+    out = f"{head} {terms}" if terms else question
     _rewrite_cache[question] = out
     return out
 
@@ -718,11 +1138,42 @@ def siblings_of(hits):
     return out
 
 
-def verify(answer, hits):
-    """근거에서 확인되지 않은 수치·조문번호를 찾아낸다."""
+NAMED_REF = re.compile(r"\[([가-힣][가-힣\s·ㆍ]{3,60}?)\s*(제\d+조(?:의\d+)?|별표\s*\d+(?:의\d+)?)\]")
+
+
+LAW_SHORT = {"수소법": "수소경제육성및수소안전관리에관한법률", "고압가스법": "고압가스안전관리법",
+             "고법": "고압가스안전관리법", "액법": "액화석유가스의안전관리및사업법",
+             "도시가스법": "도시가스사업법"}
+
+
+def _law_kind(k):
+    return "규칙" if k.endswith("시행규칙") else "령" if k.endswith("시행령") else "법"
+
+
+def _law_in_hits(law, ref, hits):
+    """[법 이름 조문] 이 넘긴 근거 중 하나와 맞는가. 줄임말('고압가스법')도 앞 4글자·법령 단계로 맞춘다."""
+    lk = search.law_key(law)
+    for short, full in LAW_SHORT.items():
+        if lk.startswith(short):
+            lk = full + lk[len(short):]
+            break
+    if len(lk) < 4:                      # '법 제4조' 같은 줄임은 판단하지 않는다
+        return True
+    for h in hits:
+        hk = search.law_key(h.get("law", ""))
+        same_law = lk in hk or hk in lk or (lk[:4] == hk[:4] and _law_kind(lk) == _law_kind(hk))
+        if same_law and ref in re.sub(r"\s+", "", h.get("article", "")):
+            return True
+    return False
+
+
+def verify(answer, hits, user_text=""):
+    """근거에서 확인되지 않은 수치·조문번호를 찾아낸다.
+    user_text: 사용자가 직접 준 값(질문·신청서 답). 이 숫자는 근거가 아니라 사용자 것이라 지우지 않는다
+    (실측: 신청서의 '500 kg/일'이 근거에 없다고 (4)번 칸째 지워졌다)."""
     body = split_followups(answer)[0]
     # 같은 별표의 다른 조각 + 넘긴 조각 자체(확정 자료처럼 색인에 없는 것도 있다)
-    haystack = " ".join(siblings_of(hits) + [h["content"] for h in hits])
+    haystack = " ".join(siblings_of(hits) + [h["content"] for h in hits] + [user_text])
     flat = re.sub(r"\s+", "", haystack)
 
     bad_nums = []
@@ -733,6 +1184,12 @@ def verify(answer, hits):
     for r in dict.fromkeys(REF_RE.findall(body)):
         if re.sub(r"\s+", "", r) not in flat:
             bad_refs.append(r)
+    # 법 이름 + 조문 짝 대조. '제2조' 는 근거에 있어도 다른 법의 제2조일 수 있다
+    # (실측: [고압가스 안전관리법 시행규칙 제2조] 라고 썼는데 근거엔 수소법 시행규칙 제2조뿐).
+    for m in NAMED_REF.finditer(body):
+        law, ref = m.group(1).strip(), re.sub(r"\s+", "", m.group(2))
+        if not _law_in_hits(law, ref, hits):
+            bad_refs.append(f"{law} {m.group(2)}")
     # 주체 대조. 가운뎃점 표기(ㆍ/·)가 제각각이라 지우고 견준다.
     flat_org = re.sub(r"[ㆍ·]", "", flat)
     for o in dict.fromkeys(ORG_RE.findall(body)):
@@ -877,6 +1334,19 @@ def history_to_contents(messages, context):
     return contents
 
 
+def permit_vals(fields):
+    """신청서 칸 값 정리. 글자 칸은 120자로 자르고, 서명(PNG 그림)만 길게 받는다."""
+    out = {}
+    for k, v in (fields or {}).items():
+        k, v = str(k)[:20], str(v)
+        if k == "sign":
+            if v.startswith("data:image/png;base64,") and len(v) < 400_000:
+                out[k] = v
+        else:
+            out[k] = v[:120]
+    return out
+
+
 class Handler(BaseHTTPRequestHandler):
     # 기본값(HTTP/1.0)이면 브라우저가 답을 통째로 모았다가 한 번에 그린다.
     # 한 글자씩 흘러나오게 하려면 1.1 + chunked 가 필요하다.
@@ -939,6 +1409,40 @@ class Handler(BaseHTTPRequestHandler):
                          "https://www.law.go.kr/" + urllib.parse.quote(
                              f"법령/{r['law'].replace(' ', '')}"))
             self._send(200, json.dumps(r, ensure_ascii=False))
+        elif path in ("/demo", "/demo.html"):
+            self._send(200, (HERE / "demo.html").read_bytes(), "text/html; charset=utf-8")
+        elif path in ("/review", "/review.html"):
+            self._send(200, (HERE / "review.html").read_bytes(), "text/html; charset=utf-8")
+        elif path == "/api/permit/forms":
+            import permit_forms
+            self._send(200, json.dumps(permit_forms.catalog(), ensure_ascii=False))
+        elif path == "/api/review/list":
+            import review
+            self._send(200, json.dumps(review.listing(), ensure_ascii=False))
+        elif path == "/api/review/file":
+            # 접수함 첨부파일. 저장할 때 붙인 무작위 폴더 이름/파일 이름만 받는다(경로 거슬러 오르기 차단).
+            k = (qs.get("k") or [""])[0]
+            m = re.fullmatch(r"([0-9a-f]{32})/([^/\\]{1,120})", k)
+            fp = REVIEW_FILES / m.group(1) / m.group(2) if m else None
+            if not fp or not fp.is_file():
+                return self._send(404, json.dumps({"error": "없는 파일"}, ensure_ascii=False))
+            import mimetypes
+            data = fp.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", mimetypes.guess_type(fp.name)[0] or "application/octet-stream")
+            self.send_header("Content-Disposition", "inline; filename*=UTF-8''" + urllib.parse.quote(fp.name))
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        elif path == "/api/review/item":
+            import review
+            x = review.get((qs.get("id") or [""])[0])
+            self._send(200 if x else 404, json.dumps(x or {"error": "없는 접수번호"}, ensure_ascii=False))
+        elif path == "/api/sandbox/cases":
+            # 승인된 수소 샌드박스 사례(data/sandbox_cases.json). 출처 링크·승인일을 함께 준다.
+            f = HERE / "data" / "sandbox_cases.json"
+            cases = json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+            self._send(200, json.dumps(cases, ensure_ascii=False))
         elif path.startswith("/api/share/"):
             sid = path.rsplit("/", 1)[1]
             f = SHARE_DIR / f"{sid}.json"
@@ -1008,6 +1512,117 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send(404, json.dumps({"error": "not found"}))
 
+    def do_permit_file(self, req):
+        """허가·신고·검사 신청서를 공식 서식 PDF 에 채워 돌려준다."""
+        import permit_forms
+        fid = req.get("id")
+        if fid not in permit_forms.FORMS:
+            return self._send(400, json.dumps({"error": "서식 id 가 없습니다"}, ensure_ascii=False))
+        vals = permit_vals(req.get("fields"))
+        hwpx = req.get("fmt") == "hwpx"
+        try:
+            if hwpx:
+                data, name = permit_forms.fill_hwpx(fid, vals)
+            else:
+                data, name = permit_forms.fill(fid, vals, "blue" if req.get("ink") == "blue" else "black")
+        except Exception as e:
+            return self._send(502, json.dumps({"error": f"파일을 만들지 못했습니다: {e}"},
+                                              ensure_ascii=False))
+        self.send_response(200)
+        # HWPX 의 MIME 을 확인하지 못해 일반 바이너리로 보낸다(브라우저는 파일명 확장자로 저장한다).
+        self.send_header("Content-Type", "application/octet-stream" if hwpx else "application/pdf")
+        self.send_header("Content-Disposition",
+                         f"attachment; filename*=UTF-8''{urllib.parse.quote(name)}")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_permit_preview(self, req):
+        """서식 미리보기: 제출용(검정)으로 채운 쪽을 PNG 목록으로 돌려준다."""
+        import permit_forms
+        fid = req.get("id")
+        if fid not in permit_forms.FORMS:
+            return self._send(400, json.dumps({"error": "서식 id 가 없습니다"}, ensure_ascii=False))
+        vals = permit_vals(req.get("fields"))
+        try:
+            data, _ = permit_forms.fill(fid, vals, "black")
+            pages = pdf_pages_png(data)
+        except Exception as e:
+            return self._send(502, json.dumps({"error": f"미리보기를 만들지 못했습니다: {e}"},
+                                              ensure_ascii=False))
+        self._send(200, json.dumps({"pages": pages}))
+
+    def do_permit_editor(self, req):
+        """미리보기에서 바로 고치기: 칸 글자를 비운 바탕 그림 + 칸마다 입력 상자 자리(pt)."""
+        import permit_forms
+        fid = req.get("id")
+        if fid not in permit_forms.FORMS:
+            return self._send(400, json.dumps({"error": "서식 id 가 없습니다"}, ensure_ascii=False))
+        vals = permit_vals(req.get("fields"))
+        try:
+            data, boxes, pw, ph = permit_forms.edit_layout(fid, vals)
+            pages = pdf_pages_png(data)
+        except Exception as e:
+            return self._send(502, json.dumps({"error": f"미리보기를 만들지 못했습니다: {e}"},
+                                              ensure_ascii=False))
+        self._send(200, json.dumps({"pages": pages, "w": pw, "h": ph, "boxes": boxes},
+                                   ensure_ascii=False))
+
+    def do_sandbox_editor(self, req):
+        """샌드박스 신청서 미리보기에서 바로 고치기(허가 신청서 편집과 같은 모양으로 돌려준다)."""
+        import sandbox_doc
+        f = clean_sandbox(req.get("fields"))
+        try:
+            data, boxes, pw, ph = sandbox_doc.edit_layout(f)
+            pages = pdf_pages_png(data)
+        except Exception as e:
+            return self._send(502, json.dumps({"error": f"미리보기를 만들지 못했습니다: {e}"},
+                                              ensure_ascii=False))
+        self._send(200, json.dumps({"pages": pages, "w": pw, "h": ph, "boxes": boxes},
+                                   ensure_ascii=False))
+
+    def do_sandbox_preview(self, req):
+        """샌드박스 신청서 미리보기(PDF 쪽별 PNG)."""
+        import sandbox_doc
+        f = clean_sandbox(req.get("fields"))
+        try:
+            pages = pdf_pages_png(sandbox_doc.fill_pdf(f))
+        except Exception as e:
+            return self._send(502, json.dumps({"error": f"미리보기를 만들지 못했습니다: {e}"},
+                                              ensure_ascii=False))
+        self._send(200, json.dumps({"pages": pages}))
+
+    def do_sandbox_file(self, req):
+        """신청서(공식 서식 PDF에 채움) 또는 사업실시계획서(워드)."""
+        import sandbox_doc
+        f = clean_sandbox(req.get("fields"))
+        fmt = req.get("fmt")
+        try:
+            if fmt == "pdf":
+                data, name, ctype = sandbox_doc.fill_pdf(f), "신청서.pdf", "application/pdf"
+            elif fmt == "docx":
+                refs = {str(k): str(v)[:120] for k, v in (req.get("refs") or {}).items()}
+                data = sandbox_doc.make_docx(f, str(req.get("text") or "")[:30000], refs)
+                name = "사업실시계획서.docx"
+                ctype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            elif fmt == "hwpx":
+                data = sandbox_doc.make_hwpx(f, str(req.get("text") or "")[:30000])
+                name = "사업실시계획서.hwpx"
+                ctype = "application/octet-stream"
+            else:
+                return self._send(400, json.dumps({"error": "fmt 는 pdf/docx/hwpx"}))
+        except Exception as e:
+            return self._send(502, json.dumps({"error": f"파일을 만들지 못했습니다: {e}"},
+                                              ensure_ascii=False))
+        name = f"{f.get('kind', '실증특례')}_{name}"
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Disposition",
+                         f"attachment; filename*=UTF-8''{urllib.parse.quote(name)}")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_share(self, req):
         """대화를 저장하고 짧은 주소를 돌려준다."""
         turns = req.get("turns") or []
@@ -1018,7 +1633,8 @@ class Handler(BaseHTTPRequestHandler):
         for t in turns:
             keep.append({k: t.get(k) for k in
                          ("q", "text", "sources", "cited", "followups",
-                          "warnings", "nums", "refs", "lowconf", "model", "cached")})
+                          "warnings", "nums", "refs", "lowconf", "model", "cached",
+                          "regs", "sandbox")})
         rec = {"t": time.strftime("%Y-%m-%d %H:%M:%S"), "turns": keep}
         raw = json.dumps(rec, ensure_ascii=False).encode()
         if len(raw) > SHARE_MAX_BYTES:
@@ -1041,15 +1657,35 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(b"0\r\n\r\n")
         self.wfile.flush()
 
-    # ── /api/chat ── 흐름: 요청 풀기 → 인사·소개 → 캐시 → 검색 → 발표 잠금 → 모델 → 마무리
-    # 한 함수가 290줄이라 단계별로 나눴다. 각 단계는 self._event 로 화면에 흘리고,
-    # 흐름을 끝내야 하면 self._done() 의 결과를 돌려준다(호출한 쪽에서 그대로 return).
-
     def do_chat(self, req):
-        p = self._chat_parse(req)
-        if p is None:
-            return
-        q = p["q"]
+        if ACCESS_CODE and (req.get("code") or "").strip() != ACCESS_CODE:
+            return self._send(401, json.dumps(
+                {"error": "접근 코드가 필요합니다"}, ensure_ascii=False))
+        # 중계(워커·터널)를 거치므로 원래 접속자 주소는 헤더에서 본다.
+        ip = (self.headers.get("CF-Connecting-IP")
+              or self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+              or self.client_address[0])
+        if not rate_ok(ip):
+            return self._send(429, json.dumps(
+                {"error": "잠시 후 다시 시도해 주세요 (시간당 30회 제한)"},
+                ensure_ascii=False))
+        messages = req.get("messages") or []
+        country = req.get("country") or None
+        if not messages or not (messages[-1].get("text") or "").strip():
+            return self._send(400, json.dumps({"error": "질문이 비었습니다"}))
+        q = messages[-1]["text"].strip()
+        facility = req.get("facility") or None
+        # 기준일(YYYY-MM-DD). 그날 시행 중인 판으로 답한다. 형식이 틀리면 무시.
+        as_of = (req.get("as_of") or "").strip()
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", as_of):
+            as_of = None
+        checklist = bool(req.get("checklist")) or bool(CHECKLIST_RE.search(q))
+        first_turn = not any(m.get("role") == "user" for m in messages[:-1])
+
+        # 이어지는 질문("그럼 기간은?")은 그 말만으로 검색이 안 되니
+        # 바로 앞 질문을 검색어에 같이 넣는다.
+        prev = [m["text"] for m in messages[:-1] if m.get("role") == "user"]
+        query = (prev[-1] + " " + q) if (prev and len(q) < 15) else q
 
         self.send_response(200)
         self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
@@ -1057,18 +1693,99 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Transfer-Encoding", "chunked")
         self.end_headers()
 
-        if self._chat_canned(q):
-            return
+        # 인사·잡담은 법령을 뒤지지 않는다. 뒤지면 부칙 조문이 근거랍시고 붙는다(실측).
+        if SMALLTALK.match(q) and len(q) <= 12:
+            self._event({"type": "sources", "sources": []})
+            self._event({"type": "text", "t":
+                "안녕하세요! 수소시설 인허가에 대해 물어봐 주세요.\n"
+                "예) 수소충전소 안전거리는? · 제조허가는 누구에게 받아? · 규제특례 종류는?"})
+            return self._done()
+        # "너 정체가 뭐야?" 같은 자기소개 질문도 마찬가지. 검색을 돌리면 소방기본법 제1조가
+        # 근거로 붙고 "자료에 없을 수 있다" 경고까지 떴다(실측).
+        if META.search(q) and len(q) <= 30:
+            self._event({"type": "sources", "sources": []})
+            self._event({"type": "text", "t": INTRO})
+            self._event({"type": "followups", "items": [
+                "수소충전소를 세우려면 어떤 허가가 필요해?",
+                "수소충전소는 제1종보호시설에서 몇 미터 떨어져야 해?",
+                "규제특례에는 어떤 종류가 있어?"]})
+            return self._done()
+
+        # ── 허가·신고·검사 신청서 채우기 ── 서식을 고르고 칸을 채우면 공식 PDF 로 낸다.
+        # 답을 지어내지 않고 서식 본문(처리기간·첨부서류·수수료)을 그대로 보여 준다.
+        if PERMIT_DRAFT.search(q) and not SANDBOX_DRAFT.search(q) and not SANDBOX_ASK.search(q):
+            import permit_forms
+            self._event({"type": "sources", "sources": []})
+            # "허가 신청서 써줘" 만 오면 시설을 모른다. 앞서 나눈 대화(충전소 얘기 등)에서 짐작한다.
+            past = " ".join(m.get("text", "") for m in messages[-7:-1] if m.get("role") == "user")
+            self._event({"type": "permit", "forms": permit_forms.catalog(),
+                         "guess": permit_forms.guess(q) or permit_forms.guess(past)})
+            return self._done(kind="permit")
+
+        # ── 사업자 정보 묻기 ── 조건에 따라 답이 갈리면 답하기 전에 버튼으로 묻는다.
+        profile = clean_profile(req.get("profile"))
+        if not req.get("no_ask"):
+            steps = ask_for(q, profile)
+            if steps:
+                self._event({"type": "sources", "sources": []})
+                self._event({"type": "ask", "q": q, "steps": steps})
+                return self._done(kind="ask")
+        kind_word = KIND_WORDS.get(profile.get("kind"))
+        if kind_word and kind_word not in query:
+            query += " " + kind_word
+        regs = reg_cases_for(q)
+        if regs:
+            self._event({"type": "regs", "items": regs})
 
         # ── 캐시 ── 같은 첫 질문은 저장해 둔 답을 그대로 흘린다(모델 호출 없음).
-        ckey = (_cache_key(q, p["country"], p["facility"], p["as_of"], p["checklist"])
-                if p["first_turn"] else None)
+        # 사업자 정보가 있으면 답이 사람마다 달라지므로 캐시를 쓰지 않는다.
+        # 신청서 초안도 쓰지 않는다(틀을 바꿔도 옛 틀의 답이 계속 나왔다).
+        ckey = _cache_key(q, country, facility, as_of, checklist) \
+            if (first_turn and not profile and not SANDBOX_DRAFT.search(q)) else None
         hit = cache_get(ckey) if (ckey and not req.get("nocache")) else None
         if hit:
-            return self._chat_from_cache(q, hit)
+            self._event({"type": "sources", "sources": hit["sources"]})
+            if hit.get("lowconf"):
+                self._event({"type": "lowconf"})
+            self._event({"type": "text", "t": hit["body"]})
+            self._event({"type": "cited", "refs": hit["cited"]})
+            self._event({"type": "followups", "items": hit["followups"]})
+            self._event({"type": "verify", "warnings": hit["warnings"],
+                         "nums": hit.get("nums", []), "refs": hit.get("refs", [])})
+            log_turn({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "q": q,
+                      "model": "cache", "cached": True})
+            return self._done(model=hit.get("model"), cached=True,
+                              cached_at=hit.get("t"))
 
         t_start = time.time()
-        hits = self._chat_retrieve(p)
+        idx = search.get_index()
+        # 검색어 재작성(모델 호출, 약 1초)은 첫 검색과 동시에 걸어 둔다. 검색이 끝난 뒤
+        # 시작하면 그만큼 기다려야 했다(실측 총 4~5초 중 2초). 결과는 원문 검색이 약할 때만 쓴다.
+        # 대가: 질문마다 재작성 모델을 한 번 더 부른다(하루 한도 확인 필요, 2026-10-12 미확인).
+        long_q = len(query) > LONG_Q
+        rw = {}
+        rw_t = threading.Thread(target=lambda: rw.setdefault("q", rewrite_query(query, api_key())),
+                                daemon=True)
+        rw_t.start()
+        hits = idx.search(query, top_k=12, country=country, facility=facility,
+                          as_of=as_of)
+        if long_q or (hits[0]["score"] if hits else 0) < 55:
+            rw_t.join(timeout=8)
+            better = rw.get("q", query)
+            if better != query:
+                hits2 = idx.search(better, top_k=12, country=country,
+                                   facility=facility, as_of=as_of)
+                if hits2 and (long_q or hits2[0]["score"] > (hits[0]["score"] if hits else 0)):
+                    hits = hits2
+        # 체크리스트에는 제출 서류 이름이 곧 답이라 별지 서식을 따로 붙인다.
+        if checklist and hits:
+            have = {(h["law"], h["article"]) for h in hits}
+            hits += [f for f in idx.search_forms(query, 4)
+                     if (f["law"], f["article"]) not in have]
+        # 확정 자료(수수료·서식·기간·안전거리)는 맨 앞에 넣는다. 값은 코드가 표에서 가져온다.
+        fixed = facts.match(q)
+        if fixed:
+            hits = fixed + hits
         shown = group_sources(hits)
         self._event({"type": "sources", "sources": shown})
         cl = clarify_for(q)
@@ -1076,7 +1793,7 @@ class Handler(BaseHTTPRequestHandler):
             self._event(cl)
 
         # ── 발표 잠금 ── 사람이 확인한 답이 있으면 그것만 내보낸다.
-        demo = demo_lookup(q) if p["first_turn"] else None
+        demo = demo_lookup(q) if first_turn else None
         if demo:
             self._event({"type": "text", "t": demo["body"]})
             self._event({"type": "cited", "refs": demo.get("cited", [])})
@@ -1095,155 +1812,6 @@ class Handler(BaseHTTPRequestHandler):
                 "관련 조문을 찾지 못했습니다. 다른 용어로 물어봐 주세요."})
             return self._done()
 
-        weak, note = self._chat_note(q, hits, p["as_of"])
-        context = build_context(hits, shown) + note
-        contents = history_to_contents(p["messages"], context)
-        if weak:
-            self._event({"type": "lowconf"})
-        system = SYSTEM + (CHECKLIST_SYSTEM if p["checklist"] else "")
-
-        # 시도 순서: 화면에서 고른 모드(평소/발표)의 제미나이 목록 → 마지막으로 로컬 LLM.
-        attempts = [("gemini", m) for m in MODEL_SETS.get(req.get("mode"), MODELS)] \
-            if key else []
-        if ollama_fallback.enabled():
-            attempts.append(("ollama", ollama_fallback.MODEL))
-        last_err = None
-        for kind, model in attempts:
-            for attempt in range(2):
-                try:
-                    if kind == "ollama" and (attempt or not ollama_fallback.alive()):
-                        last_err = (model, 0, "로컬 LLM 이 꺼져 있음")
-                        break
-                    got = self._chat_stream(kind, model, system, contents, key)
-                    if got is None:
-                        last_err = (model, 0, "빈 응답")
-                    elif got == "short":
-                        last_err = (model, 0, "응답이 끊김")
-                        continue
-                    else:
-                        self._chat_finish(
-                            req, p, hits, shown, context, kind, model, key, got,
-                            weak=weak, ckey=ckey, t_start=t_start)
-                        return self._done(model=model, kind=kind)
-                except urllib.error.HTTPError as e:
-                    last_err = (model, e.code,
-                                e.read().decode("utf-8", "replace")[:200])
-                    if e.code not in (500, 503):
-                        break          # 429(한도)·키 오류는 재시도해도 같다
-                except Exception as e:
-                    last_err = (model, 0, str(e))
-                    import traceback
-                    traceback.print_exc()        # 서버 로그에 남긴다. 화면에는 한 줄만 간다.
-                time.sleep(2 * (attempt + 1))
-
-        model, code, detail = last_err or ("-", 0, "시도할 모델이 없음")
-        self._event({"type": "text", "t":
-            "지금 구글 서버가 붐벼서 답변을 받지 못했습니다. "
-            "아래 근거 조문은 정상이니 잠시 뒤 다시 물어봐 주세요.\n"
-            f"(마지막 오류: {model} {code} {detail})"})
-        self._done()
-
-    def _chat_parse(self, req):
-        """요청에서 질문·옵션을 꺼낸다. 막아야 하면 오류를 보내고 None."""
-        if ACCESS_CODE and (req.get("code") or "").strip() != ACCESS_CODE:
-            self._send(401, json.dumps(
-                {"error": "접근 코드가 필요합니다"}, ensure_ascii=False))
-            return None
-        # 중계(워커·터널)를 거치므로 원래 접속자 주소는 헤더에서 본다.
-        ip = (self.headers.get("CF-Connecting-IP")
-              or self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-              or self.client_address[0])
-        if not rate_ok(ip):
-            self._send(429, json.dumps(
-                {"error": "잠시 후 다시 시도해 주세요 (시간당 30회 제한)"},
-                ensure_ascii=False))
-            return None
-        messages = req.get("messages") or []
-        if not messages or not (messages[-1].get("text") or "").strip():
-            self._send(400, json.dumps({"error": "질문이 비었습니다"}))
-            return None
-        q = messages[-1]["text"].strip()
-        # 기준일(YYYY-MM-DD). 그날 시행 중인 판으로 답한다. 형식이 틀리면 무시.
-        as_of = (req.get("as_of") or "").strip()
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", as_of):
-            as_of = None
-        # 이어지는 질문("그럼 기간은?")은 그 말만으로 검색이 안 되니
-        # 바로 앞 질문을 검색어에 같이 넣는다.
-        prev = [m["text"] for m in messages[:-1] if m.get("role") == "user"]
-        return {
-            "ip": ip, "q": q, "messages": messages,
-            "query": (prev[-1] + " " + q) if (prev and len(q) < 15) else q,
-            "country": req.get("country") or None,
-            "facility": req.get("facility") or None,
-            "as_of": as_of,
-            "checklist": bool(req.get("checklist")) or bool(CHECKLIST_RE.search(q)),
-            "first_turn": not any(m.get("role") == "user" for m in messages[:-1]),
-        }
-
-    def _chat_canned(self, q):
-        """인사·자기소개는 법령을 뒤지지 않고 정해진 말로 답한다. 답했으면 True."""
-        # 인사·잡담을 검색하면 부칙 조문이 근거랍시고 붙는다(실측).
-        if SMALLTALK.match(q) and len(q) <= 12:
-            self._event({"type": "sources", "sources": []})
-            self._event({"type": "text", "t":
-                "안녕하세요! 수소시설 인허가에 대해 물어봐 주세요.\n"
-                "예) 수소충전소 안전거리는? · 제조허가는 누구에게 받아? · 규제특례 종류는?"})
-            self._done()
-            return True
-        # "너 정체가 뭐야?" 같은 자기소개 질문도 마찬가지. 검색을 돌리면 소방기본법 제1조가
-        # 근거로 붙고 "자료에 없을 수 있다" 경고까지 떴다(실측).
-        if META.search(q) and len(q) <= 30:
-            self._event({"type": "sources", "sources": []})
-            self._event({"type": "text", "t": INTRO})
-            self._event({"type": "followups", "items": [
-                "수소충전소를 세우려면 어떤 허가가 필요해?",
-                "수소충전소는 제1종보호시설에서 몇 미터 떨어져야 해?",
-                "규제특례에는 어떤 종류가 있어?"]})
-            self._done()
-            return True
-        return False
-
-    def _chat_from_cache(self, q, hit):
-        """저장해 둔 답을 그대로 흘린다."""
-        self._event({"type": "sources", "sources": hit["sources"]})
-        if hit.get("lowconf"):
-            self._event({"type": "lowconf"})
-        self._event({"type": "text", "t": hit["body"]})
-        self._event({"type": "cited", "refs": hit["cited"]})
-        self._event({"type": "followups", "items": hit["followups"]})
-        self._event({"type": "verify", "warnings": hit["warnings"],
-                     "nums": hit.get("nums", []), "refs": hit.get("refs", [])})
-        log_turn({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "q": q,
-                  "model": "cache", "cached": True})
-        return self._done(model=hit.get("model"), cached=True, cached_at=hit.get("t"))
-
-    def _chat_retrieve(self, p):
-        """조문을 찾는다: 검색 → (약하면) 재작성 검색 → 서식 → 확정 자료."""
-        q, query = p["q"], p["query"]
-        idx = search.get_index()
-        opts = dict(country=p["country"], facility=p["facility"], as_of=p["as_of"])
-        hits = idx.search(query, top_k=12, **opts)
-        # 검색어 재작성(모델 호출)은 원문 검색이 약할 때만 한다.
-        # 매번 하면 질문 하나에 모델을 두 번 불러 하루 한도가 반으로 준다.
-        if (hits[0]["score"] if hits else 0) < 55:
-            better = rewrite_query(query, api_key())
-            if better != query:
-                hits2 = idx.search(better, top_k=12, **opts)
-                if hits2 and hits2[0]["score"] > (hits[0]["score"] if hits else 0):
-                    hits = hits2
-        # 체크리스트에는 제출 서류 이름이 곧 답이라 별지 서식을 따로 붙인다.
-        if p["checklist"] and hits:
-            have = {(h["law"], h["article"]) for h in hits}
-            hits += [f for f in idx.search_forms(query, 4)
-                     if (f["law"], f["article"]) not in have]
-        # 확정 자료(수수료·서식·기간·안전거리)는 맨 앞에 넣는다. 값은 코드가 표에서 가져온다.
-        fixed = facts.match(q)
-        if fixed:
-            hits = fixed + hits
-        return hits
-
-    def _chat_note(self, q, hits, as_of):
-        """모델에게 붙일 주의문을 만든다. (자료 없음 판정, 기준일, 개정 비교, 갈래 확인)"""
         # 검색 점수가 바닥이면 그 주제 법령이 자료에 아예 없다는 뜻이다.
         # (실측: '규제특례' 최고점 21.8 — 규제자유특구법이 데이터에 0건)
         # 이때 그냥 두면 비슷해 보이는 엉뚱한 조문을 끌어다 답한다.
@@ -1266,7 +1834,7 @@ class Handler(BaseHTTPRequestHandler):
                      "무엇이 어떻게 달라지는지 전·후를 나란히 적고, 시행일을 밝힙니다.")
         # 우산 개념은 갈래를 빠뜨리지 않게 이름을 못 박는다(실측: 신속확인 조문이 자료에
         # 있어도 답변은 '두 가지'로 끝났다).
-        for umbrella, subs in search.BUNDLES.items():
+        for umbrella, subs in search.BUNDLES.items():     # 'key' 는 API 키라 이름을 달리 쓴다
             if umbrella in q:
                 present = [s for s in subs if any(
                     s.replace(" ", "") in (h["title"] + h["content"][:300]).replace(" ", "")
@@ -1275,117 +1843,153 @@ class Handler(BaseHTTPRequestHandler):
                     note += (f"\n\n[갈래 확인] '{umbrella}'는 자료에 {len(present)}갈래가 있습니다: "
                              + " · ".join(present) + ". 종류를 물었으면 이 갈래를 모두 다룹니다.")
                 break
-        return weak, note
+        note += profile_note(profile, q)
+        sb_info = clean_sandbox(req.get("sandbox"))
+        sb_info.pop("sign", None)                # 서명 그림은 답변 프롬프트에 넣지 않는다
+        note += sandbox_note(q, regs, sb_info)
+        user_facts = q + " " + " ".join(sb_info.values())
+        context = build_context(hits, shown) + note
+        contents = history_to_contents(messages, context)
+        if weak:
+            self._event({"type": "lowconf"})
+        system = SYSTEM + (CHECKLIST_SYSTEM if checklist else "")
+        use_judge = JUDGE_ALWAYS or req.get("mode") == "demo"
 
-    def _chat_stream(self, kind, model, system, contents, key):
-        """모델 하나를 불러 답을 화면에 흘린다.
+        # 시도 순서: 화면에서 고른 모드(평소/발표)의 제미나이 목록 → 마지막으로 로컬 LLM.
+        attempts = [("gemini", m) for m in MODEL_SETS.get(req.get("mode"), MODELS)
+                    if not is_exhausted(m)] if key else []
+        if ollama_fallback.enabled():
+            attempts.append(("ollama", ollama_fallback.MODEL))
+        last_err = None
+        for kind, model in attempts:
+            for attempt in range(2):
+                try:
+                    if kind == "ollama":
+                        if attempt or not ollama_fallback.alive():
+                            last_err = (model, 0, "로컬 LLM 이 꺼져 있음")
+                            break
+                        self._event({"type": "text",
+                                     "t": ""})      # 화면의 '읽는 중'을 답변 모드로 넘긴다
+                        gen = ollama_fallback.stream(system, contents)
+                    else:
+                        gen = stream_model(model, contents, key, system)
+                    got = False
+                    buf, sent = "", 0
+                    for chunk in gen:
+                        got = True
+                        buf += chunk
+                        # 꼬리에 붙는 '###다음질문' 블록은 화면에 글로 흘리지 않고
+                        # 버튼으로 만든다. 표시가 반쯤 도착한 상태에서 잘못 내보내지
+                        # 않도록, 표시 길이만큼은 항상 손에 쥐고 있다가 흘린다.
+                        _, cut = split_followups(buf)
+                        stop = cut if cut >= 0 else max(0, len(buf) - 12)
+                        if stop > sent:
+                            self._event({"type": "text", "t": buf[sent:stop]})
+                            sent = stop
+                    if got:
+                        body, cut = split_followups(buf)
+                        if cut < 0 and len(buf) > sent:
+                            self._event({"type": "text", "t": buf[sent:]})
+                        # 상류에서 스트림이 끊기면 "고압" 두 글자만 나오고 끝난 적이 있다.
+                        # 이런 토막을 정상 답변으로 넘기면 안 되니 다음 모델로 다시 시도한다.
+                        if len(body.strip()) < 40:
+                            last_err = (model, 0, f"응답이 {len(body.strip())}자에서 끊김")
+                            self._event({"type": "text",
+                                         "t": "\n\n…(답변이 끊겨 다시 시도합니다)\n\n"})
+                            continue
+                        text = buf
+                        body_text = body
+                        follow = parse_followups(text)
+                        self._event({"type": "phase", "p": "check"})   # 화면 진행 표시: 근거 검사 단계
+                        v = verify(text, hits, user_facts)
+                        removed = []
+                        # ── 자기교정 ── 어긋난 표기가 있으면 화면에 굳히기 전에 고친다.
+                        bad = v["nums"] + v["refs"]
+                        if bad and kind == "gemini":
+                            fixed_text = correct_answer(model, text, context, bad, key)
+                            if fixed_text:
+                                v2 = verify(fixed_text, hits, user_facts)
+                                if len(v2["nums"]) + len(v2["refs"]) < len(bad):
+                                    text, v = fixed_text, v2
+                                    body_text = split_followups(text)[0]
+                                    follow = parse_followups(text) or follow
+                        # ── 그래도 남으면 그 줄을 지운다 ──
+                        bad = v["nums"] + v["refs"]
+                        if bad:
+                            body_text, removed = strip_unverified(body_text, bad)
+                            v = verify(body_text, hits, user_facts)
+                        if body_text != body:
+                            self._event({"type": "replace", "t": body_text})
+                        # 답변이 실제로 인용한 근거를 알려준다. [3] 번호와 이름 둘 다 본다.
+                        # 일본 조문은 근거가 '第七条'이고 답변은 '제7조'다. 둘 다 본다.
+                        # [3] 도 [7, 8] 도 인용이다.
+                        nums_cited = {int(x) for grp in re.findall(r"\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]", body_text)
+                                      for x in re.findall(r"\d+", grp)}
+                        cited = [s["ref"] for s in shown
+                                 if s.get("n") in nums_cited
+                                 or s["ref"].strip("[]") in body_text
+                                 or (jp_refs_as_korean(s["ref"]) or "\0") in body_text]
+                        self._event({"type": "cited", "refs": cited})
+                        self._event({"type": "followups", "items": follow})
+                        warns = v["warnings"] + (
+                            [f"근거 확인이 안 되어 뺀 내용 {len(removed)}곳"] if removed else [])
+                        self._event({"type": "verify", "warnings": warns,
+                                     "nums": v["nums"], "refs": v["refs"], "removed": removed})
+                        # ── 근거 번호 없는 사실 문장 ── 회색으로 보인다.
+                        uncited = uncited_sentences(body_text) if kind == "gemini" else []
+                        if uncited:
+                            self._event({"type": "uncited", "items": uncited})
+                        # ── 이중 검사 ── 다른 계열 모델이 문장마다 근거 유무를 본다(발표 모드).
+                        judged = None
+                        if use_judge and kind == "gemini":
+                            judged = judge_answer(body_text, context, key, model)
+                            if judged is not None:
+                                self._event({"type": "judge", "bad": judged})
+                        log_turn({
+                            "t": time.strftime("%Y-%m-%d %H:%M:%S"),
+                            # 주소 끝 두 자리는 가린다. 시간당 30회 제한이 사람마다
+                            # 따로 세는지(워커 너머 주소가 제대로 오는지) 확인하려는 용도다.
+                            "ip": re.sub(r"[\d a-f]+$", "x", ip)[:24],
+                            "q": q, "model": model, "mode": req.get("mode"),
+                            "kind": kind, "checklist": checklist, "as_of": as_of,
+                            "top_score": hits[0]["score"] if hits else 0,
+                            "weak": weak, "cited": cited, "warnings": warns,
+                            "removed": removed, "judged": judged, "uncited": len(uncited),
+                            "sec": round(time.time() - t_start, 1),
+                            "sources": [f"{s2['law']} {s2['ref']}" for s2 in shown],
+                            "answer": body_text.strip(),
+                        })
+                        # 검증 경고가 없는 첫 질문만 저장한다. 의심스러운 답을 굳히면 안 된다.
+                        if ckey and not warns and not weak and not judged:
+                            cache_put(ckey, {
+                                "t": time.strftime("%Y-%m-%d %H:%M"), "model": model,
+                                "q": q, "sources": shown, "body": body_text,
+                                "cited": cited, "followups": follow,
+                                "warnings": [], "nums": v["nums"], "refs": v["refs"],
+                                "lowconf": weak,
+                            })
+                        return self._done(model=model, kind=kind)
+                    last_err = (model, 0, "빈 응답")
+                except urllib.error.HTTPError as e:
+                    last_err = (model, e.code,
+                                e.read().decode("utf-8", "replace")[:200])
+                    if e.code == 429:
+                        mark_exhausted(model)   # 오늘은 다시 시도하지 않는다
+                    if e.code not in (500, 503):
+                        break          # 429(한도)·키 오류는 재시도해도 같다
+                except Exception as e:
+                    last_err = (model, 0, str(e))
+                    import traceback
+                    traceback.print_exc()        # 서버 로그에 남긴다. 화면에는 한 줄만 간다.
+                time.sleep(2 * (attempt + 1))
 
-        돌려주는 값: 전체 답 문자열 / None(빈 응답) / "short"(토막이라 다시 시도).
-        """
-        if kind == "ollama":
-            self._event({"type": "text", "t": ""})      # 화면의 '읽는 중'을 답변 모드로 넘긴다
-            gen = ollama_fallback.stream(system, contents)
-        else:
-            gen = stream_model(model, contents, key, system)
-        got = False
-        buf, sent = "", 0
-        for chunk in gen:
-            got = True
-            buf += chunk
-            # 꼬리에 붙는 '###다음질문' 블록은 화면에 글로 흘리지 않고
-            # 버튼으로 만든다. 표시가 반쯤 도착한 상태에서 잘못 내보내지
-            # 않도록, 표시 길이만큼은 항상 손에 쥐고 있다가 흘린다.
-            _, cut = split_followups(buf)
-            stop = cut if cut >= 0 else max(0, len(buf) - 12)
-            if stop > sent:
-                self._event({"type": "text", "t": buf[sent:stop]})
-                sent = stop
-        if not got:
-            return None
-        body, cut = split_followups(buf)
-        if cut < 0 and len(buf) > sent:
-            self._event({"type": "text", "t": buf[sent:]})
-        # 상류에서 스트림이 끊기면 "고압" 두 글자만 나오고 끝난 적이 있다.
-        # 이런 토막을 정상 답변으로 넘기면 안 되니 다음 모델로 다시 시도한다.
-        if len(body.strip()) < 40:
-            self._event({"type": "text", "t": "\n\n…(답변이 끊겨 다시 시도합니다)\n\n"})
-            return "short"
-        return buf
+        model, code, detail = last_err or ("-", 0, "시도할 모델이 없음")
+        self._event({"type": "text", "t":
+            "지금 구글 서버가 붐벼서 답변을 받지 못했습니다. "
+            "아래 근거 조문은 정상이니 잠시 뒤 다시 물어봐 주세요.\n"
+            f"(마지막 오류: {model} {code} {detail})"})
+        self._done()
 
-    def _chat_finish(self, req, p, hits, shown, context, kind, model, key, text,
-                     *, weak, ckey, t_start):
-        """답이 다 온 뒤: 검증 → 자기교정 → 삭제 → 근거 표시 → 검수 → 기록 → 캐시."""
-        q = p["q"]
-        body = split_followups(text)[0]
-        body_text = body
-        follow = parse_followups(text)
-        v = verify(text, hits)
-        removed = []
-        # ── 자기교정 ── 어긋난 표기가 있으면 화면에 굳히기 전에 고친다.
-        bad = v["nums"] + v["refs"]
-        if bad and kind == "gemini":
-            fixed_text = correct_answer(model, text, context, bad, key)
-            if fixed_text:
-                v2 = verify(fixed_text, hits)
-                if len(v2["nums"]) + len(v2["refs"]) < len(bad):
-                    text, v = fixed_text, v2
-                    body_text = split_followups(text)[0]
-                    follow = parse_followups(text) or follow
-        # ── 그래도 남으면 그 줄을 지운다 ──
-        bad = v["nums"] + v["refs"]
-        if bad:
-            body_text, removed = strip_unverified(body_text, bad)
-            v = verify(body_text, hits)
-        if body_text != body:
-            self._event({"type": "replace", "t": body_text})
-        # 답변이 실제로 인용한 근거를 알려준다. [3] 번호와 이름 둘 다 본다.
-        # 일본 조문은 근거가 '第七条'이고 답변은 '제7조'다. 둘 다 본다.
-        # [3] 도 [7, 8] 도 인용이다.
-        nums_cited = {int(x) for grp in re.findall(r"\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]", body_text)
-                      for x in re.findall(r"\d+", grp)}
-        cited = [s["ref"] for s in shown
-                 if s.get("n") in nums_cited
-                 or s["ref"].strip("[]") in body_text
-                 or (jp_refs_as_korean(s["ref"]) or "\0") in body_text]
-        self._event({"type": "cited", "refs": cited})
-        self._event({"type": "followups", "items": follow})
-        warns = v["warnings"] + (
-            [f"근거 확인이 안 되어 뺀 내용 {len(removed)}곳"] if removed else [])
-        self._event({"type": "verify", "warnings": warns,
-                     "nums": v["nums"], "refs": v["refs"], "removed": removed})
-        # ── 근거 번호 없는 사실 문장 ── 회색으로 보인다.
-        uncited = uncited_sentences(body_text) if kind == "gemini" else []
-        if uncited:
-            self._event({"type": "uncited", "items": uncited})
-        # ── 이중 검사 ── 다른 계열 모델이 문장마다 근거 유무를 본다(발표 모드).
-        judged = None
-        if (JUDGE_ALWAYS or req.get("mode") == "demo") and kind == "gemini":
-            judged = judge_answer(body_text, context, key, model)
-            if judged is not None:
-                self._event({"type": "judge", "bad": judged})
-        log_turn({
-            "t": time.strftime("%Y-%m-%d %H:%M:%S"),
-            # 주소 끝 두 자리는 가린다. 시간당 30회 제한이 사람마다
-            # 따로 세는지(워커 너머 주소가 제대로 오는지) 확인하려는 용도다.
-            "ip": re.sub(r"[\d a-f]+$", "x", p["ip"])[:24],
-            "q": q, "model": model, "mode": req.get("mode"),
-            "kind": kind, "checklist": p["checklist"], "as_of": p["as_of"],
-            "top_score": hits[0]["score"] if hits else 0,
-            "weak": weak, "cited": cited, "warnings": warns,
-            "removed": removed, "judged": judged, "uncited": len(uncited),
-            "sec": round(time.time() - t_start, 1),
-            "sources": [f"{s2['law']} {s2['ref']}" for s2 in shown],
-            "answer": body_text.strip(),
-        })
-        # 검증 경고가 없는 첫 질문만 저장한다. 의심스러운 답을 굳히면 안 된다.
-        if ckey and not warns and not weak and not judged:
-            cache_put(ckey, {
-                "t": time.strftime("%Y-%m-%d %H:%M"), "model": model,
-                "q": q, "sources": shown, "body": body_text,
-                "cited": cited, "followups": follow,
-                "warnings": [], "nums": v["nums"], "refs": v["refs"],
-                "lowconf": weak,
-            })
 
     def do_ingest(self, req):
         """법령 사이트에서 긁은 본문을 파일로 받아둔다.
@@ -1420,7 +2024,8 @@ class Handler(BaseHTTPRequestHandler):
          터널 너머에서는 502 로 보였다.)
         """
         n = int(self.headers.get("Content-Length", 0))
-        if n > 4_000_000:                    # 대화 8턴이어도 100KB 안팎. 그 이상은 공격이다
+        # 대화 8턴이어도 100KB 안팎. 그 이상은 공격이다. 공사 제출만 첨부파일이 실려 크게 둔다.
+        if n > (12_000_000 if self.path == "/api/review/submit" else 4_000_000):
             return None
         raw = self.rfile.read(n) if n else b"{}"
         try:
@@ -1440,6 +2045,33 @@ class Handler(BaseHTTPRequestHandler):
             return self.do_chat(req)
         if self.path == "/api/share":
             return self.do_share(req)
+        if self.path == "/api/sandbox/file":
+            return self.do_sandbox_file(req)
+        if self.path == "/api/permit/file":
+            return self.do_permit_file(req)
+        if self.path in ("/api/review/submit", "/api/review/decide"):
+            import review
+            try:
+                if self.path.endswith("submit"):
+                    vals = {str(k)[:20]: str(v)[:120] for k, v in (req.get("fields") or {}).items()}
+                    docs = [str(d) for d in (req.get("docs") or [])][:20]
+                    files = save_review_files(req.get("files"))
+                    docs += [f["doc"] for f in files if f["doc"] not in docs]   # 파일을 올린 서류는 낸 것으로 본다
+                    x = review.submit(req.get("id"), vals, docs, files=files, ai=ai_review,
+                                      fchk=ai_check_files(files))
+                else:
+                    x = review.decide(str(req.get("id")), req.get("action"), str(req.get("letter") or "")[:4000])
+            except ValueError as e:
+                return self._send(400, json.dumps({"error": str(e)}, ensure_ascii=False))
+            return self._send(200 if x else 404, json.dumps(x or {"error": "없는 접수번호"}, ensure_ascii=False))
+        if self.path == "/api/permit/preview":
+            return self.do_permit_preview(req)
+        if self.path == "/api/permit/editor":
+            return self.do_permit_editor(req)
+        if self.path == "/api/sandbox/editor":
+            return self.do_sandbox_editor(req)
+        if self.path == "/api/sandbox/preview":
+            return self.do_sandbox_preview(req)
         if self.path == "/api/feedback":
             vote = req.get("vote")
             if vote not in ("up", "down"):
