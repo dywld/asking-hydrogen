@@ -7,6 +7,7 @@ import { handleReview } from './review.js';     // /api/review/*  (D1)
 import { handleMisc } from './misc.js';         // /api/share·feedback·distance·sandbox/cases·byl
 import { handleDocs } from './docs.js';         // /api/permit/*·sandbox/file·preview·editor (문서 만들기)
 import { chatExtras } from './chat_extras.js'; // 캐시·발표 잠금·규제 사례·확정 자료
+import { handleApp } from './app.js';           // /api/app/* (윈도우 앱: 서류 폴더 검토·알림)
 
 const HANGUL = /[가-힣]+/g, CJK = /[一-鿿ぁ-ゟ゠-ヿ]+/g, WORD = /[A-Za-z0-9]+/g;
 const FILLER = new RegExp(DATA.filler, 'g');
@@ -164,8 +165,30 @@ function sandboxNote(q, info) {
   return note;
 }
 
+// D1 읽은 행 수를 센다(무료 하루 500만 행). 채점(debug)과 로그에 남겨 한도 소모를 본다.
+function countDB(db, box) {
+  const wrap = (st, sql) => new Proxy(st, { get(t, k) {
+    if (k === 'bind') return (...a) => wrap(t.bind(...a), sql);
+    if (k === 'all') return async () => {
+      const r = await t.all(), n = (r.meta && r.meta.rows_read) || 0;
+      box.n += n;
+      box.list.push(n + ' ' + sql.replace(/\s+/g, ' ').slice(0, 90));
+      return r;
+    };
+    const v = t[k]; return typeof v === 'function' ? v.bind(t) : v;
+  } });
+  return new Proxy(db, { get(t, k) {
+    if (k === 'prepare') return sql => wrap(t.prepare(sql), sql);
+    const v = t[k]; return typeof v === 'function' ? v.bind(t) : v;
+  } });
+}
+
 async function chat(req, env) {
   const X = chatExtras;
+  const rows = { n: 0, list: [] };
+  // env 는 펼쳐 복사하면 비밀값(GEMINI_API_KEY)이 빠진다. DB 만 바꿔 끼운다.
+  const db = countDB(env.DB, rows), base = env;
+  env = new Proxy(base, { get: (t, k) => k === 'DB' ? db : t[k] });
   const body = await req.json().catch(() => ({}));
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const q = String(messages.at(-1)?.text || '').trim().slice(0, 2000);
@@ -173,7 +196,7 @@ async function chat(req, env) {
   const { readable, writable } = new TransformStream();
   const w = writable.getWriter();
   const ev = o => w.write(enc.encode(JSON.stringify(o) + '\n'));
-  const done = extra => ev({ type: 'done', ...extra });
+  const done = extra => { if (!body.debug) console.log('d1 rows', rows.n, rows.list.join(' | ')); return ev({ type: 'done', ...extra }); };
   const country = ['한국', '일본'].includes(body.country) ? body.country : null;
   const facility = typeof body.facility === 'string' && body.facility ? body.facility.slice(0, 10) : null;
   const asOf = /^\d{4}-\d{2}-\d{2}$/.test(String(body.as_of || '').trim()) ? String(body.as_of).trim() : null;
@@ -183,7 +206,7 @@ async function chat(req, env) {
       // 채점용(cf/eval_cf.py): 모델을 부르지 않고 첫 검색 결과만 돌려준다. 읽기만 한다.
       if (body.debug === 'search') {
         const hits = await search(env, q, 12, { country, facility, as_of: asOf, bare: true });
-        ev({ type: 'debug', hits: hits.map(h => ({ law: h.law, article: h.article, score: h.score })) });
+        ev({ type: 'debug', rows: rows.n, hits: hits.map(h => ({ law: h.law, article: h.article, score: h.score })) });
         return done();
       }
       if (!q) { ev({ type: 'text', t: '질문이 비었습니다' }); return done(); }
@@ -424,7 +447,7 @@ export default {
       return new Response(body, { status: r.status, headers: r.headers });
     }
     if (p === '/api/permit/forms') return json(DATA.permit);
-    for (const h of [handleReview, handleMisc, handleDocs]) {
+    for (const h of [handleApp, handleReview, handleMisc, handleDocs]) {
       const r = await h(req, env, url);
       if (r) return r;
     }

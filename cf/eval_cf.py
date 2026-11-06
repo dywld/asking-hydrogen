@@ -25,6 +25,7 @@ def arg(name, default):
 
 
 URL = arg("--url", "http://localhost:8788").rstrip("/") + "/api/chat"
+ROWS = []  # 문항마다 D1 읽은 행 수
 
 
 def cf_hits(q):
@@ -36,6 +37,7 @@ def cf_hits(q):
                 for line in r:
                     e = json.loads(line.decode("utf-8"))
                     if e.get("type") == "debug":
+                        ROWS.append(e.get("rows", 0))
                         return e["hits"]
                     if e.get("type") == "text":
                         raise RuntimeError(e["t"])
@@ -78,6 +80,8 @@ def main():
             print(line, flush=True)
     n = len(items)
     print(f"\n근거 일치(CF) {ok}/{n} · 질문당 {dt:.2f}초 · 노트북 기준 111/111(eval_set_all)")
+    if ROWS:
+        print(f"D1 읽은 행: 질문당 평균 {sum(ROWS) // len(ROWS):,} · 최대 {max(ROWS):,} (첫 검색만)")
     if ratios:
         ratios.sort()
         print(f"1등 점수 비(노트북/CF) 중앙값 {ratios[len(ratios) // 2]:.2f}")

@@ -110,6 +110,8 @@ def main():
 CREATE TABLE docs (id INTEGER PRIMARY KEY, country TEXT, law TEXT, article TEXT, title TEXT, content TEXT,
   future INTEGER, effective_date TEXT, kind TEXT, ref TEXT, link TEXT);
 CREATE VIRTUAL TABLE docs_fts USING fts5(bg, content='', tokenize='unicode61');
+-- 법령+조문으로 찾는 조회(갈래·참조 조문)가 표 전체(3만 행)를 훑지 않게
+CREATE INDEX docs_law_article ON docs(law, article);
 """
     if not meta_only:
         (OUT / "00_schema.sql").write_text(schema, encoding="utf-8")

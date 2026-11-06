@@ -34,3 +34,7 @@ data/review_files/
 cf/build/
 cf/.wrangler/
 cf/public/
+cf/.dev.vars
+desktop/node_modules/
+desktop/dist/
+data/law_watch.json

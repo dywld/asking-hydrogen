@@ -86,7 +86,8 @@ function scoreSql(query, opts = {}) {
     }
     if (fut || old) m.push(`(CASE ${fut} ${old} ELSE 1 END)`);
   }
-  const sql = `WITH mm AS (SELECT rowid AS id, bm25(docs_fts) AS b FROM docs_fts WHERE docs_fts MATCH ?1${opts.ids ? '' : ' ORDER BY b LIMIT 400'}),
+  // 별표 딸림(opts.ids)은 후보 조각 안에서만 bm25 를 잰다. 걸러 두지 않으면 MATCH 전체(약 2만 행)를 읽는다.
+  const sql = `WITH mm AS (SELECT rowid AS id, bm25(docs_fts) AS b FROM docs_fts WHERE docs_fts MATCH ?1${opts.ids ? ` AND rowid IN (${opts.ids.map(Number).join(',')})` : ' ORDER BY b LIMIT 400'}),
 c AS (SELECT d.id, d.country, d.law, d.article, d.title, d.future, d.effective_date, d.kind, d.ref, d.link,
   -mm.b AS b, (${ov}) AS ov ${fac} FROM mm JOIN docs d ON d.id = mm.id ${where.length ? 'WHERE ' + where.join(' AND ') : ''})
 SELECT ${COLS}, b * ${m.join(' * ')} AS s FROM c ORDER BY s DESC LIMIT ${Number(opts.limit) || 12}`;
@@ -507,7 +508,12 @@ export async function* streamModel(model, contents, key, system) {
     body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: system }] },
       generationConfig: { temperature: 0.2, maxOutputTokens: 8192 } }),
   });
-  if (!r.ok) { if (r.status === 429) markExhausted(model); const e = new Error(`${model} ${r.status}`); e.status = r.status; throw e; }
+  if (!r.ok) {
+    if (r.status === 429) markExhausted(model);
+    // 400 은 키 만료·모델 이름·요청 형식 등 원인이 여러 가지라 구글이 준 문구를 짧게 붙인다.
+    const why = r.status === 400 ? (await r.text().catch(() => '')).match(/"message":\s*"([^"]{0,100})/)?.[1] : '';
+    const e = new Error(`${model} ${r.status}${why ? ' ' + why : ''}`); e.status = r.status; throw e;
+  }
   const reader = r.body.getReader(), dec = new TextDecoder();
   let buf = '';
   for (;;) {

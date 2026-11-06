@@ -19,3 +19,9 @@ database_id = "16e522bc-b97e-4d14-b06e-439a754f6d2a"
 [[services]]
 binding = "BACKUP"
 service = "hydrogen-bot"
+
+# Gemini 는 일부 지역(예: 홍콩)에서 부르면 400 "User location is not supported" 로 막는다.
+# 워커가 사용자 가까운 아무 데이터센터에서나 돌면 가끔 그 지역에서 나가므로, 서울 쪽에서 돌게 고정한다.
+[placement]
+mode = "targeted"
+region = "gcp:asia-northeast3"

@@ -162,6 +162,40 @@ python app.py                # http://localhost:8000
 같은 첫 질문은 저장해 둔 답을 그대로 내보내 한도를 쓰지 않습니다(캐시).
 전부 막히면 `BOT_OLLAMA` 에 적어 둔 로컬 모델로 넘어갑니다.
 
+## 윈도우 앱 (`desktop/`)
+
+ChatGPT 앱처럼 화면을 클라우드플레어판(hydrogen-guide)에서 불러오는 설치형 앱이다. Gemini 키는 서버에만 있다.
+앱 전용 화면 `cf/public_extra/app-ui.js` 도 서버에서 받아 오므로, 화면을 고쳐도 앱을 다시 깔 필요가 없다.
+
+| 기능 | 어디서 |
+|---|---|
+| 사업장(프로젝트) 저장: 대화·신청서·서류·일정·메모를 `내 문서\수소시설 인허가 가이드\<사업장>` 에 | `desktop/lib/projects.js` |
+| 신청서 바로 저장·열기: 사업장이 열려 있으면 내려받는 파일이 그 `서류` 폴더로 | `desktop/main.js` will-download |
+| 서류 폴더 검토: 폴더를 고르거나 끌어다 놓으면 필수 서류 대조 + AI 내용 검토(한 번에 10개, Gemini 1회) | `desktop/lib/files.js` → `/api/app/review` |
+| 알림: 일정 7일 전부터·법령 개정·새 버전 (앱을 켤 때, 켜 둔 동안 6시간마다) | `/api/app/notices` |
+| 인터넷이 끊기면 안내 화면 | `desktop/offline.html` |
+
+서류 읽기: PDF·사진(스캔)은 파일 그대로 Gemini 에, HWPX·DOCX·XLSX 는 글자를 뽑아서 보낸다.
+옛 한글(HWP)은 파일 안의 미리보기 글자(앞부분)만 읽는다. `[직접 입력]`·`○○` 같은 자리표시는 AI 와 별개로 규칙으로 잡는다.
+
+```bash
+cd desktop
+npm install
+npm start                    # 개발 실행 (H2_SERVER=http://localhost:8788 로 로컬 워커)
+npm run dist                 # 설치 파일 → desktop/dist/hydrogen-permit-setup-<버전>.exe
+```
+
+화면 점검(PNG): `H2_SHOT=저장폴더 H2_SHOT_DOCS=검토할폴더 npx electron .` (사업장은 임시 폴더에 만든다)
+
+새 설치 파일을 낼 때: `desktop/package.json` 의 version 과 `cf/src/app.js` 의 `APP_LATEST` 를 같이 올리고 워커를 배포하면, 옛 앱이 켜질 때 새 버전 알림을 띄운다.
+코드 서명이 없어서 설치할 때 "Windows의 PC 보호" 경고가 뜬다 → **추가 정보 → 실행**.
+
+**법령 개정 감시** (`law_watch.py`): 국가법령정보센터 OpenAPI 는 신청 때 등록한 서버 IP 에서만 응답한다.
+워커는 IP 가 고정이 아니라서 오라클 서버에서 하루 한 번 돌려 워커에 알린다.
+1. open.law.go.kr 에서 OpenAPI 사용 신청(오라클 서버 IP 등록) → OC 받기
+2. `npx wrangler secret put APP_PUSH_KEY` (cf/ 에서, 아무 긴 문자열)
+3. 오라클 서버: `LAW_OC=… APP_PUSH_KEY=… python3 law_watch.py --dry` 로 확인 후 crontab 에 하루 한 번
+
 ## 배포
 
 오라클 클라우드 무료 서버(ARM 2코어)에 systemd 서비스로 올려 두었습니다.
