@@ -7,7 +7,8 @@ import { handleReview } from './review.js';     // /api/review/*  (D1)
 import { handleMisc } from './misc.js';         // /api/share·feedback·distance·sandbox/cases·byl
 import { handleDocs } from './docs.js';         // /api/permit/*·sandbox/file·preview·editor (문서 만들기)
 import { chatExtras } from './chat_extras.js'; // 캐시·발표 잠금·규제 사례·확정 자료
-import { handleApp } from './app.js';           // /api/app/* (윈도우 앱: 서류 폴더 검토·알림)
+import { checkLimit } from './limit.js';       // Gemini 쓰는 주소 사용량 제한
+import { handleApp } from './app.js';          // /api/app/* (윈도우 앱: 서류 폴더 검토·알림)
 
 const HANGUL = /[가-힣]+/g, CJK = /[一-鿿ぁ-ゟ゠-ヿ]+/g, WORD = /[A-Za-z0-9]+/g;
 const FILLER = new RegExp(DATA.filler, 'g');
@@ -420,6 +421,8 @@ export default {
     if (D1_PATHS.test(p) && await d1Down(env)) {
       try { return await toBackup(req, env, url); } catch (e) { /* 오라클도 안 되면 아래로 그대로 */ }
     }
+    const limited = await checkLimit(req, env, p);
+    if (limited) return limited;
     if (p === '/api/status') {
       return json({ articles: DATA.articles, korea: DATA.korea, japan: DATA.articles - DATA.korea,
         has_key: !!env.GEMINI_API_KEY, model: DATA.models[0], mode: 'daily', need_code: false,
