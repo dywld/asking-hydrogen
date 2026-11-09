@@ -1,12 +1,17 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>수소충전소 자체점검표</title>
+<title>시설기준 자체점검표</title>
 <style>
 :root{--bg:#eef1f5;--card:#fff;--ink:#191f28;--sub:#6b7684;--line:#e5e8eb;--blue:#3182f6;--navy:#0b3b7a;--red:#f04452;--redbg:#fff0f1;--org:#e67700;--orgbg:#fff8ec;--grn:#00a050;--grnbg:#e8faf0}
 *{box-sizing:border-box;margin:0}
 body{font-family:"Pretendard","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
 .top{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}
 .top b{font-size:17px}.top a{color:#fff;text-decoration:none;font-size:13px;opacity:.85;margin-left:auto}
+.tabs{max-width:1240px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font:inherit;cursor:pointer;text-align:left}
+.tabs button small{display:block;color:var(--sub);font-size:11px}
+.tabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}.tabs button.on small{color:#c9d6ea}
+.scope{font-size:12px;color:var(--org);margin:-6px 0 12px;line-height:1.5}
 main{max-width:1240px;margin:0 auto;padding:20px 16px;display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start}
 .card{background:var(--card);border-radius:16px;box-shadow:0 2px 10px #0001;padding:18px}
 .side{position:sticky;top:70px;max-height:calc(100vh - 86px);overflow:auto}
@@ -41,17 +46,35 @@ h2{font-size:16px;margin-bottom:10px}
 .mk{display:flex;gap:6px;margin-top:8px}.mk button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
 .mk button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .foot{font-size:12px;color:var(--sub);margin-top:12px;line-height:1.6}
+.calc{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:4px 0 14px;background:#fafbfc}
+.calc summary{cursor:pointer;font-weight:bold;font-size:13px}
+.cr{display:grid;grid-template-columns:1.3fr 1fr 1fr .7fr 24px;gap:4px;margin-top:4px}
+.cr input{width:100%;padding:6px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:12px}
+.cr button{border:none;background:none;color:var(--sub);cursor:pointer}
+.crh{font-size:11px;color:var(--sub)}
 @media (max-width:860px){main{grid-template-columns:1fr}.side{position:static;max-height:none}.kpi{grid-template-columns:repeat(2,1fr)}}
 </style></head>
 <body>
-<div class="top"><b>수소충전소 시설기준 자체점검표</b><a href="/">← 챗봇으로</a></div>
+<div class="top"><b>시설기준 자체점검표</b><a href="/">← 챗봇으로</a></div>
+<nav class="tabs" id="tabs"></nav>
 <main>
   <section class="card side">
-    <h2>1. 시설 종류</h2>
+    <h2 id="facH">1. 시설 종류</h2>
     <div class="seg" id="fac"></div>
     <p class="fd" id="facd"></p>
+    <p class="scope" id="scope"></p>
     <h2>2. 시설 정보 <small style="font-weight:normal;color:var(--sub)">(아는 것만)</small></h2>
     <div id="inputs"></div>
+    <details class="calc" id="calc"><summary>🧮 저장능력 계산 (고압가스법 시행규칙 별표 1)</summary>
+      <p class="fd" style="margin:6px 0">압축가스 Q=(10P+1)V₁ · P 35℃ 최고충전압력(㎫) · V₁ 내용적(㎥). 배관으로 연결됐거나 중심거리 30m 이하·같은 구축물이면 합산합니다.</p>
+      <div id="calcRows"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        <button class="btn g" id="calcAdd" type="button">+ 설비 추가</button>
+        <button class="btn" id="calcUse" type="button">점검표에 넣기</button>
+        <button class="btn g" id="calcDl" type="button">계산서(HWPX)</button>
+      </div>
+      <p id="calcOut" style="margin-top:8px;font-size:13px;line-height:1.6"></p>
+    </details>
     <div class="in"><label>사업장 이름 (문서 머리에 들어감)</label><input type="text" id="company" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit" placeholder="예: ○○수소㈜ 삼척충전소"></div>
   </section>
   <section>
@@ -61,14 +84,13 @@ h2{font-size:16px;margin-bottom:10px}
         <label><input type="checkbox" id="onlyMid"> 중간검사 항목만</label>
         <label><input type="checkbox" id="hideNa"> 해당 없음 숨기기</label>
         <span style="flex:1"></span>
-        <a class="btn g" id="annexPdf" target="_blank">별표 5 원문 (PDF)</a>
+        <a class="btn g" id="annexPdf" target="_blank">별표 원문 (PDF)</a>
         <a class="btn g" id="annexHwp">원문 (HWP)</a>
         <button class="btn" id="dl">한글(HWPX)로 받기</button>
+        <a class="btn g" href="/package">📦 제출 꾸러미</a>
       </div>
       <div id="rows"></div>
-      <p class="foot">기준 글은 「고압가스 안전관리법 시행규칙」 별표 5 원문 그대로입니다(원문 대조 검사를 거침). 보호시설 거리는 안전거리 계산기와 같은 표에서 꺼냅니다.
-      완성검사는 시설기준 전 항목이 대상이고, <span class="pill mid">중간검사</span> 표시는 별표 5 다목 표의 중간검사 항목입니다.
-      자동 판정은 입력값 기준의 참고용이며 법적 효력이 없습니다. 최종 판단은 한국가스안전공사·관할 관청에 확인하세요.</p>
+      <p class="foot" id="foot"></p>
     </div>
   </section>
 </main>
@@ -76,12 +98,43 @@ h2{font-size:16px;margin-bottom:10px}
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cls = v => String(v).replace(/\s/g, '');
-let CAT = null, fac = '제조식', vals = {}, marks = {}, sheet = null, timer = null;
-
-function save() { try { localStorage.setItem('checklist', JSON.stringify({fac, vals, marks, company: $('#company').value})); } catch (e) {} }
-function load() { try { return JSON.parse(localStorage.getItem('checklist') || '{}'); } catch (e) { return {}; } }
+let LIST = [], CAT = null, fac = '', vals = {}, marks = {}, sheet = null, timer = null;
+// 점검표마다 입력·체크를 따로 기억한다(같은 키 이름이라도 뜻이 다를 수 있어서)
+let store = {};
+// 챗봇 신청서 칸(formMemo)과 같은 저장소를 쓴다 — 한 번 넣은 회사 이름이 모든 서류에
+function memo() { try { return JSON.parse(localStorage.getItem('formMemo')) || {}; } catch (e) { return {}; } }
+function memoSet(k, v) { const m = memo(); if (v) m[k] = v; try { localStorage.setItem('formMemo', JSON.stringify(m)); } catch (e) {} }
+function save() {
+  store.cur = CAT.id; store[CAT.id] = {fac, vals, marks};
+  store.company = $('#company').value;
+  try { localStorage.setItem('checklist2', JSON.stringify(store)); } catch (e) {}
+}
+function load() {
+  try { return JSON.parse(localStorage.getItem('checklist2') || 'null') || {}; } catch (e) { return {}; }
+}
+function pick(id) {
+  CAT = LIST.find(t => t.id === id) || LIST[0];
+  const s = store[CAT.id] || {};
+  fac = s.fac && CAT.facilities[s.fac] ? s.fac : Object.keys(CAT.facilities)[0];
+  vals = s.vals || {}; marks = s.marks || {};
+  $('#tabs').innerHTML = LIST.map(t => `<button data-t="${t.id}" class="${t.id === CAT.id ? 'on' : ''}">${esc(t.short)}
+    <small>${esc(t.law.replace(' 시행규칙', '').replace('수소경제 육성 및 수소 안전관리에 관한 법률', '수소법').replace('고압가스 안전관리법', '고압가스법'))} 시행규칙 ${esc(t.annex.replace(/[\[\]]/g, ''))}</small></button>`).join('');
+  const q = `law=${encodeURIComponent(CAT.law)}&kind=${encodeURIComponent('별표')}&no=${CAT.annex_no}`;
+  $('#annexPdf').href = `/api/byl/file?${q}&fmt=pdf`;
+  $('#annexPdf').textContent = `${CAT.annex.replace(/[\[\]]/g, '')} 원문 (PDF)`;
+  $('#annexHwp').href = `/api/byl/file?${q}&fmt=hwp`;
+  $('#scope').textContent = CAT.scope || '';
+  $('#foot').innerHTML = `기준 글은 「${esc(CAT.law)}」 ${esc(CAT.annex.replace(/[\[\]]/g, ''))} 원문 그대로입니다(원문 대조 검사를 거침). 보호시설 거리는 안전거리 계산기와 같은 표에서 꺼냅니다.
+    완성검사는 시설기준 전 항목이 대상입니다. <span class="pill mid">중간검사</span> 표시는 별표 검사기준 표의 중간검사 항목입니다(중간검사가 없는 시설은 표시 없음).
+    자동 판정은 입력값 기준의 참고용이며 법적 효력이 없습니다. 최종 판단은 한국가스안전공사·관할 관청에 확인하세요.`;
+  document.title = CAT.title;
+  drawInputs(); refresh();
+}
 
 function drawInputs() {
+  const one = Object.keys(CAT.facilities).length === 1;
+  $('#fac').style.display = one ? 'none' : '';
+  $('#facH').textContent = one ? `1. ${Object.keys(CAT.facilities)[0]}` : '1. 시설 종류';
   $('#fac').innerHTML = Object.keys(CAT.facilities).map(k => `<button class="${k === fac ? 'on' : ''}" data-f="${k}">${k}</button>`).join('');
   $('#facd').textContent = CAT.facilities[fac];
   $('#inputs').innerHTML = CAT.inputs.filter(i => !i.only || i.only === fac).map(i => {
@@ -131,6 +184,8 @@ async function refresh() {
 const later = () => { clearTimeout(timer); timer = setTimeout(refresh, 250); };
 
 document.addEventListener('click', e => {
+  const tb = e.target.closest('#tabs button');
+  if (tb) { save(); return pick(tb.dataset.t); }
   const f = e.target.closest('#fac button');
   if (f) { fac = f.dataset.f; drawInputs(); return refresh(); }
   const yn = e.target.closest('.yn button');
@@ -149,8 +204,51 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const k = e.target.dataset && e.target.dataset.k;
   if (k) { const n = e.target.value; if (n === '') delete vals[k]; else vals[k] = Number(n); later(); }
-  if (e.target.id === 'company') save();
+  if (e.target.id === 'company') { save(); memoSet('company', e.target.value.trim()); }
+  if (e.target.closest && e.target.closest('#calcRows')) calcLater();
 });
+// ── 저장능력 계산 (storage_calc.py) ── 설비 목록은 꾸러미에서도 쓰므로 'storage' 에 둔다
+let CALC = [], calcT = null, calcRes = null;
+function calcLoad() {
+  try { CALC = (JSON.parse(localStorage.getItem('storage')) || {}).items || []; } catch (e) { CALC = []; }
+  if (!CALC.length) CALC = [{kind: 'comp', name: '', p: '', v: '', n: 1}];
+  calcDraw(); calcRun();
+}
+function calcSave() { try { localStorage.setItem('storage', JSON.stringify({items: CALC})); } catch (e) {} }
+function calcDraw() {
+  $('#calcRows').innerHTML = '<div class="cr crh"><span>설비</span><span>압력 ㎫</span><span>내용적 ㎥</span><span>개수</span><span></span></div>'
+    + CALC.map((c, i) => `<div class="cr" data-i="${i}"><input data-c="name" value="${esc(c.name)}" placeholder="예: 튜브트레일러">
+      <input data-c="p" type="number" step="any" value="${esc(c.p)}" placeholder="45"><input data-c="v" type="number" step="any" value="${esc(c.v)}" placeholder="0.2">
+      <input data-c="n" type="number" step="1" min="1" value="${esc(c.n)}"><button data-del="${i}" type="button">✕</button></div>`).join('');
+}
+async function calcRun() {
+  calcSave();
+  calcRes = await fetch('/api/storage', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items: CALC})}).then(r => r.json()).catch(() => null);
+  if (!calcRes || !calcRes.rows) { calcRes = null; $('#calcOut').textContent = '계산 서버에 연결하지 못했습니다.'; return; }
+  const ok = calcRes.rows.filter(r => r.ok);
+  $('#calcOut').innerHTML = ok.length ? ok.map(r => esc(r.step)).join('<br>') + `<br><b>합계 ${(calcRes.combined_m3 ?? 0).toLocaleString()}㎥</b>` : '압력과 내용적을 넣으면 계산합니다.';
+}
+const calcLater = () => { clearTimeout(calcT); calcT = setTimeout(calcRun, 300); };
+$('#calcRows').addEventListener('input', e => {
+  const row = e.target.closest('.cr'); if (!row || !e.target.dataset.c) return;
+  CALC[+row.dataset.i][e.target.dataset.c] = e.target.value;
+});
+$('#calcRows').addEventListener('click', e => {
+  if (e.target.dataset.del === undefined) return;
+  CALC.splice(+e.target.dataset.del, 1); if (!CALC.length) CALC.push({kind: 'comp', name: '', p: '', v: '', n: 1});
+  calcDraw(); calcRun();
+});
+$('#calcAdd').onclick = () => { CALC.push({kind: 'comp', name: '', p: '', v: '', n: 1}); calcDraw(); };
+$('#calcUse').onclick = () => {
+  if (!calcRes || calcRes.combined_m3 == null) return alert('먼저 압력과 내용적을 넣어 주세요');
+  if (!CAT.inputs.some(i => i.key === 'capacity' && (!i.only || i.only === fac))) return alert('이 점검표에는 저장능력 칸이 없습니다');
+  vals.capacity = calcRes.combined_m3; drawInputs(); refresh();
+};
+$('#calcDl').onclick = async () => {
+  const r = await fetch('/api/storage', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items: CALC, company: $('#company').value, fmt: 'hwpx'})});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = '저장능력_계산서.hwpx';
+  document.body.appendChild(a); a.click(); a.remove();
+};
 $('#onlyMid').onchange = $('#hideNa').onchange = () => sheet && drawSheet();
 $('#dl').onclick = async () => {
   const r = await fetch('/api/checklist', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body('hwpx'))});
@@ -158,19 +256,21 @@ $('#dl').onclick = async () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(await r.blob());
   a.download = `${sheet.title}_${fac}.hwpx`;
-  a.click();
+  document.body.appendChild(a); a.click(); a.remove();     // 문서에 붙여야 파일 이름이 지켜진다
 };
 
 (async () => {
-  const list = await fetch('/api/checklist').then(r => r.json());
-  CAT = list.find(t => t.id === 'gas_annex5_station') || list[0];
-  const s = load();
-  if (s.fac && CAT.facilities[s.fac]) fac = s.fac;
-  vals = s.vals || {}; marks = s.marks || {}; $('#company').value = s.company || '';
-  const q = `law=${encodeURIComponent(CAT.law)}&kind=${encodeURIComponent('별표')}&no=5`;
-  $('#annexPdf').href = `/api/byl/file?${q}&fmt=pdf`;
-  $('#annexHwp').href = `/api/byl/file?${q}&fmt=hwp`;
-  drawInputs(); refresh();
+  LIST = await fetch('/api/checklist').then(r => r.json());
+  const order = ['gas_annex5_station', 'gas_annex8_storage', 'h2_annex5_use'];
+  LIST.sort((a, b) => (order.indexOf(a.id) + 1 || 99) - (order.indexOf(b.id) + 1 || 99));
+  store = load();
+  $('#company').value = store.company || memo().company || '';
+  calcLoad();
+  const qs = new URLSearchParams(location.search);
+  const want = qs.get('t'), wantF = qs.get('f');     // /checklist?t=gas_annex5_station&f=제조식 — 챗봇 버튼에서 바로 열기
+  if (want && wantF) store[want] = Object.assign({}, store[want], {fac: wantF});
+  pick(want || store.cur || LIST[0].id);
+  if (location.hash === '#calc') { $('#calc').open = true; $('#calc').scrollIntoView(); }   // 챗봇 '저장능력 계산' 버튼
 })();
 </script>
 </body></html>
