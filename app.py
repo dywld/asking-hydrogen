@@ -1415,6 +1415,18 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, (HERE / "review.html").read_bytes(), "text/html; charset=utf-8")
         elif path in ("/checklist", "/checklist.html"):
             self._send(200, (HERE / "checklist.html").read_bytes(), "text/html; charset=utf-8")
+        elif path in ("/package", "/package.html"):
+            self._send(200, (HERE / "package.html").read_bytes(), "text/html; charset=utf-8")
+        elif path == "/api/package":
+            # 제출 꾸러미에 넣을 수 있는 신청서와 같이 권하는 점검표·안전관리규정
+            import package
+            self._send(200, json.dumps(package.catalog(), ensure_ascii=False))
+        elif path in ("/rules", "/rules.html"):
+            self._send(200, (HERE / "rules.html").read_bytes(), "text/html; charset=utf-8")
+        elif path == "/api/rules":
+            # 안전관리규정 초안 종류(작성요령 별표). AI 를 거치지 않는다.
+            import safety_rules
+            self._send(200, json.dumps(safety_rules.catalog(), ensure_ascii=False))
         elif path == "/api/checklist":
             # 별표 → 자체점검표 종류와 입력 칸. AI 를 거치지 않는다.
             import annex_checklist
@@ -1556,6 +1568,53 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, json.dumps(sheet, ensure_ascii=False))
         data = annex_checklist.to_hwpx(sheet, str(req.get("company") or "")[:40])
         name = f"{sheet['title']}_{sheet['facility']}.hwpx"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{urllib.parse.quote(name)}")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _attach(self, data, name):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/zip" if name.endswith(".zip") else "application/octet-stream")
+        self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{urllib.parse.quote(name)}")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_storage(self, req):
+        """저장능력 계산(별표 1). fmt=hwpx 면 계산서 한글 문서."""
+        import storage_calc
+        items = req.get("items") if isinstance(req.get("items"), list) else []
+        res = storage_calc.calc(items[:50])
+        if req.get("fmt") != "hwpx":
+            return self._send(200, json.dumps(res, ensure_ascii=False))
+        return self._attach(storage_calc.to_hwpx(res, str(req.get("company") or "")[:40]), "저장능력_계산서.hwpx")
+
+    def do_package(self, req):
+        """제출 꾸러미 zip(package.py)."""
+        import package
+        try:
+            data, name, _ = package.build(req, permit_vals)
+        except (KeyError, ValueError) as e:
+            return self._send(400, json.dumps({"error": f"꾸러미를 만들 수 없습니다: {e}"}, ensure_ascii=False))
+        return self._attach(data, name)
+
+    def do_rules(self, req):
+        """안전관리규정 초안(safety_rules). fmt=hwpx 면 한글 문서로 준다."""
+        import safety_rules
+        try:
+            doc = safety_rules.build(str(req.get("id") or ""), str(req.get("kind") or ""),
+                                     req.get("flags") if isinstance(req.get("flags"), dict) else {},
+                                     req.get("info") if isinstance(req.get("info"), dict) else {},
+                                     [str(x) for x in (req.get("exclude") or [])][:40])
+        except (KeyError, ValueError) as e:
+            return self._send(400, json.dumps({"error": f"초안을 만들 수 없습니다: {e}"}, ensure_ascii=False))
+        if req.get("fmt") != "hwpx":
+            return self._send(200, json.dumps(doc, ensure_ascii=False))
+        data = safety_rules.to_hwpx(doc)
+        name = f"안전관리규정_초안_{doc['info'].get('company') or doc['kind']}.hwpx"
         self.send_response(200)
         self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{urllib.parse.quote(name)}")
@@ -1762,6 +1821,19 @@ class Handler(BaseHTTPRequestHandler):
         regs = reg_cases_for(q)
         if regs:
             self._event({"type": "regs", "items": regs})
+        # 시설기준·점검 질문이면 답 아래에 자체점검표 버튼(annex_checklist). AI 를 거치지 않는다.
+        try:
+            import annex_checklist
+            past = " ".join(m.get("text", "") for m in messages[-7:-1] if m.get("role") == "user")
+            cls = annex_checklist.suggest(q, past)
+            import safety_rules
+            cls = safety_rules.suggest(q, past) + cls
+            import package
+            cls = package.suggest(q, past) + cls
+        except Exception:                                # 점검표가 깨져도 답변은 나가야 한다
+            cls = []
+        if cls:
+            self._event({"type": "checklists", "items": cls})
 
         # ── 캐시 ── 같은 첫 질문은 저장해 둔 답을 그대로 흘린다(모델 호출 없음).
         # 사업자 정보가 있으면 답이 사람마다 달라지므로 캐시를 쓰지 않는다.
@@ -2077,6 +2149,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.do_permit_file(req)
         if self.path == "/api/checklist":
             return self.do_checklist(req)
+        if self.path == "/api/rules":
+            return self.do_rules(req)
+        if self.path == "/api/storage":
+            return self.do_storage(req)
+        if self.path == "/api/package":
+            return self.do_package(req)
         if self.path in ("/api/review/submit", "/api/review/decide"):
             import review
             try:

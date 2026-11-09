@@ -292,6 +292,11 @@
   .zoomov { position: fixed; inset: 0; background: rgba(0, 0, 0, .72); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 9999; cursor: zoom-out; }
   .zoomov img { max-width: 100%; max-height: 100%; background: #fff; border-radius: 6px; }
   @media (max-width: 640px) { .sbx .fl { flex-direction: column; } .sbx .fl > i { transform: rotate(90deg); justify-content: center; } }
+  .cklink { margin-top: 12px; display: grid; gap: 8px; }
+  .cklink a { display: block; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-left: 4px solid #00a050; border-radius: 10px; padding: 10px 12px; }
+  .cklink a:hover { background: #f3fbf6; }
+  .cklink b { display: block; font-size: var(--fs-s); }
+  .cklink span { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
   .regs { margin-top: 12px; font-size: var(--fs-s); color: var(--ink-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
   .regs summary { cursor: pointer; color: var(--ink); }
   .regs .reg { margin-top: 8px; line-height: 1.6; }
@@ -1300,6 +1305,7 @@ async function send(opts = {}) {
         else if (ev.type === 'clarify') ai.clarify = ev;
         else if (ev.type === 'ask') ai.ask = ev;
         else if (ev.type === 'regs') ai.regs = ev.items;
+        else if (ev.type === 'checklists') ai.checklists = ev.items;
         else if (ev.type === 'permit') ai.permit = ev;
         else if (ev.type === 'lowconf') ai.lowconf = true;
         else if (ev.type === 'phase' && ev.p === 'check') stage.go(2);
@@ -1368,7 +1374,7 @@ async function send(opts = {}) {
               warnings: ai.warnings, nums: ai.nums, refs: ai.refs, lowconf: ai.lowconf,
               model: ai.model, cached: ai.cached, judged: ai.judged, approved: ai.approved,
               clarify: ai.clarify, uncited: ai.uncited, removed: ai.removed, srcOpen: ai.srcOpen,
-              ctx: ai.ctx, regs: ai.regs, sandbox: ai.sandbox};
+              ctx: ai.ctx, regs: ai.regs, checklists: ai.checklists, sandbox: ai.sandbox};
   turns.push(turn); ai.turn = turn;
   saveConv();
   busy = false; $('#go').disabled = false;
@@ -1387,6 +1393,7 @@ function render(ai, full) {
   attachMeta(ai.wrap, ai);
   if (ai.clarify) attachClarify(ai.wrap, ai.clarify);
   if (ai.regs) attachRegs(ai.wrap, ai.regs);
+  if (ai.checklists) attachChecklists(ai.wrap, ai.checklists);
   if (ai.sandbox) attachSandbox(ai.wrap, ai.sandbox, full, order);
   if (order.length) attachSources(ai.wrap, order, ai);
   wireForms(ai.body, order);
@@ -2223,6 +2230,18 @@ function attachSandbox(wrap, sb, text, order, own = false) {
     buttons: [['신청서 PDF 받기', () => { box.querySelector('button[data-f="pdf"]').click(); gotPdf = true; stage(); }],
               ['사업실시계획서 워드', () => box.querySelector('button[data-f="docx"]').click(), true]],
   });
+}
+
+// 시설기준·점검 질문이면 별표 자체점검표로 가는 버튼(annex_checklist.suggest). 새 탭으로 연다.
+function attachChecklists(wrap, items) {
+  if (wrap.querySelector('.cklink')) return;
+  const d = document.createElement('div');
+  d.className = 'cklink';
+  d.innerHTML = items.map(c => `<a href="${esc(c.url)}" target="_blank" rel="noopener">
+    <b>${c.desc ? '📝' : '✅'} ${esc(c.title)}${c.facility ? ` (${esc(c.facility)})` : ''}</b>
+    <span>${esc(c.desc || `${c.law} 원문 그대로 ${c.rows}개 항목 · 거리 등은 수치를 넣으면 자동 판정 · 한글(HWPX)로 받기`)}</span></a>`).join('');
+  const meta = wrap.querySelector('.meta');
+  meta ? meta.before(d) : wrap.appendChild(d);
 }
 
 // 이미 알려진 규제 애로(수소경제 포털)와 겹치면 답 아래에 접어서 보여준다.

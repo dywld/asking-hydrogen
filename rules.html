@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>안전관리규정 초안</title>
+<style>
+:root{--bg:#eef1f5;--card:#fff;--ink:#191f28;--sub:#6b7684;--line:#e5e8eb;--blue:#3182f6;--navy:#0b3b7a;--red:#f04452;--org:#e67700;--orgbg:#fff8ec;--grn:#00a050;--grnbg:#e8faf0}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Pretendard","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+.top{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}
+.top b{font-size:17px}.top a{color:#fff;text-decoration:none;font-size:13px;opacity:.85}.top .r{margin-left:auto;display:flex;gap:14px}
+.tabs{max-width:1240px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font:inherit;cursor:pointer;text-align:left}
+.tabs button small{display:block;color:var(--sub);font-size:11px}
+.tabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}.tabs button.on small{color:#c9d6ea}
+main{max-width:1240px;margin:0 auto;padding:16px;display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start}
+.card{background:var(--card);border-radius:16px;box-shadow:0 2px 10px #0001;padding:18px}
+.side{position:sticky;top:70px}
+h2{font-size:16px;margin-bottom:10px}
+.seg{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.seg button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fff;font:inherit;cursor:pointer;min-width:80px}
+.seg button.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:bold}
+.fd{font-size:12px;color:var(--sub);margin-bottom:12px}
+.flag{display:flex;gap:6px;align-items:flex-start;font-size:13px;margin-bottom:8px;line-height:1.4}
+.in{margin-bottom:10px}.in label{display:block;font-size:13px;margin-bottom:4px}
+.in input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.btn{border:none;border-radius:10px;padding:10px 14px;font:inherit;font-weight:bold;cursor:pointer;background:var(--blue);color:#fff;text-decoration:none;font-size:13px}
+.btn.g{background:#f2f4f6;color:var(--ink)}
+.sum{font-size:13px;color:var(--sub);flex:1}
+.ch{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:5px solid var(--grn)}
+.ch.s-확인{border-left-color:var(--org);background:var(--orgbg)}.ch.s-제외{opacity:.5;border-left-color:#d1d6db}
+.ch .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ch .t{font-weight:bold;flex:1;min-width:200px}
+.pill{border-radius:20px;padding:2px 9px;font-size:12px;font-weight:bold;white-space:nowrap}
+.p-필수{background:var(--grnbg);color:var(--grn)}.p-확인{background:#ffe8c2;color:var(--org)}.p-제외{background:#f2f4f6;color:var(--sub)}
+.ref{font-size:12px;color:var(--blue);margin-top:4px}
+.why{font-size:13px;margin-top:6px;line-height:1.5;color:#4e5968}
+.subs{margin:6px 0 0 18px;color:#4e5968;font-size:13px;line-height:1.6}
+.arts{margin-top:6px;font-size:13px;line-height:1.6}.arts div{color:var(--ink)}.arts i{color:var(--org);font-style:normal}
+.tg{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+.foot{font-size:12px;color:var(--sub);margin-top:12px;line-height:1.6}
+@media (max-width:860px){main{grid-template-columns:1fr}.side{position:static}}
+</style></head>
+<body>
+<div class="top"><b>안전관리규정 초안</b><span class="r"><a href="/package">📦 제출 꾸러미</a><a href="/checklist">자체점검표</a><a href="/">← 챗봇으로</a></span></div>
+<nav class="tabs" id="tabs"></nav>
+<main>
+  <section class="card side">
+    <h2>1. 사업 종류</h2>
+    <div class="seg" id="kind"></div>
+    <p class="fd" id="kindd"></p>
+    <div id="flags"></div>
+    <h2 style="margin-top:14px">2. 사업장 정보 <small style="font-weight:normal;color:var(--sub)">(아는 것만)</small></h2>
+    <div id="info"></div>
+  </section>
+  <section class="card">
+    <div class="bar">
+      <span class="sum" id="sum"></span>
+      <a class="btn g" id="annexPdf" target="_blank">별표 원문 (PDF)</a>
+      <button class="btn" id="dl">한글(HWPX)로 받기</button>
+    </div>
+    <div id="chs"></div>
+    <p class="foot" id="foot"></p>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let LIST = [], T = null, kind = '', flags = {}, info = {}, exclude = [], doc = null, timer = null, store = {};
+try { store = JSON.parse(localStorage.getItem('rules') || '{}') || {}; } catch (e) {}
+function save() {
+  store.cur = T.id; store[T.id] = {kind, flags, exclude}; store.info = info;
+  try { localStorage.setItem('rules', JSON.stringify(store)); } catch (e) {}
+}
+function pick(id) {
+  T = LIST.find(t => t.id === id) || LIST[0];
+  const s = store[T.id] || {};
+  kind = s.kind && T.kinds[s.kind] ? s.kind : Object.keys(T.kinds)[0];
+  flags = s.flags || {}; exclude = s.exclude || [];
+  $('#tabs').innerHTML = LIST.map(t => `<button data-t="${t.id}" class="${t.id === T.id ? 'on' : ''}">${esc(t.short)}
+    <small>${esc(t.law.replace('수소경제 육성 및 수소 안전관리에 관한 법률', '수소법').replace('고압가스 안전관리법', '고압가스법'))} ${esc(t.annex.replace(/[\[\]]/g, ''))}</small></button>`).join('');
+  const ks = Object.keys(T.kinds);
+  $('#kind').style.display = ks.length > 1 ? '' : 'none';
+  $('#kind').innerHTML = ks.map(k => `<button data-k="${k}" class="${k === kind ? 'on' : ''}">${esc(k)}</button>`).join('');
+  $('#kindd').textContent = T.kinds[kind];
+  $('#flags').innerHTML = Object.entries(T.flags).map(([k, v]) =>
+    `<label class="flag"><input type="checkbox" data-f="${k}" ${flags[k] ? 'checked' : ''}> ${esc(v)}</label>`).join('');
+  $('#info').innerHTML = Object.entries(T.info).map(([k, v]) =>
+    `<div class="in"><label>${esc(v)}</label><input data-i="${k}" value="${esc(info[k] || '')}" placeholder="${k === 'date' ? '비우면 오늘 날짜' : ''}"></div>`).join('');
+  const q = `law=${encodeURIComponent(T.law)}&kind=${encodeURIComponent('별표')}&no=${T.annex_no}`;
+  $('#annexPdf').href = `/api/byl/file?${q}&fmt=pdf`;
+  $('#annexPdf').textContent = `${T.annex.replace(/[\[\]]/g, '')} 원문 (PDF)`;
+  $('#foot').innerHTML = `장 제목과 '작성할 내용'은 「${esc(T.law)}」 ${esc(T.annex.replace(/[\[\]]/g, ''))}(안전관리규정의 작성요령) 원문 그대로입니다(원문 대조 검사를 거침).
+    조문 본문은 지어내지 않고 [직접 입력]으로 둡니다. ${esc(T.detail)} 이 초안은 작성 보조용이며 법적 효력이 없습니다.`;
+  refresh();
+}
+function body(fmt) { return {id: T.id, kind, flags, info, exclude, fmt}; }
+async function refresh() {
+  save();
+  doc = await fetch('/api/rules', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body())}).then(r => r.json());
+  if (doc.error) { $('#chs').innerHTML = `<p style="color:var(--red)">${esc(doc.error)}</p>`; return; }
+  const c = doc.count;
+  $('#sum').innerHTML = `${doc.chapters.filter(x => x.status !== '제외').length}개 장 · 조문 ${doc.articles}개 · `
+    + `<b style="color:var(--grn)">필수 ${c['필수']}</b> · <b style="color:var(--org)">해당 여부 확인 ${c['확인']}</b> · 제외 ${c['제외']}`;
+  $('#chs').innerHTML = doc.chapters.map(ch => {
+    const canToggle = ch.status === '확인' || (ch.status === '제외' && exclude.includes(ch.id));
+    const label = ch.status === '확인' ? '해당 여부 확인' : ch.status;
+    return `<div class="ch s-${ch.status}"><div class="h"><span class="t">${ch.chapter ? `제${ch.chapter}장 ` : ''}${esc(ch.title)}</span>
+      <span class="pill p-${ch.status}">${esc(label)}</span>
+      ${canToggle ? `<button class="tg" data-x="${ch.id}">${ch.status === '제외' ? '다시 넣기' : '우리 사업엔 해당 없음 → 빼기'}</button>` : ''}</div>
+      <div class="ref">${esc(ch.ref)}</div>
+      ${ch.status !== '필수' ? `<div class="why">${esc(ch.why)}</div>` : ''}${ch.note ? `<div class="why">※ ${esc(ch.note)}</div>` : ''}
+      ${ch.subs.length ? `<ul class="subs">${ch.subs.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+      ${ch.articles.length ? `<div class="arts">${ch.articles.map(a => `<div>제${a.no}조(${esc(a.title)}) ${a.text === '[직접 입력]' ? '<i>[직접 입력]</i>' : esc(a.text)}</div>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+const later = () => { clearTimeout(timer); timer = setTimeout(refresh, 300); };
+document.addEventListener('click', e => {
+  const tb = e.target.closest('#tabs button'); if (tb) return pick(tb.dataset.t);
+  const k = e.target.closest('#kind button');
+  if (k) { kind = k.dataset.k; exclude = []; save(); return pick(T.id); }     // 사업 종류가 바뀌면 '빼기' 선택은 처음부터
+  const x = e.target.closest('.tg');
+  if (x) { const id = x.dataset.x; exclude = exclude.includes(id) ? exclude.filter(v => v !== id) : exclude.concat(id); return refresh(); }
+});
+document.addEventListener('change', e => { if (e.target.dataset.f) { flags[e.target.dataset.f] = e.target.checked; refresh(); } });
+document.addEventListener('input', e => {
+  if (e.target.dataset.i) { info[e.target.dataset.i] = e.target.value; memoSet(e.target.dataset.i, e.target.value.trim()); later(); }
+});
+$('#dl').onclick = async () => {
+  const r = await fetch('/api/rules', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body('hwpx'))});
+  if (!r.ok) return alert('문서를 만들지 못했습니다');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(await r.blob());
+  a.download = `안전관리규정_초안_${info.company || kind}.hwpx`;
+  document.body.appendChild(a); a.click(); a.remove();
+};
+// 챗봇 신청서 칸(formMemo)과 같은 회사 정보를 쓴다. 소재지는 사업소 소재지(site)를 먼저.
+const MEMO_MAP = {company: 'company', ceo: 'ceo', address: 'site', facility: 'facility'};
+function memo() { try { return JSON.parse(localStorage.getItem('formMemo')) || {}; } catch (e) { return {}; } }
+function memoSet(k, v) {
+  const key = MEMO_MAP[k]; if (!key || !v) return;
+  const m = memo(); m[key] = v; try { localStorage.setItem('formMemo', JSON.stringify(m)); } catch (e) {}
+}
+(async () => {
+  LIST = await fetch('/api/rules').then(r => r.json());
+  const m = memo();
+  info = Object.assign({company: m.company, ceo: m.ceo, address: m.site || m.office, facility: m.facility}, store.info || {});
+  Object.keys(info).forEach(k => { if (!info[k]) delete info[k]; });
+  pick(new URLSearchParams(location.search).get('t') || store.cur || LIST[0].id);
+})();
+</script>
+</body></html>

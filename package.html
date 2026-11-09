@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>제출 꾸러미</title>
+<style>
+:root{--bg:#eef1f5;--card:#fff;--ink:#191f28;--sub:#6b7684;--line:#e5e8eb;--blue:#3182f6;--navy:#0b3b7a;--red:#f04452;--org:#e67700;--grn:#00a050}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Pretendard","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+.top{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}
+.top b{font-size:17px}.top .r{margin-left:auto;display:flex;gap:14px}.top a{color:#fff;text-decoration:none;font-size:13px;opacity:.85}
+main{max-width:980px;margin:0 auto;padding:20px 16px;display:grid;gap:14px}
+.card{background:var(--card);border-radius:16px;box-shadow:0 2px 10px #0001;padding:18px}
+h2{font-size:16px;margin-bottom:10px}h2 small{font-weight:normal;color:var(--sub);font-size:12px}
+.forms{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.forms button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer}
+.forms button b{display:block}.forms button span{font-size:12px;color:var(--sub)}
+.forms button.on{border-color:var(--blue);background:#e8f3ff}
+.meta{font-size:13px;color:#4e5968;line-height:1.7;margin-top:10px;padding:10px 12px;background:#f7f8fa;border-radius:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.in label{display:block;font-size:13px;margin-bottom:4px}
+.in input,.in select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit}
+.doc{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.doc input{margin-top:3px}.doc b{display:block}.doc .s{font-size:12px;color:var(--sub);margin-top:2px;line-height:1.5}
+.doc a{font-size:12px;color:var(--blue);text-decoration:none;white-space:nowrap;margin-left:auto}
+.btn{border:none;border-radius:12px;padding:14px 18px;font:inherit;font-weight:bold;cursor:pointer;background:var(--blue);color:#fff;font-size:15px}
+.foot{font-size:12px;color:var(--sub);line-height:1.6}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="top"><b>📦 제출 꾸러미</b><span class="r"><a href="/checklist">자체점검표</a><a href="/rules">안전관리규정</a><a href="/">← 챗봇으로</a></span></div>
+<main>
+  <section class="card"><h2>1. 어떤 신청서인가요?</h2><div class="forms" id="forms"></div><div class="meta" id="meta" hidden></div></section>
+  <section class="card" id="s2" hidden><h2>2. 신청서 칸 <small>한 번 넣은 회사 정보는 점검표·안전관리규정에도 같이 쓰입니다</small></h2><div class="grid" id="fields"></div></section>
+  <section class="card" id="s3" hidden><h2>3. 함께 넣을 문서 <small>각 화면에서 넣어 둔 값을 그대로 씁니다</small></h2><div id="docs"></div></section>
+  <section class="card" id="s4" hidden>
+    <button class="btn" id="go">꾸러미(zip) 받기</button>
+    <p class="foot" style="margin-top:10px">맨 앞의 '표지(제출 체크리스트)'에 서식에 적힌 첨부서류·접수 기관·처리 기간·수수료, 신청서 빈칸, 점검표에서 부적합으로 나온 항목, 꾸러미에 든 파일이 정리됩니다.
+    서식이 요구하는 첨부서류(사업계획서·기술검토서 등)는 만들어 넣지 않으니 직접 준비하세요. 모든 자동 판정·초안은 작성 보조용이며 법적 효력이 없습니다.</p>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MEMO_KEYS = ['company', 'ceo', 'office', 'tel', 'site', 'bizno', 'email', 'address', 'applicant'];
+const ls = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+let LIST = [], F = null, vals = {}, use = {};
+
+function pickForm(id) {
+  F = LIST.find(f => f.id === id); if (!F) return;
+  lsSet('pkgLast', id);
+  $('#forms').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.f === id));
+  $('#meta').hidden = false;
+  $('#meta').innerHTML = `<b>${esc(F.form)}</b><br>접수 기관 ${esc(F.who)} · 처리 기간 ${esc(F.days)} · 수수료 ${esc(F.fee)}<br>`
+    + `첨부서류: ${F.docs.length ? F.docs.map(esc).join(' · ') : '없음'}` + (F.before ? `<br>먼저 할 일: ${esc(F.before)}` : '');
+  const memo = ls('formMemo', {}), draft = ls('pkgDraft', {})[id] || {};
+  vals = {};
+  F.fields.forEach(t => { vals[t.key] = draft[t.key] ?? memo[t.key] ?? t.value ?? ''; });
+  if (F.choose) vals[F.choose[0]] = draft[F.choose[0]] || '';
+  $('#fields').innerHTML = (F.choose ? `<div class="in"><label>${esc(F.choose[1])}</label><select data-k="${F.choose[0]}">
+      <option value="">고르세요</option>${F.choose[2].map(o => `<option ${vals[F.choose[0]] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></div>` : '')
+    + F.fields.map(t => `<div class="in"><label>${esc(t.q)}</label><input data-k="${t.key}" value="${esc(vals[t.key])}" placeholder="${esc(t.text)}"></div>`).join('');
+  drawDocs();
+  ['#s2', '#s3', '#s4'].forEach(s => $(s).hidden = false);
+}
+
+// 각 화면이 브라우저에 남긴 값: 점검표 'checklist2', 안전관리규정 'rules', 저장능력 'storage'
+function drawDocs() {
+  const sg = F.suggest, ck = ls('checklist2', {}), ru = ls('rules', {}), st = ls('storage', {});
+  const rows = [];
+  if (sg.checklist) {
+    const s = ck[sg.checklist] || {}, n = Object.keys(s.vals || {}).length, m = Object.keys(s.marks || {}).length;
+    rows.push({k: 'checklist', on: use.checklist ?? true, t: '자체점검표 (시설기준)',
+      s: `${n ? `입력한 시설 정보 ${n}개` : '아직 입력한 값 없음 — 빈 점검표로 들어갑니다'}${m ? ` · 직접 표시한 항목 ${m}개` : ''}${s.fac ? ` · ${esc(s.fac)}` : (sg.facility ? ` · ${esc(sg.facility)}` : '')}`,
+      href: `/checklist?t=${sg.checklist}${sg.facility ? '&f=' + encodeURIComponent(sg.facility) : ''}`});
+  }
+  if (sg.rules) {
+    const s = ru[sg.rules[0]] || {};
+    rows.push({k: 'rules', on: use.rules ?? true, t: '안전관리규정 초안',
+      s: `${s.kind || sg.rules[1] || '사업 종류 기본값'}${(s.exclude || []).length ? ` · 뺀 장 ${s.exclude.length}개` : ''} · 서식이 요구하는 첨부서류인지는 접수 기관에 확인하세요`,
+      href: `/rules?t=${sg.rules[0]}`});
+  }
+  const items = (st.items || []).filter(i => i.p !== '' && i.v !== '' && i.p != null && i.v != null);
+  rows.push({k: 'storage', on: use.storage ?? items.length > 0, t: '저장능력 계산서 (별표 1)',
+    s: items.length ? `설비 ${items.length}개 입력됨` : '자체점검표 화면의 🧮 저장능력 계산에서 설비를 넣으면 들어갑니다', href: '/checklist'});
+  $('#docs').innerHTML = rows.map(r => `<label class="doc"><input type="checkbox" data-u="${r.k}" ${r.on ? 'checked' : ''}>
+    <div><b>${esc(r.t)}</b><div class="s">${r.s}</div></div><a href="${r.href}" target="_blank">값 고치기 ↗</a></label>`).join('');
+  rows.forEach(r => { use[r.k] = r.on; });
+}
+
+function payload() {
+  const sg = F.suggest, ck = ls('checklist2', {}), ru = ls('rules', {}), st = ls('storage', {}), req = {permit: {id: F.id, fields: vals, fmt: 'both'}};
+  if (use.checklist && sg.checklist) {
+    const s = ck[sg.checklist] || {};
+    req.checklist = {id: sg.checklist, facility: s.fac || sg.facility || '', inputs: s.vals || {}, marks: s.marks || {}};
+    if (!req.checklist.facility) delete req.checklist.facility;
+  }
+  if (use.rules && sg.rules) {
+    const s = ru[sg.rules[0]] || {}, info = Object.assign({}, ru.info || {});
+    req.rules = {id: sg.rules[0], kind: s.kind || sg.rules[1], flags: s.flags || {}, exclude: s.exclude || [], info};
+  }
+  if (use.storage) req.storage = {items: st.items || []};
+  return req;
+}
+
+document.addEventListener('click', e => { const b = e.target.closest('#forms button'); if (b) pickForm(b.dataset.f); });
+document.addEventListener('change', e => { if (e.target.dataset.u) use[e.target.dataset.u] = e.target.checked; });
+document.addEventListener('input', e => {
+  const k = e.target.dataset.k; if (!k) return;
+  vals[k] = e.target.value;
+  const d = ls('pkgDraft', {}); d[F.id] = vals; lsSet('pkgDraft', d);
+  if (MEMO_KEYS.includes(k) && e.target.value.trim()) { const m = ls('formMemo', {}); m[k] = e.target.value.trim(); lsSet('formMemo', m); }
+});
+$('#go').onclick = async () => {
+  const req = payload();
+  // 점검표 시설 종류가 비어 있으면 그 점검표의 첫 종류로
+  if (req.checklist && !req.checklist.facility) {
+    const cat = await fetch('/api/checklist').then(r => r.json());
+    req.checklist.facility = Object.keys((cat.find(t => t.id === req.checklist.id) || {}).facilities || {})[0] || '';
+  }
+  if (req.rules && !req.rules.kind) {
+    const cat = await fetch('/api/rules').then(r => r.json());
+    req.rules.kind = Object.keys((cat.find(t => t.id === req.rules.id) || {}).kinds || {})[0] || '';
+  }
+  $('#go').disabled = true; $('#go').textContent = '만드는 중…';
+  try {
+    const r = await fetch('/api/package', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(req)});
+    if (!r.ok) throw new Error((await r.json()).error || r.status);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob());
+    a.download = `${F.title}_제출꾸러미${vals.company ? '_' + vals.company : ''}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (err) { alert('꾸러미를 만들지 못했습니다: ' + err.message); }
+  $('#go').disabled = false; $('#go').textContent = '꾸러미(zip) 받기';
+};
+
+(async () => {
+  LIST = await fetch('/api/package').then(r => r.json());
+  $('#forms').innerHTML = LIST.map(f => `<button data-f="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.desc)}</span></button>`).join('');
+  const want = new URLSearchParams(location.search).get('f') || ls('pkgLast', '');
+  if (want) pickForm(want);
+})();
+</script>
+</body></html>
