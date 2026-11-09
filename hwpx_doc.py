@@ -11,6 +11,7 @@ HWPX 는 OWPML 규격의 zip 묶음이다. 원본 HWP(OLE 이진) 칸을 고치�
   ("para", 글)                        본문 한 문단
   ("heading", 글)                     굵은 소제목
   ("table", [(항목, 값), ...])         두 칸짜리 표(왼쪽 항목 회색 칸)
+  ("grid", {"rows": [[...], ...], "widths": [...]})  여러 칸 표(첫 줄 머리글, 칸 안 줄바꿈 가능)
 """
 import io
 import re
@@ -135,10 +136,10 @@ def _run(text, char=0):
 
 def _para(runs, para=0, pid=0):
     return (f'<hp:p id="{pid}" paraPrIDRef="{para}" styleIDRef="0" pageBreak="0" '
-            f'columnBreak="0" merged="0">{runs}'
-            '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" '
-            'textheight="1000" baseline="850" spacing="600" horzpos="0" horzsize="42520" flags="393216"/>'
-            '</hp:linesegarray></hp:p>')
+            f'columnBreak="0" merged="0">{runs}</hp:p>')
+    # 줄 배치 캐시(linesegarray)는 넣지 않는다. 예전에는 "한 줄, 본문 폭"으로 박아 두었더니
+    # 한글이 그 값을 믿고 줄바꿈을 안 해서, 긴 문장·좁은 표 칸의 글자가 한 줄에 겹쳐 찍혔다(실측).
+    # 없으면 한글이 열 때 직접 계산한다.
 
 
 def _cell(text, col, row, width, fill, char=0):
@@ -169,6 +170,45 @@ def _table(rows):
             + ''.join(trs) + '</hp:tbl>')
 
 
+def _gcell(text, col, row, width, fill, char=0):
+    """여러 줄 글이 들어가는 칸. 줄바꿈(\\n)마다 문단을 나눈다. 높이는 한글이 내용에 맞춰 늘린다."""
+    body = "".join(_para(_run(line, char), para=2) for line in (str(text).split("\n") or [""]))
+    return (f'<hp:tc name="" header="{1 if row == 0 else 0}" hasMargin="0" protect="0" editable="0" dirty="0" '
+            f'borderFillIDRef="{fill}">'
+            f'<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" '
+            f'linkListIDRef="0" linkListNextIDRef="0" textWidth="{width}" textHeight="{ROW_H}" hasTextRef="0" hasNumRef="0">'
+            f'{body}</hp:subList>'
+            f'<hp:cellAddr colAddr="{col}" rowAddr="{row}"/><hp:cellSpan colSpan="1" rowSpan="1"/>'
+            f'<hp:cellSz width="{width}" height="{ROW_H}"/>'
+            '<hp:cellMargin left="283" right="283" top="141" bottom="141"/></hp:tc>')
+
+
+def _grid(spec):
+    """여러 칸짜리 표. spec = {"rows": [[머리글...], [값...], ...], "widths": [칸 폭 hwpunit, ...]}.
+    첫 줄은 머리글(회색 칸·굵게). 폭 합이 본문 폭과 다르면 비율대로 맞춘다."""
+    rows = spec["rows"]
+    ncol = len(rows[0])
+    widths = spec.get("widths") or [TEXT_W // ncol] * ncol
+    total = sum(widths)
+    widths = [w * TEXT_W // total for w in widths]
+    widths[-1] += TEXT_W - sum(widths)
+    trs = []
+    for i, row in enumerate(rows):
+        cells = list(row) + [""] * (ncol - len(row))
+        trs.append('<hp:tr>' + "".join(
+            _gcell(c, j, i, widths[j], 3 if i == 0 else 2, 3 if i == 0 else 0)
+            for j, c in enumerate(cells[:ncol])) + '</hp:tr>')
+    return (f'<hp:tbl id="0" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" '
+            f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" '
+            f'rowCnt="{len(rows)}" colCnt="{ncol}" cellSpacing="0" borderFillIDRef="2" noAdjust="0">'
+            f'<hp:sz width="{TEXT_W}" widthRelTo="ABSOLUTE" height="{ROW_H * len(rows)}" heightRelTo="ABSOLUTE" protect="0"/>'
+            '<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
+            'vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+            '<hp:outMargin left="0" right="0" top="0" bottom="0"/>'
+            '<hp:inMargin left="283" right="283" top="141" bottom="141"/>'
+            + ''.join(trs) + '</hp:tbl>')
+
+
 def _section(blocks):
     out = []
     for kind, val in blocks:
@@ -181,6 +221,9 @@ def _section(blocks):
         elif kind == "table":
             # 표는 문단 안의 run 으로 넣는다(글자처럼 취급)
             out.append(_para(f'<hp:run charPrIDRef="0">{_table(val)}</hp:run>', para=0))
+            out.append(_para(_run(""), para=0))
+        elif kind == "grid":
+            out.append(_para(f'<hp:run charPrIDRef="0">{_grid(val)}</hp:run>', para=0))
             out.append(_para(_run(""), para=0))
         else:
             raise ValueError(f"알 수 없는 블록: {kind}")
