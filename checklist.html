@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수소충전소 자체점검표</title>
+<style>
+:root{--bg:#eef1f5;--card:#fff;--ink:#191f28;--sub:#6b7684;--line:#e5e8eb;--blue:#3182f6;--navy:#0b3b7a;--red:#f04452;--redbg:#fff0f1;--org:#e67700;--orgbg:#fff8ec;--grn:#00a050;--grnbg:#e8faf0}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Pretendard","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+.top{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}
+.top b{font-size:17px}.top a{color:#fff;text-decoration:none;font-size:13px;opacity:.85;margin-left:auto}
+main{max-width:1240px;margin:0 auto;padding:20px 16px;display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start}
+.card{background:var(--card);border-radius:16px;box-shadow:0 2px 10px #0001;padding:18px}
+.side{position:sticky;top:70px;max-height:calc(100vh - 86px);overflow:auto}
+h2{font-size:16px;margin-bottom:10px}
+.seg{display:flex;gap:8px;margin-bottom:14px}
+.seg button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fff;font:inherit;cursor:pointer}
+.seg button.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:bold}
+.fd{font-size:12px;color:var(--sub);margin:-8px 0 14px}
+.in{margin-bottom:12px}.in label{display:block;font-size:13px;margin-bottom:5px;line-height:1.4}
+.in input[type=number]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit}
+.in .u{display:flex;align-items:center;gap:6px}.in .u span{color:var(--sub);font-size:12px;flex:none}
+.yn{display:flex;gap:6px}.yn button{flex:1;padding:7px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font:inherit;font-size:13px}
+.yn button.on{background:#e8f3ff;border-color:var(--blue);color:var(--blue);font-weight:bold}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.kpi div{background:var(--card);border-radius:14px;padding:12px 14px;box-shadow:0 2px 10px #0001}
+.kpi small{color:var(--sub)}.kpi b{display:block;font-size:24px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.bar label{font-size:13px;color:var(--sub);display:flex;gap:4px;align-items:center}
+.btn{border:none;border-radius:10px;padding:10px 14px;font:inherit;font-weight:bold;cursor:pointer;background:var(--blue);color:#fff;text-decoration:none;font-size:13px}
+.btn.g{background:#f2f4f6;color:var(--ink)}
+.grp{font-weight:bold;color:var(--navy);margin:16px 0 6px;font-size:13px}
+.row{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:5px solid #d1d6db;background:#fff}
+.row.v-적합{border-left-color:var(--grn)}.row.v-부적합{border-left-color:var(--red);background:var(--redbg)}
+.row.v-해당없음{opacity:.6}.row.v-참고{border-left-color:#9aa4b2}
+.row .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row .t{font-weight:bold;flex:1;min-width:200px}
+.pill{border-radius:20px;padding:2px 9px;font-size:12px;font-weight:bold;white-space:nowrap}
+.p-적합{background:var(--grnbg);color:var(--grn)}.p-부적합{background:var(--redbg);color:var(--red)}.p-확인필요{background:var(--orgbg);color:var(--org)}.p-해당없음,.p-참고{background:#f2f4f6;color:var(--sub)}
+.mid{background:#eef4ff;color:#1b64da}
+.q{color:#4e5968;font-size:13px;line-height:1.55;margin-top:6px;padding-left:10px;border-left:3px solid #e5e8eb}
+.ref{font-size:12px;color:var(--blue);margin-top:6px}
+.note{font-size:13px;margin-top:6px;line-height:1.5}
+.mk{display:flex;gap:6px;margin-top:8px}.mk button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+.mk button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.foot{font-size:12px;color:var(--sub);margin-top:12px;line-height:1.6}
+@media (max-width:860px){main{grid-template-columns:1fr}.side{position:static;max-height:none}.kpi{grid-template-columns:repeat(2,1fr)}}
+</style></head>
+<body>
+<div class="top"><b>수소충전소 시설기준 자체점검표</b><a href="/">← 챗봇으로</a></div>
+<main>
+  <section class="card side">
+    <h2>1. 시설 종류</h2>
+    <div class="seg" id="fac"></div>
+    <p class="fd" id="facd"></p>
+    <h2>2. 시설 정보 <small style="font-weight:normal;color:var(--sub)">(아는 것만)</small></h2>
+    <div id="inputs"></div>
+    <div class="in"><label>사업장 이름 (문서 머리에 들어감)</label><input type="text" id="company" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit" placeholder="예: ○○수소㈜ 삼척충전소"></div>
+  </section>
+  <section>
+    <div class="kpi" id="kpi"></div>
+    <div class="card">
+      <div class="bar">
+        <label><input type="checkbox" id="onlyMid"> 중간검사 항목만</label>
+        <label><input type="checkbox" id="hideNa"> 해당 없음 숨기기</label>
+        <span style="flex:1"></span>
+        <a class="btn g" id="annexPdf" target="_blank">별표 5 원문 (PDF)</a>
+        <a class="btn g" id="annexHwp">원문 (HWP)</a>
+        <button class="btn" id="dl">한글(HWPX)로 받기</button>
+      </div>
+      <div id="rows"></div>
+      <p class="foot">기준 글은 「고압가스 안전관리법 시행규칙」 별표 5 원문 그대로입니다(원문 대조 검사를 거침). 보호시설 거리는 안전거리 계산기와 같은 표에서 꺼냅니다.
+      완성검사는 시설기준 전 항목이 대상이고, <span class="pill mid">중간검사</span> 표시는 별표 5 다목 표의 중간검사 항목입니다.
+      자동 판정은 입력값 기준의 참고용이며 법적 효력이 없습니다. 최종 판단은 한국가스안전공사·관할 관청에 확인하세요.</p>
+    </div>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cls = v => String(v).replace(/\s/g, '');
+let CAT = null, fac = '제조식', vals = {}, marks = {}, sheet = null, timer = null;
+
+function save() { try { localStorage.setItem('checklist', JSON.stringify({fac, vals, marks, company: $('#company').value})); } catch (e) {} }
+function load() { try { return JSON.parse(localStorage.getItem('checklist') || '{}'); } catch (e) { return {}; } }
+
+function drawInputs() {
+  $('#fac').innerHTML = Object.keys(CAT.facilities).map(k => `<button class="${k === fac ? 'on' : ''}" data-f="${k}">${k}</button>`).join('');
+  $('#facd').textContent = CAT.facilities[fac];
+  $('#inputs').innerHTML = CAT.inputs.filter(i => !i.only || i.only === fac).map(i => {
+    if (i.type === 'bool') {
+      const v = vals[i.key];
+      return `<div class="in"><label>${esc(i.q)}</label><div class="yn" data-k="${i.key}">
+        <button data-v="1" class="${v === true ? 'on' : ''}">예</button><button data-v="0" class="${v === false ? 'on' : ''}">아니오</button>
+        <button data-v="" class="${v === undefined ? 'on' : ''}">모름</button></div></div>`;
+    }
+    return `<div class="in"><label>${esc(i.q)}</label><div class="u"><input type="number" min="0" step="any" data-k="${i.key}"
+      value="${vals[i.key] ?? ''}" placeholder="${esc(i.ex || '')}"><span>${esc(i.unit || '')}</span></div></div>`;
+  }).join('');
+}
+
+function drawSheet() {
+  const c = sheet.count;
+  $('#kpi').innerHTML = [['부적합', 'var(--red)'], ['확인 필요', 'var(--org)'], ['적합', 'var(--grn)'], ['해당 없음', 'var(--sub)']]
+    .map(([k, col]) => `<div><small>${k}</small><b style="color:${col}">${c[k] || 0}</b></div>`).join('');
+  const onlyMid = $('#onlyMid').checked, hideNa = $('#hideNa').checked;
+  let g = '', html = '';
+  for (const r of sheet.rows) {
+    if (onlyMid && !r.mid) continue;
+    if (hideNa && r.verdict === '해당 없음') continue;
+    if (r.group !== g) { g = r.group; html += `<div class="grp">${esc(g)}</div>`; }
+    const manual = !r.auto && r.verdict !== '참고';
+    html += `<div class="row v-${cls(r.verdict)}"><div class="h"><span class="t">${esc(r.title)}</span>
+      ${r.mid ? '<span class="pill mid">중간검사</span>' : ''}${r.auto ? '<span class="pill p-참고">자동 판정</span>' : ''}
+      <span class="pill p-${cls(r.verdict)}">${esc(r.verdict)}</span></div>
+      <div class="q">${esc(r.quote)}</div>
+      <div class="ref">${esc(r.ref)}${r.kgs ? ' · ' + esc(r.kgs) : ''}</div>
+      ${r.note && r.note !== '사용자 확인' ? `<div class="note">${esc(r.note)}</div>` : ''}
+      ${manual ? `<div class="mk" data-id="${r.id}">${['적합', '부적합', '해당 없음'].map(m =>
+        `<button class="${marks[r.id] === m ? 'on' : ''}" data-m="${m}">${m}</button>`).join('')}</div>` : ''}</div>`;
+  }
+  $('#rows').innerHTML = html || '<p style="color:var(--sub)">표시할 항목이 없습니다.</p>';
+}
+
+function body(fmt) { return {id: CAT.id, facility: fac, inputs: vals, marks, company: $('#company').value, fmt}; }
+
+async function refresh() {
+  save();
+  const r = await fetch('/api/checklist', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body())});
+  sheet = await r.json();
+  if (sheet.error) { $('#rows').innerHTML = `<p style="color:var(--red)">${esc(sheet.error)}</p>`; return; }
+  drawSheet();
+}
+const later = () => { clearTimeout(timer); timer = setTimeout(refresh, 250); };
+
+document.addEventListener('click', e => {
+  const f = e.target.closest('#fac button');
+  if (f) { fac = f.dataset.f; drawInputs(); return refresh(); }
+  const yn = e.target.closest('.yn button');
+  if (yn) {
+    const k = yn.parentElement.dataset.k, v = yn.dataset.v;
+    if (v === '') delete vals[k]; else vals[k] = v === '1';
+    drawInputs(); return refresh();
+  }
+  const mk = e.target.closest('.mk button');
+  if (mk) {
+    const id = mk.parentElement.dataset.id;
+    if (marks[id] === mk.dataset.m) delete marks[id]; else marks[id] = mk.dataset.m;
+    return refresh();
+  }
+});
+document.addEventListener('input', e => {
+  const k = e.target.dataset && e.target.dataset.k;
+  if (k) { const n = e.target.value; if (n === '') delete vals[k]; else vals[k] = Number(n); later(); }
+  if (e.target.id === 'company') save();
+});
+$('#onlyMid').onchange = $('#hideNa').onchange = () => sheet && drawSheet();
+$('#dl').onclick = async () => {
+  const r = await fetch('/api/checklist', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body('hwpx'))});
+  if (!r.ok) return alert('문서를 만들지 못했습니다');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(await r.blob());
+  a.download = `${sheet.title}_${fac}.hwpx`;
+  a.click();
+};
+
+(async () => {
+  const list = await fetch('/api/checklist').then(r => r.json());
+  CAT = list.find(t => t.id === 'gas_annex5_station') || list[0];
+  const s = load();
+  if (s.fac && CAT.facilities[s.fac]) fac = s.fac;
+  vals = s.vals || {}; marks = s.marks || {}; $('#company').value = s.company || '';
+  const q = `law=${encodeURIComponent(CAT.law)}&kind=${encodeURIComponent('별표')}&no=5`;
+  $('#annexPdf').href = `/api/byl/file?${q}&fmt=pdf`;
+  $('#annexHwp').href = `/api/byl/file?${q}&fmt=hwp`;
+  drawInputs(); refresh();
+})();
+</script>
+</body></html>

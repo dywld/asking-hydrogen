@@ -1413,6 +1413,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, (HERE / "demo.html").read_bytes(), "text/html; charset=utf-8")
         elif path in ("/review", "/review.html"):
             self._send(200, (HERE / "review.html").read_bytes(), "text/html; charset=utf-8")
+        elif path in ("/checklist", "/checklist.html"):
+            self._send(200, (HERE / "checklist.html").read_bytes(), "text/html; charset=utf-8")
+        elif path == "/api/checklist":
+            # 별표 → 자체점검표 종류와 입력 칸. AI 를 거치지 않는다.
+            import annex_checklist
+            self._send(200, json.dumps(annex_checklist.catalog(), ensure_ascii=False))
         elif path == "/api/permit/forms":
             import permit_forms
             self._send(200, json.dumps(permit_forms.catalog(), ensure_ascii=False))
@@ -1533,6 +1539,26 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/octet-stream" if hwpx else "application/pdf")
         self.send_header("Content-Disposition",
                          f"attachment; filename*=UTF-8''{urllib.parse.quote(name)}")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_checklist(self, req):
+        """별표 시설기준 자체점검표. 판정은 코드가 하고(annex_checklist), fmt=hwpx 면 한글 문서로 준다."""
+        import annex_checklist
+        try:
+            sheet = annex_checklist.build(str(req.get("facility") or ""), req.get("inputs") or {},
+                                          str(req.get("id") or "gas_annex5_station"), req.get("marks"))
+        except (KeyError, ValueError) as e:
+            return self._send(400, json.dumps({"error": f"점검표를 만들 수 없습니다: {e}"},
+                                              ensure_ascii=False))
+        if req.get("fmt") != "hwpx":
+            return self._send(200, json.dumps(sheet, ensure_ascii=False))
+        data = annex_checklist.to_hwpx(sheet, str(req.get("company") or "")[:40])
+        name = f"{sheet['title']}_{sheet['facility']}.hwpx"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{urllib.parse.quote(name)}")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -2049,6 +2075,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.do_sandbox_file(req)
         if self.path == "/api/permit/file":
             return self.do_permit_file(req)
+        if self.path == "/api/checklist":
+            return self.do_checklist(req)
         if self.path in ("/api/review/submit", "/api/review/decide"):
             import review
             try:
