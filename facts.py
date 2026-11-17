@@ -36,7 +36,10 @@ def topics():
 def match(question):
     """질문에 맞는 주제들 → 검색 결과와 같은 모양의 조각 목록(kind='확정')."""
     out = []
+    import search
     for t in topics():
+        if not search.kgs_table_current(t):
+            continue
         if not t["_re"].search(question):
             continue
         lines = [f"{t['law']} {t['ref']} {t['title']} — 확정 자료(표에서 코드가 직접 찾음)"]

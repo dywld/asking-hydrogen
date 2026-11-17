@@ -56,7 +56,8 @@ def _cache_load():
 
 def _cache_key(q, country, facility, as_of, checklist):
     norm = re.sub(r"[\s?？!.~,]+", "", q).lower()
-    raw = f"{norm}|{country or ''}|{facility or ''}|{as_of or ''}|{int(bool(checklist))}"
+    revision = search.get_index().corpus_sha256
+    raw = f"{revision}|{norm}|{country or ''}|{facility or ''}|{as_of or ''}|{int(bool(checklist))}"
     return hashlib.sha1(raw.encode()).hexdigest()[:16]
 
 
@@ -423,6 +424,12 @@ def pdf_page_of(doc):
 
 
 def pdf_file_of(code):
+    # 검색 중인 버전의 원문을 우선한다. 예전 폴더의 첫 파일을 고르면 판이 섞인다.
+    for d in search.get_index().docs:
+        if d["law"] == f"KGS {code}" and d.get("pdf_path"):
+            pdf = (HERE / d["pdf_path"]).resolve()
+            if pdf.is_relative_to((HERE / "data" / "kgs_updates").resolve()) and pdf.is_file():
+                return pdf
     if not PDF_DIR.exists():
         return None
     for p in PDF_DIR.glob(f"{code}_*.pdf"):
@@ -441,12 +448,14 @@ def pdf_pages_png(data, limit=10):
 def render_page(code, page):
     """PDF 한 쪽을 PNG 로. 만든 것은 파일로 남겨 두 번째부터는 바로 준다."""
     PAGE_DIR.mkdir(parents=True, exist_ok=True)
-    out = PAGE_DIR / f"{code}_{page}.png"
-    if out.exists():
-        return out.read_bytes()
     pdf = pdf_file_of(code)
     if not pdf:
         return None
+    stat = pdf.stat()
+    version = hashlib.sha256(f"{pdf}:{stat.st_mtime_ns}:{stat.st_size}".encode()).hexdigest()[:16]
+    out = PAGE_DIR / f"{code}_{version}_{page}.png"
+    if out.exists():
+        return out.read_bytes()
     try:
         import pymupdf
         doc = pymupdf.open(pdf)
@@ -725,6 +734,10 @@ def demo_lookup(q):
     """발표 잠금 — 승인된 답만. 없으면 None."""
     if not DEMO_LOCK or not DEMO_FILE.exists():
         return None
+    kgs = HERE / "data" / "kgs_code.jsonl"
+    if (kgs.exists() and search.get_index().kgs_versions
+            and kgs.stat().st_mtime_ns > DEMO_FILE.stat().st_mtime_ns):
+        return None  # 새 자료 적용 뒤 예전 발표용 답을 그대로 보내지 않는다.
     try:
         data = json.loads(DEMO_FILE.read_text(encoding="utf-8"))
     except Exception:
@@ -1122,19 +1135,22 @@ def siblings_of(hits):
     검증할 때만 같은 별표 전체를 펼쳐 본다. 모델에게 주는 조각은 그대로다.
     """
     global _SIBLINGS
-    if _SIBLINGS is None:
+    idx = search.get_index()
+    cache = _SIBLINGS
+    if cache is None or cache[0] != idx.corpus_sha256:
         # 다 채운 뒤에 대입한다. 스레드 둘이 동시에 들어와 반쯤 찬 사전을 읽지 않게.
         table = {}
-        for d in search.get_index().docs:
+        for d in idx.docs:
             text = f"{d['article']} {d['content']}"
             if d["country"] == "일본":
                 text += " " + jp_refs_as_korean(text)
             table.setdefault(verify_key(d), []).append(text)
-        _SIBLINGS = table
+        cache = (idx.corpus_sha256, table)
+        _SIBLINGS = cache
     keys = {verify_key(h) for h in hits}
     out = []
     for k in keys:
-        out.extend(_SIBLINGS.get(k, ()))
+        out.extend(cache[1].get(k, ()))
     return out
 
 
@@ -1385,8 +1401,16 @@ class Handler(BaseHTTPRequestHandler):
                 "need_code": bool(ACCESS_CODE),
                 "semantic": idx.vecs is not None, "rerank": search.RERANK_ON,
                 "cache": len(_cache), "ollama": ollama_fallback.enabled(),
-                "pdf": PDF_DIR.exists(),
+                "pdf": PDF_DIR.exists() or bool(idx.kgs_versions),
+                "dataset_revision": idx.corpus_sha256,
             }, ensure_ascii=False))
+        elif path == "/api/kgs-updates":
+            try:
+                from kgs_watch import Watcher
+                result = Watcher(HERE).status()
+                self._send(200, json.dumps(result, ensure_ascii=False))
+            except (ValueError, OSError, ImportError) as e:
+                self._send(503, json.dumps({"error": str(e)}, ensure_ascii=False))
         elif path == "/api/distance":
             # 안전거리 계산기. 표 목록 또는 (표, 용량) → 해당 줄. AI 를 거치지 않는다.
             tid = (qs.get("table") or [""])[0]

@@ -60,7 +60,8 @@ def main():
         np.save(OUT, vecs)
         np.save(OUT.with_name("embeddings_have.npy"), have)
         META.write_text(json.dumps(
-            {"model": f"local:{MODEL}", "dim": DIM, "total": n, "done": k},
+            {"model": f"local:{MODEL}", "dim": DIM, "total": n, "done": k,
+             "corpus_sha256": search.docs_fingerprint(docs)},
             ensure_ascii=False), encoding="utf-8")
 
     t0 = time.time()

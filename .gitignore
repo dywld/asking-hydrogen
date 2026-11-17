@@ -38,3 +38,4 @@ cf/.dev.vars
 desktop/node_modules/
 desktop/dist/
 data/law_watch.json
+data/kgs_updates/
