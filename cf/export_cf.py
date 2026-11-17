@@ -85,7 +85,8 @@ def chat_meta():
         "sandbox_ask": app.SANDBOX_ASK.pattern,
         "reg_stop": sorted(app.REG_STOP),
         "reg_cases": reg,
-        "facts": [{k: t[k] for k in ("id", "match", "law", "ref", "title", "facts")} for t in facts_raw],
+        "facts": [{k: t[k] for k in ("id", "match", "law", "ref", "title", "facts")}
+                  | ({"version_sha256": t["version_sha256"]} if "version_sha256" in t else {}) for t in facts_raw],
         "demo": demo,
         "correct_prompt": app.CORRECT_PROMPT,
         "law_short": app.LAW_SHORT,

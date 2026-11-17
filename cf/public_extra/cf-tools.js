@@ -577,7 +577,7 @@
   const tools = () => toolsP || (toolsP = prevFetch('/docs/tools.json').then(r => {
     if (!r.ok) throw new Error('도구 자료를 받지 못했습니다');
     return r.json();
-  }).then(D => ({D, T: make(D)})).catch(e => { toolsP = null; throw e; }));
+  }).catch(e => { toolsP = null; throw e; }));
   const json = (status, obj) => new Response(JSON.stringify(obj), {status, headers: {'Content-Type': 'application/json; charset=utf-8'}});
   const quote = s => encodeURIComponent(s).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
   const file = (data, name) => new Response(data, {status: 200, headers: {
@@ -593,9 +593,20 @@
   const POSTS = ['/api/checklist', '/api/rules', '/api/storage', '/api/package'];
 
   async function handle(path, method, req) {
-    const {D, T} = await tools();
+    const D = await tools();
     if (method === 'GET') return json(200, path === '/api/checklist' ? D.checklist_catalog : path === '/api/rules' ? D.rules_catalog : D.package_catalog);
     try {
+      let data = D;
+      if (path === '/api/checklist' || path === '/api/package') {
+        let active = null;
+        try {
+          const r = await prevFetch('/api/kgs-updates', {cache: 'no-store'});
+          if (r.ok) active = new Map((await r.json()).active.map(v => ['KGS ' + v.code, v.version]));
+        } catch { /* 판을 확인할 수 없는 표는 자동 판정에서 제외한다. */ }
+        data = {...D, distance: D.distance.filter(t => !t.law.startsWith('KGS ')
+          || (active && (!active.has(t.law) || active.get(t.law) === t.version_sha256)))};
+      }
+      const T = make(data);
       if (path === '/api/checklist') {
         const sheet = T.buildSheet(pystr(req.facility || ''), req.inputs || {}, pystr(req.id || 'gas_annex5_station'), req.marks);
         if (req.fmt !== 'hwpx') return json(200, sheet);

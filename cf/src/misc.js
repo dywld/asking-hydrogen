@@ -1,5 +1,6 @@
 // /api/share·feedback·distance·sandbox/cases·byl (app.py·distance.py·forms.py 를 옮김)
 import MISC from './misc_data.json';
+import { kgsTableCurrent, readKgsState } from './kgs_updates.js';
 
 function json(obj, status = 200) {
   return new Response(typeof obj === 'string' ? obj : JSON.stringify(obj),
@@ -11,8 +12,8 @@ function kstStamp() {
 const lawQuote = s => encodeURIComponent(s).replace(/%2F/g, '/');
 
 // ── 안전거리 ──
-function distanceLookup(tid, cap) {
-  const t = MISC.distance.find(t => t.id === tid);
+function distanceLookup(tables, tid, cap) {
+  const t = tables.find(t => t.id === tid);
   if (!t) return null;
   for (const row of t.rows) {
     if (row.max === null || cap <= row.max)
@@ -22,12 +23,15 @@ function distanceLookup(tid, cap) {
   return null;
 }
 
-function distance(q) {
+async function distance(q, env) {
+  let state = null;
+  try { state = await readKgsState(env.DB); } catch { /* 버전 확인이 안 된 KGS 표는 보류한다. */ }
+  const tables = MISC.distance.filter(t => !t.law.startsWith('KGS ') || (state && kgsTableCurrent(t, state)));
   const tid = q.get('table') || '';
-  if (!tid) return json({ tables: MISC.distance.map(t => ({ id: t.id, name: t.name, law: t.law, ref: t.ref, unit: t.unit, columns: t.columns })) });
+  if (!tid) return json({ tables: tables.map(t => ({ id: t.id, name: t.name, law: t.law, ref: t.ref, unit: t.unit, columns: t.columns })) });
   const digits = (q.get('cap') || '').replace(/\D/g, '');
   if (!digits) return json({ error: '용량은 숫자여야 합니다' }, 400);
-  const r = distanceLookup(tid, parseInt(digits, 10));
+  const r = distanceLookup(tables, tid, parseInt(digits, 10));
   if (!r) return json({ error: '표 범위 밖이거나 없는 표입니다' }, 404);
   r.link = r.law.startsWith('KGS')
     ? `https://cyber.kgs.or.kr/kgscode.codeSearch.listV2.ex.do?pblcCd=${r.law.replace('KGS ', '')}`
@@ -168,7 +172,7 @@ async function byl(p, q, env, ctx) {
 export async function handleMisc(req, env, url, ctx) {
   const p = url.pathname, q = url.searchParams;
   if (req.method === 'GET') {
-    if (p === '/api/distance') return distance(q);
+    if (p === '/api/distance') return distance(q, env);
     if (p === '/api/sandbox/cases') return json(MISC.sandbox);
     if (p.startsWith('/api/share/')) {
       const sid = p.slice(p.lastIndexOf('/') + 1);

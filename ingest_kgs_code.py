@@ -64,11 +64,38 @@ def split_items(text):
             out[-1] = (out[-1][0], out[-1][1] + " " + body)
             continue
         while len(body) > MAX_CHARS:                     # 너무 길면 잘라 낸다
-            cut = body.rfind(" ", 0, MAX_CHARS) or MAX_CHARS
+            cut = body.rfind(" ", 0, MAX_CHARS)
+            if cut < MAX_CHARS // 2:
+                cut = MAX_CHARS
             out.append((m.group(1), body[:cut]))
             body = body[cut:].lstrip()
         out.append((m.group(1), body))
     return out
+
+
+def extract_pdf(pdf, code, year, title, source=None):
+    """한 PDF만 검증·추출한다. 전체 검색 파일에는 쓰지 않는다."""
+    with pymupdf.open(pdf) as doc:
+        if doc.needs_pass or not doc.page_count:
+            raise ValueError("암호화되었거나 빈 PDF입니다")
+        text = clean("\n".join(p.get_text() for p in doc))
+    if len(text) < MIN_CHARS:
+        raise ValueError("PDF 텍스트 추출 실패: 이미지 PDF는 별도 OCR이 필요합니다")
+    if not re.search(rf"KGS\s+{re.escape(code)}\b", text):
+        raise ValueError(f"PDF 본문의 코드 번호가 {code}와 일치하지 않습니다")
+    law = base_law(text)
+    rows = []
+    for item, body in split_items(text):
+        if not body or is_toc(body):
+            continue
+        ref = f"[KGS {code} {item}]" if item else f"[KGS {code}]"
+        rows.append({"code": code, "year": str(year), "title": title,
+                     "law": f"KGS {code}", "base_law": law, "item": item or "",
+                     "content": f"KGS {code} {title} {ref}\n{body}",
+                     "source": source or Path(pdf).name})
+    if not rows:
+        raise ValueError("검색할 본문 항목이 없습니다")
+    return rows, text
 
 
 def main():

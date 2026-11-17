@@ -29,14 +29,19 @@ def tables():
 
 def summary():
     """화면의 선택 목록용."""
+    import search
     return [{"id": t["id"], "name": t["name"], "law": t["law"], "ref": t["ref"],
-             "unit": t["unit"], "columns": t["columns"]} for t in tables()]
+             "unit": t["unit"], "columns": t["columns"]} for t in tables()
+            if search.kgs_table_current(t)]
 
 
 def lookup(table_id, capacity):
     """(표, 용량) → 해당 줄. 용량이 표 밖이면 None."""
     t = next((t for t in tables() if t["id"] == table_id), None)
     if not t:
+        return None
+    import search
+    if not search.kgs_table_current(t):
         return None
     for row in t["rows"]:
         if row["max"] is None or capacity <= row["max"]:

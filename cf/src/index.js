@@ -9,6 +9,7 @@ import { handleDocs } from './docs.js';         // /api/permit/*·sandbox/file·
 import { chatExtras } from './chat_extras.js'; // 캐시·발표 잠금·규제 사례·확정 자료
 import { toolButtons } from './tools_suggest.js';   // 답 아래 점검표·규정·꾸러미 버튼
 import { checkLimit } from './limit.js';      // Gemini 쓰는 주소 사용량 제한
+import { handleKgsUpdates, readKgsState } from './kgs_updates.js';
 import { handleApp } from './app.js';          // /api/app/* (윈도우 앱: 서류 폴더 검토·알림)
 
 const HANGUL = /[가-힣]+/g, CJK = /[一-鿿ぁ-ゟ゠-ヿ]+/g, WORD = /[A-Za-z0-9]+/g;
@@ -192,7 +193,8 @@ async function chat(req, env) {
   const rows = { n: 0, list: [] };
   // env 는 펼쳐 복사하면 비밀값(GEMINI_API_KEY)이 빠진다. DB 만 바꿔 끼운다.
   const db = countDB(env.DB, rows), base = env;
-  env = new Proxy(base, { get: (t, k) => k === 'DB' ? db : t[k] });
+  let kgs = [];
+  env = new Proxy(base, { get: (t, k) => k === 'DB' ? db : k === 'KGS' ? kgs : t[k] });
   const body = await req.json().catch(() => ({}));
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const q = String(messages.at(-1)?.text || '').trim().slice(0, 2000);
@@ -209,6 +211,7 @@ async function chat(req, env) {
     try {
       // 채점용(cf/eval_cf.py): 모델을 부르지 않고 첫 검색 결과만 돌려준다. 읽기만 한다.
       if (body.debug === 'search') {
+        kgs = await readKgsState(db);
         const hits = await search(env, q, 12, { country, facility, as_of: asOf, bare: true });
         ev({ type: 'debug', rows: rows.n, hits: hits.map(h => ({ law: h.law, article: h.article, score: h.score })) });
         return done();
@@ -253,9 +256,10 @@ async function chat(req, env) {
       const tools = toolButtons(q, messages.slice(-7, -1).filter(m => m.role === 'user').map(m => m.text || '').join(' '));
       if (tools.length) ev({ type: 'checklists', items: tools });
 
+      kgs = await readKgsState(db);
       // 캐시: 같은 첫 질문은 저장해 둔 답을 그대로(모델 호출 없음). 사업 정보·신청서 초안은 쓰지 않는다.
       const ckey = firstTurn && !Object.keys(profile).length && !SANDBOX_RE.test(q)
-        ? await X.cacheKey(q, country, facility, asOf, checklist) : null;
+        ? await X.cacheKey(q, country, facility, asOf, checklist, kgs) : null;
       const hit = ckey && !body.nocache ? await X.cacheGet(env, ckey) : null;
       if (hit) {
         ev({ type: 'sources', sources: hit.sources });
@@ -285,7 +289,7 @@ async function chat(req, env) {
         const have = new Set(hits.map(h => h.law + '|' + h.article));
         hits = hits.concat((await X.searchForms(env, query, 4)).filter(f => !have.has(f.law + '|' + f.article)));
       }
-      const fixed = X.factsMatch(q);
+      const fixed = X.factsMatch(q, kgs);
       if (fixed.length) hits = fixed.concat(hits);
       const shown = X.groupSources(hits);
       ev({ type: 'sources', sources: shown });
@@ -424,6 +428,7 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     const p = url.pathname;
+    if (p === '/api/kgs-updates') return handleKgsUpdates(req, env, tokenize);
     if (D1_PATHS.test(p) && await d1Down(env)) {
       try { return await toBackup(req, env, url); } catch (e) { /* 오라클도 안 되면 아래로 그대로 */ }
     }

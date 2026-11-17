@@ -3,6 +3,7 @@
 //       D1 SQL 한 번으로 계산한다. 무거운 계산은 D1 이 하고 워커 CPU 는 결과 몇 줄만 만진다.
 // 답변 곁가지: 캐시(D1 answer_cache)·발표 잠금·규제 사례·확정 자료·체크리스트·재작성·검증·근거 없는 문장.
 import DATA from './data.json';
+import { kgsTableCurrent } from './kgs_updates.js';
 
 const S = DATA.search, C = DATA.chat;
 const API = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -40,7 +41,7 @@ const facilityTags = text => Object.entries(S.facility).filter(([, ws]) => ws.so
 const COLS = 'id, country, law, article, title, future, effective_date, kind, ref, link';
 
 // search.py Index.search 의 점수식을 SQL 로. opts.ids 가 있으면 그 조각만 점수를 매긴다(별표 딸림용).
-function scoreSql(query, opts = {}) {
+function scoreSql(query, opts = {}, state = []) {
   const q = [...new Set(tokenize(expand(query)))].slice(0, 90);
   if (!q.length) return null;
   let q0 = [...new Set(tokenize(query.replace(FILLER, ' ')))];
@@ -87,9 +88,38 @@ function scoreSql(query, opts = {}) {
     if (fut || old) m.push(`(CASE ${fut} ${old} ELSE 1 END)`);
   }
   // 별표 딸림(opts.ids)은 후보 조각 안에서만 bm25 를 잰다. 걸러 두지 않으면 MATCH 전체(약 2만 행)를 읽는다.
-  const sql = `WITH mm AS (SELECT rowid AS id, bm25(docs_fts) AS b FROM docs_fts WHERE docs_fts MATCH ?1${opts.ids ? ` AND rowid IN (${opts.ids.map(Number).join(',')})` : ' ORDER BY b LIMIT 400'}),
+  const active = opts.ids ? [] : state.filter(r => r.version);
+  const baseWhere = active.length ? ` AND rowid NOT IN (
+    SELECT id FROM docs WHERE law IN (${active.map(r => lit(r.law)).join(',')}))` : '';
+  const eligible = active.filter(r => !opts.as_of || r.effective_date <= opts.as_of);
+  const overlay = eligible.length > 0 && (!opts.country || opts.country === '한국')
+    && (!opts.kind || opts.kind === '상세기준');
+  const ctes = [];
+  let overlayWhere = '';
+  if (overlay) {
+    const pairs = eligible.map(r => `(${lit(r.law)},${lit(r.version)},${lit(r.effective_date)})`).join(',');
+    ctes.push(`active(law, version, effective_date) AS (VALUES ${pairs})`);
+    overlayWhere = ' OR rowid IN (SELECT -k.id FROM active a JOIN kgs_docs k USING(law, version))';
+  }
+  const matchRows = opts.ids ? `rowid IN (${opts.ids.map(Number).join(',')})`
+    : `((rowid > 0${baseWhere})${overlayWhere})`;
+  ctes.push(`mm AS (SELECT rowid AS id, bm25(docs_fts) AS b FROM docs_fts
+    WHERE docs_fts MATCH ?1 AND ${matchRows}${opts.ids ? '' : ' ORDER BY b LIMIT 400'})`);
+  let documents = 'docs';
+  if (overlay) {
+    ctes.push(`selected_docs AS (
+      SELECT d.id, d.country, d.law, d.article, d.title, d.content,
+             d.future, d.effective_date, d.kind, d.ref, d.link FROM mm JOIN docs d ON d.id=mm.id
+      UNION ALL
+      SELECT -k.id, '한국', k.law, k.article, k.title, k.content, 0, a.effective_date, '상세기준',
+             k.ref, 'https://cyber.kgs.or.kr/kgscode.codeSearch.listV2.ex.do?pblcCd=' || substr(k.law, 5)
+      FROM mm JOIN kgs_docs k ON k.id=-mm.id JOIN active a USING(law, version)
+    )`);
+    documents = 'selected_docs';
+  }
+  const sql = `WITH ${ctes.join(',')},
 c AS (SELECT d.id, d.country, d.law, d.article, d.title, d.future, d.effective_date, d.kind, d.ref, d.link,
-  -mm.b AS b, (${ov}) AS ov ${fac} FROM mm JOIN docs d ON d.id = mm.id ${where.length ? 'WHERE ' + where.join(' AND ') : ''})
+  -mm.b AS b, (${ov}) AS ov ${fac} FROM mm JOIN ${documents} d ON d.id = mm.id ${where.length ? 'WHERE ' + where.join(' AND ') : ''})
 SELECT ${COLS}, b * ${m.join(' * ')} AS s FROM c ORDER BY s DESC LIMIT ${Number(opts.limit) || 12}`;
   const CM = S.common || {};
   let mq = q.filter(t => !CM[t]);
@@ -98,7 +128,7 @@ SELECT ${COLS}, b * ${m.join(' * ')} AS s FROM c ORDER BY s DESC LIMIT ${Number(
 }
 
 async function runScore(env, query, opts) {
-  const x = scoreSql(query, opts);
+  const x = scoreSql(query, opts, env.KGS || []);
   if (!x) return [];
   const { results } = await env.DB.prepare(x.sql).bind(...x.binds).all();
   return results.map(r => ({ ...r, score: Math.round(r.s * CAL * 100) / 100 }));
@@ -106,7 +136,12 @@ async function runScore(env, query, opts) {
 async function withContent(env, hits) {
   const ids = [...new Set(hits.filter(h => h.id && h.content === undefined).map(h => h.id))];
   if (ids.length) {
-    const { results } = await env.DB.prepare(`SELECT id, content FROM docs WHERE id IN (${ids.join(',')})`).all();
+    const baseIds = ids.filter(id => id > 0);
+    const kgsIds = ids.filter(id => id < 0).map(id => -id);
+    const parts = [];
+    if (baseIds.length) parts.push(`SELECT id, content FROM docs WHERE id IN (${baseIds.join(',')})`);
+    if (kgsIds.length) parts.push(`SELECT -id AS id, content FROM kgs_docs WHERE id IN (${kgsIds.join(',')})`);
+    const { results } = await env.DB.prepare(parts.join(' UNION ALL ')).all();
     const by = new Map(results.map(r => [r.id, r.content]));
     for (const h of hits) if (h.content === undefined) h.content = by.get(h.id) || '';
   }
@@ -140,7 +175,9 @@ export async function search(env, query, opts = {}) {
       if (out.some(h => (h.title + (h.content || '').slice(0, 200)).replace(/ /g, '').includes(s0))) continue;
       const [h] = await search(env, sub, { top_k: 1, country: opts.country, inner: true });
       if (!h) continue;
-      const { results } = await env.DB.prepare(`SELECT ${COLS}, content FROM docs WHERE law = ?1 AND article = ?2 ORDER BY id LIMIT 1`).bind(h.law, h.article).all();
+      const results = h.id < 0 ? [h] : (await env.DB.prepare(
+        `SELECT ${COLS}, content FROM docs WHERE law = ?1 AND article = ?2 ORDER BY id LIMIT 1`
+      ).bind(h.law, h.article).all()).results;
       for (const r of results) scoreOf.set(r.id, scoreOf.get(r.id) || Math.round(h.score * 50) / 100);
       add(results, () => ({ bundle: key }));
     }
@@ -228,9 +265,10 @@ export async function rewriteQuery(question, key) {
 
 // ── 캐시(app.py _cache_key·cache_get·cache_put). 자리는 D1 answer_cache ──
 const CACHE_TTL = 30 * 86400, CACHE_MAX = 2000;
-export async function cacheKey(q, country, facility, asOf, checklist) {
+export async function cacheKey(q, country, facility, asOf, checklist, state = []) {
   const norm = q.replace(/[\s?？!.~,]+/g, '').toLowerCase();
-  const raw = `${norm}|${country || ''}|${facility || ''}|${asOf || ''}|${checklist ? 1 : 0}`;
+  const revision = state.length ? state.map(r => `${r.law}:${r.version || "-"}:${r.updated_at}`).join(",") + "|" : "";
+  const raw = `${revision}${norm}|${country || ''}|${facility || ''}|${asOf || ''}|${checklist ? 1 : 0}`;
   const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(raw));
   return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 }
@@ -265,7 +303,7 @@ export async function cachePut(env, key, rec) {
 
 // ── 발표 잠금(demo_lookup). BOT_DEMO_LOCK=1 일 때 승인된 답만 ──
 export function demoLookup(env, q) {
-  if (String(env.BOT_DEMO_LOCK || '') !== '1') return null;
+  if (String(env.BOT_DEMO_LOCK || '') !== '1' || env.KGS?.some(r => r.version)) return null;
   const rec = C.demo[q.replace(/[\s?？!.~,]+/g, '').toLowerCase()];
   return rec && rec.approved ? rec : null;
 }
@@ -294,8 +332,8 @@ export function regCasesFor(q, n = 2) {
 
 // ── 확정 자료(facts.match) ──
 const FACTS = C.facts.map(t => ({ ...t, re: new RegExp(t.match) }));
-export function factsMatch(q) {
-  return FACTS.filter(t => t.re.test(q)).map(t => ({
+export function factsMatch(q, state = []) {
+  return FACTS.filter(t => t.re.test(q) && kgsTableCurrent(t, state)).map(t => ({
     country: '한국', law: t.law, article: t.ref, title: t.title,
     content: [`${t.law} ${t.ref} ${t.title} — 확정 자료(표에서 코드가 직접 찾음)`,
       ...t.facts.map(f => `· ${f.label}: ${f.value}   (원문: "${f.quote}")`)].join('\n'),
@@ -389,7 +427,16 @@ async function siblings(env, hits) {
     conds.push(`(law = ?${binds.length - 1} AND article LIKE ?${binds.length})`);
   }
   try {
-    const { results } = await env.DB.prepare(`SELECT law, article, kind, country, content FROM docs WHERE ${conds.join(' OR ')}`).bind(...binds).all();
+    const active = (env.KGS || []).filter(r => r.version);
+    const baseWhere = active.length ? ` AND law NOT IN (${active.map(r => lit(r.law)).join(',')})` : '';
+    let sql = `SELECT law, article, kind, country, content FROM docs WHERE (${conds.join(' OR ')})${baseWhere}`;
+    if (active.length) {
+      const pairs = active.map(r => `(${lit(r.law)},${lit(r.version)})`).join(',');
+      sql = `WITH active(law, version) AS (VALUES ${pairs}) ${sql}
+        UNION ALL SELECT law, article, '상세기준', '한국', content FROM kgs_docs JOIN active USING(law, version)
+        WHERE ${conds.join(' OR ')}`;
+    }
+    const { results } = await env.DB.prepare(sql).bind(...binds).all();
     return results.filter(d => keys.has(verifyKey({ ...d, kind: d.kind || null }))).map(d => {
       let t = `${d.article} ${d.content}`;
       if (d.country === '일본') t += ' ' + jpRefsAsKorean(t);

@@ -6,10 +6,12 @@
 검색까지는 그냥 돌아가야 MVP 확인이 쉽다.
 """
 import json
+import hashlib
 import math
 import os
 import re
 import urllib.request
+import threading
 from collections import Counter
 from pathlib import Path
 
@@ -284,7 +286,7 @@ def load_docs():
     # KGS Code(상세기준). 법 → 별표 → 여기가 마지막 칸이라, 실제 수치는 여기 있다.
     kgs = DATA / "kgs_code.jsonl"
     if kgs.exists():
-        for line in kgs.open(encoding="utf-8"):
+        for line in kgs.read_text(encoding="utf-8").splitlines():
             r = json.loads(line)
             item = f" {r['item']}" if r.get("item") else ""
             docs.append({
@@ -295,9 +297,11 @@ def load_docs():
                 "content": r.get("content") or "",
                 "source": r.get("source", ""),
                 "future": False,
-                "effective_date": None,
+                "effective_date": r.get("effective_on"),
                 "kind": "상세기준",
                 "base_law": r.get("base_law") or "",
+                "version_sha256": r.get("version_sha256"),
+                "pdf_path": r.get("pdf_path"),
             })
 
     jp = DATA / "japan_laws.jsonl"
@@ -377,6 +381,17 @@ def embed_query(text):
         return None                      # 한도·장애 시 조용히 글자 검색만
 
 
+def docs_fingerprint(docs):
+    """개수가 같아도 내용이 바뀌면 이전 임베딩/답변 캐시를 재사용하지 않는다."""
+    h = hashlib.sha256()
+    for d in docs:
+        h.update(json.dumps([d.get(k) for k in ("law", "article", "title", "content",
+                                               "effective_date", "version_sha256")],
+                            ensure_ascii=False).encode("utf-8"))
+        h.update(b"\n")
+    return h.hexdigest()
+
+
 class Index:
     """BM25. 문서 수가 적어 통째로 메모리에 올린다(약 20MB)."""
 
@@ -385,6 +400,9 @@ class Index:
 
     def __init__(self, docs):
         self.docs = docs
+        self.corpus_sha256 = docs_fingerprint(docs)
+        self.kgs_versions = {d["law"]: d["version_sha256"] for d in docs
+                             if d.get("version_sha256")}
         self.tf = []
         self.len = []
         df = Counter()
@@ -485,6 +503,12 @@ class Index:
             return
         try:
             import numpy as np
+            meta = json.loads(EMB_META.read_text(encoding="utf-8")) if EMB_META.exists() else {}
+            fingerprint = meta.get("corpus_sha256")
+            if fingerprint and fingerprint != self.corpus_sha256:
+                return
+            if not fingerprint and any(d.get("version_sha256") for d in self.docs):
+                return  # 기존 벡터가 새 KGS와 같은 내용인지 보장되지 않음. BM25 유지.
             vecs = np.load(EMB)
             have = np.load(HAVE)
             if len(vecs) != len(self.docs):
@@ -719,12 +743,50 @@ class Index:
 
 
 _index = None
+_index_stamp = None
+_index_lock = threading.Lock()
+
+
+def corpus_stamp():
+    out = []
+    for name in ("korea_laws.jsonl", "korea_laws_extra.jsonl", "gangwon_zone.jsonl",
+                 "korea_annexes.jsonl", "kgs_code.jsonl", "japan_laws.jsonl",
+                 "embeddings.npy", "embeddings_have.npy", "embeddings.json"):
+        try:
+            s = (DATA / name).stat()
+            out.append((name, s.st_mtime_ns, s.st_size, s.st_ino))
+        except FileNotFoundError:
+            out.append((name, None))
+    return tuple(out)
+
+
+def kgs_table_current(table):
+    """옛 코드에서 옮겨 적은 계산표를 새 원문의 확정값처럼 쓰지 않는다."""
+    law = table.get("law", "")
+    if not law.startswith("KGS "):
+        return True
+    active = get_index().kgs_versions.get(law)
+    return not active or table.get("version_sha256") == active
 
 
 def get_index():
-    global _index
-    if _index is None:
-        _index = Index(load_docs())
+    global _index, _index_stamp
+    stamp = corpus_stamp()
+    if _index is None or stamp != _index_stamp:
+        with _index_lock:
+            stamp = corpus_stamp()
+            if _index is None or stamp != _index_stamp:
+                # 교체 도중 읽었으면 다음 안정된 스냅샷으로 한 번 더 만든다.
+                for _ in range(3):
+                    before = corpus_stamp()
+                    candidate = Index(load_docs())
+                    after = corpus_stamp()
+                    if before == after:
+                        _index, _index_stamp = candidate, after
+                        break
+                else:
+                    if _index is None:
+                        raise RuntimeError("검색 자료 갱신 중입니다. 잠시 뒤 다시 시도하세요")
     return _index
 
 

@@ -132,7 +132,8 @@ def main():
     done = 0
     if OUT.exists() and META.exists():
         m = json.loads(META.read_text(encoding="utf-8"))
-        if m.get("total") == n and m.get("dim") == DIM and m.get("model") == MODEL:
+        if (m.get("total") == n and m.get("dim") == DIM and m.get("model") == MODEL
+                and m.get("corpus_sha256") == search.docs_fingerprint(docs)):
             vecs = np.load(OUT)
             have = np.load(OUT.with_name("embeddings_have.npy"))
             done = int(m.get("done", 0))
@@ -142,7 +143,8 @@ def main():
         np.save(OUT, vecs)
         np.save(OUT.with_name("embeddings_have.npy"), have)
         META.write_text(json.dumps(
-            {"model": MODEL, "dim": DIM, "total": n, "done": k},
+            {"model": MODEL, "dim": DIM, "total": n, "done": k,
+             "corpus_sha256": search.docs_fingerprint(docs)},
             ensure_ascii=False), encoding="utf-8")
 
     t0 = time.time()

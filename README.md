@@ -223,6 +223,8 @@ node cf/test_tools.mjs        # 파이썬판과 같은지
 python cf/build_public.py     # cf/public 만들기 → cd cf && npx wrangler deploy
 ```
 
+**KGS Code 개정 자동 반영**은 [KGS_UPDATE.md](KGS_UPDATE.md)에 연결·운영 절차를 정리했다.
+
 ## 배포
 
 오라클 클라우드 무료 서버(ARM 2코어)에 systemd 서비스로 올려 두었습니다.
