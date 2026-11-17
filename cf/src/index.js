@@ -7,7 +7,8 @@ import { handleReview } from './review.js';     // /api/review/*  (D1)
 import { handleMisc } from './misc.js';         // /api/share·feedback·distance·sandbox/cases·byl
 import { handleDocs } from './docs.js';         // /api/permit/*·sandbox/file·preview·editor (문서 만들기)
 import { chatExtras } from './chat_extras.js'; // 캐시·발표 잠금·규제 사례·확정 자료
-import { checkLimit } from './limit.js';       // Gemini 쓰는 주소 사용량 제한
+import { toolButtons } from './tools_suggest.js';   // 답 아래 점검표·규정·꾸러미 버튼
+import { checkLimit } from './limit.js';      // Gemini 쓰는 주소 사용량 제한
 import { handleApp } from './app.js';          // /api/app/* (윈도우 앱: 서류 폴더 검토·알림)
 
 const HANGUL = /[가-힣]+/g, CJK = /[一-鿿ぁ-ゟ゠-ヿ]+/g, WORD = /[A-Za-z0-9]+/g;
@@ -68,7 +69,9 @@ function parseFollowups(text) {
 }
 
 function guessForm(q) {
-  for (const [fid, words] of DATA.guess) if (words.some(w => q.includes(w))) return fid;
+  // permit_forms.guess 와 같다: 수소법 쪽 말이 있으면 수소법 서식을 먼저
+  const h2 = DATA.guess_h2.some(w => q.includes(w));
+  for (const [gas, h2fid, words] of DATA.guess) if (words.some(w => q.includes(w))) return h2 && h2fid ? h2fid : gas;
   return null;
 }
 
@@ -246,6 +249,9 @@ async function chat(req, env) {
       if (kw && !query.includes(kw)) query += ' ' + kw;
       const regs = X.regCasesFor(q);
       if (regs.length) ev({ type: 'regs', items: regs });
+      // 시설기준·점검·안전관리규정·꾸러미 질문이면 답 아래에 도구 버튼(AI 를 거치지 않는다)
+      const tools = toolButtons(q, messages.slice(-7, -1).filter(m => m.role === 'user').map(m => m.text || '').join(' '));
+      if (tools.length) ev({ type: 'checklists', items: tools });
 
       // 캐시: 같은 첫 질문은 저장해 둔 답을 그대로(모델 호출 없음). 사업 정보·신청서 초안은 쓰지 않는다.
       const ckey = firstTurn && !Object.keys(profile).length && !SANDBOX_RE.test(q)

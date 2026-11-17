@@ -211,6 +211,18 @@ npm run dist                 # 설치 파일 → desktop/dist/hydrogen-permit-se
 2. `npx wrangler secret put APP_PUSH_KEY` (cf/ 에서, 아무 긴 문자열)
 3. 오라클 서버: `LAW_OC=… APP_PUSH_KEY=… python3 law_watch.py --dry` 로 확인 후 crontab 에 하루 한 번
 
+**자체점검표·안전관리규정·저장능력 계산·제출 꾸러미** (`/checklist` `/rules` `/package`): 파이썬판은
+`annex_checklist.py` 등이 만들고, 클라우드플레어판(앱 포함)은 브라우저(`cf/public_extra/cf-tools.js`)가 같은 규칙으로 만든다.
+별표 템플릿·서식을 고치면 아래를 다시 돌리고 워커를 배포한다. `node cf/test_tools.mjs` 는 두 판의 결과(판정·문서 블록·답 아래 버튼)를 1천여 건 대조한다.
+
+```bash
+python cf/export_docs.py      # 서식 PDF·칸 자리 (신청서가 늘면)
+python cf/export_tools.py     # 점검표·규정 템플릿, 목록
+python cf/export_cf.py        # 워커 자료(data.json)
+node cf/test_tools.mjs        # 파이썬판과 같은지
+python cf/build_public.py     # cf/public 만들기 → cd cf && npx wrangler deploy
+```
+
 ## 배포
 
 오라클 클라우드 무료 서버(ARM 2코어)에 systemd 서비스로 올려 두었습니다.

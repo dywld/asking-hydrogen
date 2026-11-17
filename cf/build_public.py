@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """cf/public 을 만든다: 루트의 화면 파일 + cf/public_extra(서류 만들기 shim·서식 자료).
 
-  1) 루트 index.html·review.html·demo.html 을 cf/public 에 복사하면서,
+  1) 루트 index.html·review.html·demo.html·checklist.html·rules.html·package.html 을 cf/public 에 복사하면서,
      첫 <script> 앞에 <script src="/cf-shim.js"></script> 를 넣는다
      (fetch 를 감싸 서류 만들기 요청을 브라우저에서 처리한다. 화면 파일은 고치지 않는다).
   2) cf/public_extra/* 를 cf/public 에 그대로 복사한다.
@@ -16,25 +16,30 @@ ROOT = HERE.parent
 PUB = HERE / "public"
 EXTRA = HERE / "public_extra"
 TAG = '<script src="/cf-shim.js"></script>'
+# 팀원 도구 화면(자체점검표·안전관리규정·제출 꾸러미)은 cf-tools.js 도 붙인다(cf-shim 다음).
+TOOLS = '<script src="/cf-tools.js"></script>'
+TOOL_PAGES = ("checklist.html", "rules.html", "package.html")
 LIMIT = 25 * 1024 * 1024          # 워커 정적 자산 한 파일 한도
 
 
-def inject(html):
+def inject(html, tools=False):
+    tag = TAG + ("\n" + TOOLS if tools else "")
     if TAG in html:
         return html
     i = html.find("<script")
     if i < 0:
         j = html.lower().find("</head>")
         i = j if j >= 0 else 0
-    return html[:i] + TAG + "\n" + html[i:]
+    return html[:i] + tag + "\n" + html[i:]
 
 
 def main():
     PUB.mkdir(exist_ok=True)
-    for name in ("index.html", "review.html", "demo.html"):
+    for name in ("index.html", "review.html", "demo.html") + TOOL_PAGES:
         src = ROOT / name
         if src.exists():
-            (PUB / name).write_text(inject(src.read_text(encoding="utf-8")), encoding="utf-8", newline="")
+            (PUB / name).write_text(inject(src.read_text(encoding="utf-8"), name in TOOL_PAGES),
+                                    encoding="utf-8", newline="")
             print("html", name)
     if not (EXTRA / "docs" / "layout.json").exists():
         raise SystemExit("cf/public_extra/docs/layout.json 이 없습니다. 먼저 python cf/export_docs.py")

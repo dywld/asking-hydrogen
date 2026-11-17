@@ -93,7 +93,8 @@ def parse_ref(text):
 
 def law_seq(key):
     page = _get("https://www.law.go.kr/" + urllib.parse.quote(f"법령/{key}"))
-    m = re.search(r"lsiSeq=(\d+)", page)
+    # 2026-11 개편 뒤로는 주소 속 'lsiSeq=숫자' 가 없고 숨은 칸(id="lsiSeq" value="숫자")에만 있다.
+    m = re.search(r"lsiSeq=(\d+)", page) or re.search(r'id="lsiSeq"\s+value="(\d+)"', page)
     return m.group(1) if m else None
 
 

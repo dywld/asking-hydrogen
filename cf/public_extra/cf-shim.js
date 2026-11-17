@@ -362,11 +362,9 @@
   const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   function hwpxSection(H, blocks) {
     const run = (t, c = 0) => `<hp:run charPrIDRef="${c}"><hp:t>${esc(t)}</hp:t></hp:run>`;
+    // 줄 배치 캐시(linesegarray)는 넣지 않는다(hwpx_doc._para 와 같음: 넣으면 한글이 줄바꿈을 안 해 글자가 겹친다).
     const para = (runs, p = 0, pid = 0) => `<hp:p id="${pid}" paraPrIDRef="${p}" styleIDRef="0" pageBreak="0" `
-      + `columnBreak="0" merged="0">${runs}`
-      + '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" '
-      + 'textheight="1000" baseline="850" spacing="600" horzpos="0" horzsize="42520" flags="393216"/>'
-      + '</hp:linesegarray></hp:p>';
+      + `columnBreak="0" merged="0">${runs}</hp:p>`;
     const cell = (text, col, row, width, fill, ch = 0) => {
       const body = para(run(text, ch), 2);
       return `<hp:tc name="" header="0" hasMargin="0" protect="0" editable="0" dirty="0" borderFillIDRef="${fill}">`
@@ -390,6 +388,38 @@
         + '<hp:inMargin left="510" right="510" top="141" bottom="141"/>'
         + trs.join('') + '</hp:tbl>';
     };
+    // hwpx_doc._gcell / _grid: 여러 칸 표(첫 줄 머리글, 칸 안 줄바꿈마다 문단)
+    const gcell = (text, col, row, width, fill, ch = 0) => {
+      const body = String(text).split('\n').map(line => para(run(line, ch), 2)).join('');
+      return `<hp:tc name="" header="${row === 0 ? 1 : 0}" hasMargin="0" protect="0" editable="0" dirty="0" `
+        + `borderFillIDRef="${fill}">`
+        + `<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" `
+        + `linkListIDRef="0" linkListNextIDRef="0" textWidth="${width}" textHeight="${H.ROW_H}" hasTextRef="0" hasNumRef="0">`
+        + `${body}</hp:subList>`
+        + `<hp:cellAddr colAddr="${col}" rowAddr="${row}"/><hp:cellSpan colSpan="1" rowSpan="1"/>`
+        + `<hp:cellSz width="${width}" height="${H.ROW_H}"/>`
+        + '<hp:cellMargin left="283" right="283" top="141" bottom="141"/></hp:tc>';
+    };
+    const grid = spec => {
+      const rows = spec.rows, ncol = rows[0].length;
+      let widths = spec.widths || Array(ncol).fill(Math.floor(H.TEXT_W / ncol));
+      const total = widths.reduce((a, b) => a + b, 0);
+      widths = widths.map(w => Math.floor(w * H.TEXT_W / total));
+      widths[widths.length - 1] += H.TEXT_W - widths.reduce((a, b) => a + b, 0);
+      const trs = rows.map((row, i) => {
+        const cells = [...row, ...Array(Math.max(0, ncol - row.length)).fill('')].slice(0, ncol);
+        return '<hp:tr>' + cells.map((c, j) => gcell(c, j, i, widths[j], i === 0 ? 3 : 2, i === 0 ? 3 : 0)).join('') + '</hp:tr>';
+      });
+      return `<hp:tbl id="0" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" `
+        + `textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" `
+        + `rowCnt="${rows.length}" colCnt="${ncol}" cellSpacing="0" borderFillIDRef="2" noAdjust="0">`
+        + `<hp:sz width="${H.TEXT_W}" widthRelTo="ABSOLUTE" height="${H.ROW_H * rows.length}" heightRelTo="ABSOLUTE" protect="0"/>`
+        + '<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
+        + 'vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+        + '<hp:outMargin left="0" right="0" top="0" bottom="0"/>'
+        + '<hp:inMargin left="283" right="283" top="141" bottom="141"/>'
+        + trs.join('') + '</hp:tbl>';
+    };
     const out = [];
     for (const [kind, val] of blocks) {
       if (kind === 'title') out.push(para(run(val, 1), 1));
@@ -397,6 +427,9 @@
       else if (kind === 'para') out.push(para(run(val, 0), 0));
       else if (kind === 'table') {
         out.push(para(`<hp:run charPrIDRef="0">${table(val)}</hp:run>`, 0));
+        out.push(para(run(''), 0));
+      } else if (kind === 'grid') {
+        out.push(para(`<hp:run charPrIDRef="0">${grid(val)}</hp:run>`, 0));
         out.push(para(run(''), 0));
       } else throw new Error('알 수 없는 블록: ' + kind);
     }
@@ -630,5 +663,7 @@
     catch (e) { return json(502, {error: '파일을 만들지 못했습니다: ' + errMsg(e)}); }
   };
   // 시험용: 화면 없이 바로 부를 수 있게 둔다
-  window.__cfDocs = {permitFill, sandboxFill, permitHwpx, sandboxHwpx, sandboxDocx, pagesPng, layout};
+  // cf-tools.js(점검표·규정·꾸러미)도 이것을 쓴다
+  window.__cfDocs = {permitFill, sandboxFill, permitHwpx, sandboxHwpx, sandboxDocx, pagesPng, layout,
+    makeHwpx, hwpxSection, permitVals, jszip, ymd};
 })();

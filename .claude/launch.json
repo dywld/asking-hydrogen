@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["app.py"],
       "port": 8000
+    },
+    {
+      "name": "cf",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "wrangler@4.156.2", "dev", "--cwd", "cf", "--port", "8788", "--local"],
+      "port": 8788
     }
   ]
 }
