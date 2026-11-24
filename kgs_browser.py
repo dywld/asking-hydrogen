@@ -125,7 +125,8 @@ class BrowserSource:
         downloads = []
 
         def listen(page):
-            page.on("download", downloads.append)
+            # 내장 메서드(list.append)를 그대로 넘기면 Playwright 1.63 이 처리하지 못한다.
+            page.on("download", lambda d: downloads.append(d))
 
         listen(self.page)
         self.page.context.on("page", listen)
