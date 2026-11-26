@@ -1,94 +1,261 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>제출 꾸러미</title>
+<title>신청서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-:root{--bg:#eef1f5;--card:#fff;--ink:#191f28;--sub:#6b7684;--line:#e5e8eb;--blue:#3182f6;--navy:#0b3b7a;--red:#f04452;--org:#e67700;--grn:#00a050}
-*{box-sizing:border-box;margin:0}
-body{font-family:"Pretendard","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
-.top{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}
-.top b{font-size:17px}.top .r{margin-left:auto;display:flex;gap:14px}.top a{color:#fff;text-decoration:none;font-size:13px;opacity:.85}
-main{max-width:980px;margin:0 auto;padding:20px 16px;display:grid;gap:14px}
-.card{background:var(--card);border-radius:16px;box-shadow:0 2px 10px #0001;padding:18px}
-h2{font-size:16px;margin-bottom:10px}h2 small{font-weight:normal;color:var(--sub);font-size:12px}
-.forms{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
-.forms button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer}
-.forms button b{display:block}.forms button span{font-size:12px;color:var(--sub)}
-.forms button.on{border-color:var(--blue);background:#e8f3ff}
-.meta{font-size:13px;color:#4e5968;line-height:1.7;margin-top:10px;padding:10px 12px;background:#f7f8fa;border-radius:10px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.in label{display:block;font-size:13px;margin-bottom:4px}
-.in input,.in select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit}
-.doc{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
-.doc input{margin-top:3px}.doc b{display:block}.doc .s{font-size:12px;color:var(--sub);margin-top:2px;line-height:1.5}
-.doc a{font-size:12px;color:var(--blue);text-decoration:none;white-space:nowrap;margin-left:auto}
-.btn{border:none;border-radius:12px;padding:14px 18px;font:inherit;font-weight:bold;cursor:pointer;background:var(--blue);color:#fff;font-size:15px}
-.foot{font-size:12px;color:var(--sub);line-height:1.6}
-@media (max-width:700px){.grid{grid-template-columns:1fr}}
+:root{--blue:#3182f6;--blue2:#e8f3ff;--ink:#191f28;--sub:#4e5968;--mute:#8b95a1;--line:#f2f4f6;--bg:#f9fafb;--red:#f04452;--org:#e67700;--grn:#00a050}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Pretendard","Malgun Gothic",sans-serif;background:#fff;color:var(--ink);font-size:15px;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer}
+.top{height:64px;display:flex;align-items:center;gap:12px;padding:0 32px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:5}
+.logo{width:34px;height:34px;display:grid;place-items:center;text-decoration:none}.logo img{width:34px;height:34px;object-fit:contain}
+.top b{font-size:17px}.top a.home{margin-left:auto;font-size:15px;color:var(--sub);font-weight:600;text-decoration:none}
+.wrap{max-width:1200px;margin:0 auto;padding:36px 32px 80px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:40px}
+.crumb{font-size:14px;color:var(--mute);font-weight:600;min-height:20px}
+h1{font-size:30px;letter-spacing:-.6px;margin-top:6px;line-height:1.3}
+.meta{font-size:15px;color:var(--sub);margin-top:8px;line-height:1.6}
+.change{margin-top:14px;font-size:14px;font-weight:700;color:var(--blue);background:var(--blue2);border:0;border-radius:10px;padding:8px 12px}
+.forms{display:none;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:14px}
+.forms.open{display:grid}
+.forms button{text-align:left;border:1px solid #e5e8eb;background:#fff;border-radius:14px;padding:12px 14px}
+.forms button b{display:block;font-size:15px}.forms button span{font-size:13px;color:var(--mute);line-height:1.5}
+.forms button.on{border-color:var(--blue);background:var(--blue2)}
+.aibar{margin-top:26px;background:var(--ink);color:#fff;border-radius:18px;padding:18px 20px;display:flex;align-items:center;gap:14px}
+.aibar .ck{width:30px;height:30px;border-radius:50%;background:#4e5968;display:grid;place-items:center;flex:none}
+.aibar .ck svg{width:16px;height:16px}
+.aibar .ck.spin{background:none;border:3px solid #4e5968;border-top-color:var(--blue);animation:spin .8s linear infinite}
+.aibar.done .ck{background:var(--blue)}
+.aibar.none{background:var(--bg);color:var(--ink)}.aibar.none span{color:var(--mute)}
+.aibar b{font-size:17px;display:block}.aibar span{display:block;font-size:14px;color:#b0b8c1;margin-top:2px}
+.aibar a{margin-left:auto;color:var(--blue);font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap}
+.aibar .n{margin-left:auto;font-size:14px;color:#b0b8c1}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sec{margin-top:30px}
+.sec h3{font-size:18px;display:flex;align-items:center;gap:8px}
+.sec h3 em{font-style:normal;font-size:13px;font-weight:700;border-radius:8px;padding:3px 8px}
+.need h3 em{background:#fff0f1;color:var(--red)}
+.done h3 em{background:#e5f8ef;color:var(--grn)}
+.ask{margin-top:12px;border:2px solid var(--blue);border-radius:16px;padding:16px 18px}
+.ask+.ask{margin-top:10px}
+.ask label{font-size:14px;color:var(--sub);font-weight:600;display:block}
+.ask input{width:100%;margin-top:8px;border:0;border-bottom:2px solid #e5e8eb;font:inherit;font-size:17px;padding:8px 0;outline:0}
+.ask input:focus{border-color:var(--blue)}
+.opts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.opts button{border:1px solid #e5e8eb;background:#fff;border-radius:12px;padding:11px 16px;font-size:15px;font-weight:600;color:var(--sub)}
+.opts button.on{border-color:var(--blue);background:var(--blue2);color:var(--blue)}
+.list{margin-top:10px;background:var(--bg);border-radius:18px;padding:4px 20px}
+.row{display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid #eceef1}
+.row:first-child{border-top:0}
+.row .k{width:150px;flex:none;color:var(--mute)}
+.row .v{font-weight:600;flex:1;min-width:0;overflow-wrap:anywhere}
+.row .v input{width:100%;font:inherit;font-weight:600;border:0;border-bottom:2px solid var(--blue);background:transparent;padding:4px 0;outline:0}
+.row .t{font-size:12px;font-weight:700;color:var(--blue);background:var(--blue2);border-radius:6px;padding:2px 7px;flex:none;opacity:0;transition:opacity .3s}
+.row .t.on{opacity:1}
+.row .ed{font-size:14px;color:var(--mute);background:none;border:0;flex:none}
+.row.typing{animation:glow 1.2s ease}
+@keyframes glow{0%{background:var(--blue2)}100%{background:transparent}}
+.fold{margin-top:30px;border:1px solid #eceef1;border-radius:18px;overflow:hidden}
+.fold>button{width:100%;display:flex;align-items:center;gap:10px;background:#fff;border:0;padding:16px 20px;text-align:left}
+.fold>button b{font-size:16px}.fold>button span{font-size:14px;color:var(--mute)}
+.fold>button i{margin-left:auto;font-style:normal;color:var(--mute);transition:transform .2s}
+.fold.open>button i{transform:rotate(180deg)}
+.fold .body{height:0;overflow:hidden}
+.fold.open .body{height:auto;padding:0 20px 20px}
+.fold iframe{width:100%;height:640px;border:0;border-radius:12px;background:#e9edf2}
+.doc{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.doc:first-child{border-top:0}
+.doc input{margin-top:4px;width:18px;height:18px;accent-color:var(--blue)}
+.doc b{display:block;font-size:15px}.doc .s{font-size:13px;color:var(--mute);margin-top:2px;line-height:1.5}
+.doc a{font-size:13px;color:var(--blue);text-decoration:none;white-space:nowrap;margin-left:auto;font-weight:600}
+.side{position:sticky;top:88px;align-self:start;background:#fff;border:1px solid #eceef1;border-radius:24px;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,.04)}
+.side h4{font-size:15px;color:var(--mute)}
+.side .big{font-size:24px;font-weight:700;margin-top:6px;letter-spacing:-.4px;line-height:1.35}
+.chk{margin-top:16px}
+.c{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.c i{width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800}
+.c i.ok{background:#e5f8ef;color:var(--grn)}.c i.no{background:#fff0f1;color:var(--red)}.c i.me{background:#fff4e5;color:var(--org)}
+.c b{font-size:15px;display:block}.c span{font-size:13px;color:var(--mute);line-height:1.5}
+.c a{color:var(--blue);text-decoration:none;font-weight:600}
+.btn{margin-top:18px;width:100%;height:56px;border:0;border-radius:16px;background:var(--blue);color:#fff;font-weight:700;font-size:17px}
+.btn:disabled{background:#d1d6db}
+.note{margin-top:10px;font-size:13px;color:var(--mute);text-align:center;line-height:1.5}
+.foot{font-size:12px;color:var(--mute);line-height:1.6;margin-top:30px}
+@media (max-width:900px){.wrap{grid-template-columns:1fr;padding:24px 16px 60px}.side{position:static}.row .k{width:110px}.top{padding:0 16px}}
 </style></head>
 <body>
-<div class="top"><b>📦 제출 꾸러미</b><span class="r"><a href="/checklist">자체점검표</a><a href="/rules">안전관리규정</a><a href="/">← 챗봇으로</a></span></div>
-<main>
-  <section class="card"><h2>1. 어떤 신청서인가요?</h2><div class="forms" id="forms"></div><div class="meta" id="meta" hidden></div></section>
-  <section class="card" id="s2" hidden><h2>2. 신청서 칸 <small>한 번 넣은 회사 정보는 점검표·안전관리규정에도 같이 쓰입니다</small></h2><div class="grid" id="fields"></div></section>
-  <section class="card" id="s3" hidden><h2>3. 함께 넣을 문서 <small>각 화면에서 넣어 둔 값을 그대로 씁니다</small></h2><div id="docs"></div></section>
-  <section class="card" id="s4" hidden>
-    <button class="btn" id="go">꾸러미(zip) 받기</button>
-    <p class="foot" style="margin-top:10px">맨 앞의 '표지(제출 체크리스트)'에 서식에 적힌 첨부서류·접수 기관·처리 기간·수수료, 신청서 빈칸, 점검표에서 부적합으로 나온 항목, 꾸러미에 든 파일이 정리됩니다.
-    서식이 요구하는 첨부서류(사업계획서·기술검토서 등)는 만들어 넣지 않으니 직접 준비하세요. 모든 자동 판정·초안은 작성 보조용이며 법적 효력이 없습니다.</p>
-  </section>
-</main>
+<div class="top"><a class="logo" href="/"><img src="/brand/mascot-96.png" alt="수소문"></a><b>수소문</b><a class="home" href="/">홈으로</a></div>
+<div class="wrap">
+  <main>
+    <div class="crumb" id="crumb"></div>
+    <h1 id="title">신청서</h1>
+    <div class="meta" id="meta"></div>
+    <button class="change" id="change">다른 신청서 보기</button>
+    <div class="forms" id="forms"></div>
+    <div id="fields"></div>
+    <div class="fold" id="s25" hidden><button type="button"><b>부지·배치 3D 검토</b><span id="s25s">시설 주소로 주변 건물과 안전거리를 자동으로 재요</span><i>▾</i></button>
+      <div class="body"><iframe id="site3d" title="부지·배치 3D 검토"></iframe></div></div>
+    <div class="fold" id="s3"><button type="button"><b>꾸러미에 함께 넣을 문서</b><span id="s3s"></span><i>▾</i></button><div class="body"><div id="docs"></div></div></div>
+    <p class="foot">신청서 PDF는 공식 서식에 입력값을 얹어 만듭니다. 서식이 요구하는 첨부서류(사업계획서·기술검토서 등)는 만들어 넣지 않으니 직접 준비하세요. 모든 자동 판정·초안은 작성 보조용이며 법적 효력이 없습니다.</p>
+  </main>
+  <aside class="side">
+    <h4>제출 전 점검</h4>
+    <div class="big" id="big">신청서를 고르세요</div>
+    <div class="chk" id="final"></div>
+    <button class="btn" id="go">제출 꾸러미 받기</button>
+    <div class="note">신청서 PDF·한글 파일과 점검표를 한 번에 받아요</div>
+  </aside>
+</div>
+<script src="/site-plan.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const MEMO_KEYS = ['company', 'ceo', 'office', 'tel', 'site', 'bizno', 'email', 'address', 'applicant'];
+const MEMO_KEYS = ['company', 'ceo', 'office', 'tel', 'site', 'bizno', 'email', 'address', 'applicant', 'gas', 'cap', 'mgr_name', 'mgr_qual', 'mgr_no', 'permit_no', 'permit_date'];
+const MAIN_FORM = {'수소충전소': 'gas_permit', '수소 생산': 'gas_permit', '저장·운송': 'gas_permit', '수소용품 제조': 'h2_maker', '연료전지 발전': 'h2_use_inspect'};
 const ls = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-let LIST = [], F = null, vals = {}, use = {};
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const short = q => q.split(' (')[0];
+let LIST = [], F = null, vals = {}, use = {}, aiKeys = new Set(), editing = null, filling = false, hasSite = false;
 
-function pickForm(id) {
+function saveDraft() { const d = ls('pkgDraft', {}); d[F.id] = {...vals}; lsSet('pkgDraft', d); }
+const isEmpty = k => !String(vals[k] || '').trim();
+const emptyCount = () => F.fields.filter(t => isEmpty(t.key)).length + (F.choose && !vals[F.choose[0]] ? 1 : 0);
+
+function pickForm(id, animate = true) {
   F = LIST.find(f => f.id === id); if (!F) return;
   lsSet('pkgLast', id);
   $('#forms').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.f === id));
-  $('#meta').hidden = false;
-  $('#meta').innerHTML = `<b>${esc(F.form)}</b><br>접수 기관 ${esc(F.who)} · 처리 기간 ${esc(F.days)} · 수수료 ${esc(F.fee)}<br>`
-    + `첨부서류: ${F.docs.length ? F.docs.map(esc).join(' · ') : '없음'}` + (F.before ? `<br>먼저 할 일: ${esc(F.before)}` : '');
-  const memo = ls('formMemo', {}), draft = ls('pkgDraft', {})[id] || {};
-  vals = {};
-  F.fields.forEach(t => { vals[t.key] = draft[t.key] ?? memo[t.key] ?? t.value ?? ''; });
+  $('#forms').classList.remove('open');
+  $('#change').textContent = `다른 신청서 ${LIST.length - 1}개 보기`;
+  const memo = ls('formMemo', {}), prof = ls('h2profile', {}) || {}, draft = ls('pkgDraft', {})[id] || {};
+  $('#crumb').textContent = [memo.company, prof.kind].filter(Boolean).join(' · ');
+  $('#title').textContent = F.title + ' 신청서';
+  $('#meta').innerHTML = `${esc(F.who)}에 내요 · 처리 ${esc(F.days)} · 수수료 ${esc(F.fee)}` + (F.before ? `<br>먼저 할 일: ${esc(F.before)}` : '');
+  vals = {}; aiKeys = new Set(); editing = null;
+  F.fields.forEach(t => { vals[t.key] = draft[t.key] ?? memo[t.key] ?? t.value ?? ''; if (draft[t.key] == null && memo[t.key]) aiKeys.add(t.key); else if (draft._ai && draft._ai.includes(t.key) && draft[t.key] === memo[t.key]) aiKeys.add(t.key); });
   if (F.choose) vals[F.choose[0]] = draft[F.choose[0]] || '';
-  $('#fields').innerHTML = (F.choose ? `<div class="in"><label>${esc(F.choose[1])}</label><select data-k="${F.choose[0]}">
-      <option value="">고르세요</option>${F.choose[2].map(o => `<option ${vals[F.choose[0]] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></div>` : '')
-    + F.fields.map(t => `<div class="in"><label>${esc(t.q)}</label><input data-k="${t.key}" value="${esc(vals[t.key])}" placeholder="${esc(t.text)}"></div>`).join('');
+  hasSite = F.fields.some(t => t.key === 'site') && (F.suggest || {}).checklist === 'gas_annex5_station';
+  $('#s25').hidden = !hasSite;
+  if (hasSite) openSite3d();
+  const fresh = [...aiKeys].filter(k => draft[k] == null);
   drawDocs();
-  ['#s2', '#s3', '#s4'].forEach(s => $(s).hidden = false);
+  if (animate && fresh.length) autofill(fresh); else { drawFields(); drawFinal(); }
 }
+
+// 신청서 칸: 직접 넣을 칸(빈칸·고르기)을 위에, AI가 채운 칸을 목록으로
+function drawFields(typing = null) {
+  const need = F.fields.filter(t => isEmpty(t.key) && !(typing && typing.has(t.key)));
+  const done = F.fields.filter(t => !need.includes(t));
+  const nNeed = need.length + (F.choose && !vals[F.choose[0]] ? 1 : 0);
+  const nAi = done.filter(t => aiKeys.has(t.key)).length;
+  let bar;
+  if (filling) bar = `<div class="aibar" id="aibar"><div class="ck spin"></div><div><b>AI가 내 사업장 정보로 채우고 있어요</b><span>사업장 정보에서 이 신청서에 맞는 칸을 찾아 넣는 중이에요</span></div><span class="n" id="ain"></span></div>`;
+  else if (nAi) bar = `<div class="aibar done" id="aibar"><div class="ck">${CHECK}</div><div><b>AI가 ${nAi}칸을 채웠어요</b><span>${nNeed ? `내 사업장 정보로 채웠어요. 아래 ${nNeed}칸만 ${F.choose && need.length === 0 ? '골라' : '넣어'} 주시면 끝나요.` : '빈칸 없이 모두 채웠어요. 오른쪽에서 꾸러미를 받으세요.'}</span></div></div>`;
+  else bar = `<div class="aibar none" id="aibar"><div class="ck" style="background:#d1d6db">${CHECK}</div><div><b>사업장 정보가 아직 없어요</b><span>한 번 넣어 두면 신청서 16종을 AI가 채워 드려요</span></div><a href="/" onclick="localStorage.removeItem('h2onboard')">정보 넣기 ›</a></div>`;
+  let h = bar;
+  if (nNeed) {
+    h += `<div class="sec need"><h3>직접 ${need.length ? '넣어' : '골라'} 주세요 <em>${nNeed}칸</em></h3>`;
+    if (F.choose && !vals[F.choose[0]]) h += `<div class="ask"><label>${esc(F.choose[1])}</label><div class="opts">${F.choose[2].map(o => `<button type="button" data-ch="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`;
+    h += need.map(t => `<div class="ask"><label>${esc(t.q)}</label><input data-k="${t.key}" placeholder="${esc(t.text)}" value="${esc(vals[t.key])}"></div>`).join('') + '</div>';
+  }
+  if (done.length || (F.choose && vals[F.choose[0]])) {
+    h += `<div class="sec done"><h3>${nAi ? 'AI가 채운 칸' : '채운 칸'} <em>${done.length + (F.choose && vals[F.choose[0]] ? 1 : 0)}칸</em></h3><div class="list">`;
+    if (F.choose && vals[F.choose[0]]) h += `<div class="row"><span class="k">${esc(short(F.choose[1]))}</span><span class="v">${esc(vals[F.choose[0]])}</span><button class="ed" type="button" data-unch="1">바꾸기</button></div>`;
+    h += done.map(t => `<div class="row" data-r="${t.key}"><span class="k">${esc(short(t.q))}</span><span class="v">${editing === t.key ? `<input data-k="${t.key}" value="${esc(vals[t.key])}">` : esc(typing && typing.has(t.key) ? '' : vals[t.key])}</span>${aiKeys.has(t.key) ? `<span class="t${typing ? '' : ' on'}">AI 채움</span>` : ''}<button class="ed" type="button" data-ed="${t.key}">${editing === t.key ? '완료' : '고치기'}</button></div>`).join('');
+    h += '</div></div>';
+  }
+  $('#fields').innerHTML = h;
+  if (editing) { const i = $(`#fields input[data-k="${editing}"]`); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+}
+
+// 내 사업장 정보(formMemo)에서 온 칸을 한 칸씩 써 내려가듯 채운다. 이미 고친 칸(pkgDraft)은 건드리지 않는다.
+let fillRun = 0;
+async function autofill(keys) {
+  const run = ++fillRun, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  filling = true;
+  drawFields(new Set(keys)); drawFinal();
+  const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+  await wait(500);
+  let n = 0;
+  for (const k of keys) {
+    if (run !== fillRun) return;
+    const row = $(`#fields .row[data-r="${k}"]`); if (!row) continue;
+    const v = row.querySelector('.v'), full = String(vals[k]);
+    row.classList.add('typing'); row.querySelector('.t') && row.querySelector('.t').classList.add('on');
+    if (!reduce) { const step = Math.max(1, Math.ceil(full.length / 10)); for (let c = step; c < full.length + step; c += step) { if (run !== fillRun) return; v.textContent = full.slice(0, c); await wait(22); } }
+    v.textContent = full;
+    const ain = $('#ain'); if (ain) ain.textContent = `${++n} / ${keys.length}`;
+    await wait(110);
+  }
+  filling = false;
+  const d = ls('pkgDraft', {}); d[F.id] = {...vals, _ai: [...aiKeys]}; lsSet('pkgDraft', d);      // 진행판이 '채움'으로 세게
+  drawFields(); drawFinal();
+  const first = $('#fields .need input, #fields .need .opts button'); if (first && first.tagName === 'INPUT') first.focus({preventScroll: true});
+}
+
+// 사업소 소재지가 바뀌면 3D 검토를 그 주소로 다시 연다(입력 중 검사). 결과는 postMessage 로 받는다.
+function openSite3d() {
+  const want = `/site3d?embed=1&addr=${encodeURIComponent(vals.site || '')}`;
+  if ($('#site3d').dataset.src !== want) { $('#site3d').dataset.src = want; $('#site3d').src = want; }
+}
+
+// 오른쪽 제출 전 점검: 부지 검토·문서·빈칸·직접 준비할 서류
+function drawFinal() {
+  if (!F) return;
+  const r = hasSite ? ls('site3d', null) : null, empty = emptyCount(), items = [];
+  let todo = 0;
+  if (hasSite) {
+    if (!r) items.push(`<div class="c"><i class="me">…</i><div><b>부지 3D 검토</b><span>시설 주소로 검사하는 중이에요</span></div></div>`);
+    else if (r.bad.length) { todo++; items.push(`<div class="c"><i class="no">${r.bad.length}</i><div><b>부지 검토 고칠 곳 ${r.bad.length}개</b><span>${r.bad.map(esc).join(', ')} · <a href="#" data-open="s25">고치러 가기</a></span></div></div>`); }
+    else items.push(`<div class="c"><i class="ok">✓</i><div><b>부지 3D 검토</b><span>안전거리 ${r.n}가지 모두 통과 · <a href="#" data-open="s25">다시 보기</a></span></div></div>`);
+  }
+  const docsOn = Object.entries(use).filter(([, v]) => v).map(([k]) => ({checklist: '자체점검표', rules: '안전관리규정', storage: '저장능력 계산서', plan: '시설 배치도'}[k]));
+  if (docsOn.length) items.push(`<div class="c"><i class="ok">✓</i><div><b>${docsOn.join('·')}</b><span>AI가 만들어 꾸러미에 넣어요 · <a href="#" data-open="s3">고르기</a></span></div></div>`);
+  if (filling) items.push(`<div class="c"><i class="me">…</i><div><b>신청서 채우는 중</b><span>AI가 내 사업장 정보로 칸을 채우고 있어요</span></div></div>`);
+  else if (empty) { todo++; items.push(`<div class="c"><i class="no">${empty}</i><div><b>신청서 빈칸 ${empty}개</b><span>왼쪽 위에서 채워 주세요</span></div></div>`); }
+  else items.push(`<div class="c"><i class="ok">✓</i><div><b>신청서 빈칸 없음</b><span>${F.fields.length + (F.choose ? 1 : 0)}칸 모두 채웠어요</span></div></div>`);
+  if (F.docs.length) { todo++; items.push(`<div class="c"><i class="me">!</i><div><b>직접 준비할 서류 ${F.docs.length}개</b><span>${F.docs.map(d => esc(d.replace(/\s*\d+부/, ''))).join(' · ')}</span></div></div>`); }
+  $('#final').innerHTML = items.join('');
+  $('#big').textContent = filling ? 'AI가 신청서를 채우고 있어요' : todo ? `${todo}가지만 더 하면 돼요` : '바로 낼 수 있어요';
+}
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'site3d' || !F) return;
+  const r = e.data; $('#s25s').textContent = r.bad && r.bad.length ? `고칠 곳 ${r.bad.length}개: ${r.bad.join(', ')}` : `안전거리 ${r.n}가지 모두 통과`;
+  drawDocs(); drawFinal();
+});
 
 // 각 화면이 브라우저에 남긴 값: 점검표 'checklist2', 안전관리규정 'rules', 저장능력 'storage'
 function drawDocs() {
   const sg = F.suggest, ck = ls('checklist2', {}), ru = ls('rules', {}), st = ls('storage', {});
   const rows = [];
+  use = {};
   if (sg.checklist) {
     const s = ck[sg.checklist] || {}, n = Object.keys(s.vals || {}).length, m = Object.keys(s.marks || {}).length;
-    rows.push({k: 'checklist', on: use.checklist ?? true, t: '자체점검표 (시설기준)',
-      s: `${n ? `입력한 시설 정보 ${n}개` : '아직 입력한 값 없음 — 빈 점검표로 들어갑니다'}${m ? ` · 직접 표시한 항목 ${m}개` : ''}${s.fac ? ` · ${esc(s.fac)}` : (sg.facility ? ` · ${esc(sg.facility)}` : '')}`,
+    rows.push({k: 'checklist', on: true, t: '자체점검표 (시설기준)',
+      s: `${n ? `입력한 시설 정보 ${n}개` : '아직 입력한 값 없음, 빈 점검표로 들어가요'}${m ? ` · 직접 표시한 항목 ${m}개` : ''}${s.fac ? ` · ${esc(s.fac)}` : (sg.facility ? ` · ${esc(sg.facility)}` : '')}`,
       href: `/checklist?t=${sg.checklist}${sg.facility ? '&f=' + encodeURIComponent(sg.facility) : ''}`});
   }
   if (sg.rules) {
     const s = ru[sg.rules[0]] || {};
-    rows.push({k: 'rules', on: use.rules ?? true, t: '안전관리규정 초안',
-      s: `사업 종류 ${esc(s.kind || sg.rules[1] || '기본값')} · 서식이 요구하는 첨부서류인지는 접수 기관에 확인하세요`,
-      href: `/rules?t=${sg.rules[0]}`});
+    rows.push({k: 'rules', on: true, t: '안전관리규정 초안',
+      s: `사업 종류 ${esc(s.kind || sg.rules[1] || '기본값')} · 서식이 요구하는 첨부서류인지는 접수 기관에 확인하세요`, href: `/rules?t=${sg.rules[0]}`});
   }
   const items = (st.items || []).filter(i => i.p !== '' && i.v !== '' && i.p != null && i.v != null);
-  rows.push({k: 'storage', on: use.storage ?? items.length > 0, t: '저장능력 계산서 (별표 1)',
-    s: items.length ? `설비 ${items.length}개 입력됨` : '자체점검표 화면의 🧮 저장능력 계산에서 설비를 넣으면 들어갑니다', href: '/checklist'});
+  rows.push({k: 'storage', on: items.length > 0, t: '저장능력 계산서 (별표 1)',
+    s: items.length ? `설비 ${items.length}개 입력됨` : '자체점검표 화면의 저장능력 계산에서 설비를 넣으면 들어가요', href: '/checklist'});
+  const plan = hasSite ? ls('site3dPlan', null) : null;       // 3D 부지 검토가 남긴 배치 -> 시설 배치도 초안(PDF·DXF)
+  if (plan) rows.push({k: 'plan', on: true, t: '시설 배치도 초안 (PDF·CAD)',
+    s: `${esc(plan.src || '')} · ${(plan.bad || []).length ? `고칠 곳 ${plan.bad.length}개 표시됨` : '안전거리 모두 통과'} · 검토표·기준선 포함`, href: '/site3d'});
   $('#docs').innerHTML = rows.map(r => `<label class="doc"><input type="checkbox" data-u="${r.k}" ${r.on ? 'checked' : ''}>
-    <div><b>${esc(r.t)}</b><div class="s">${r.s}</div></div><a href="${r.href}" target="_blank">값 고치기 ↗</a></label>`).join('');
+    <div><b>${esc(r.t)}</b><div class="s">${r.s}</div></div><a href="${r.href}" target="_blank">값 고치기</a></label>`).join('');
   rows.forEach(r => { use[r.k] = r.on; });
+  $('#s3s').textContent = rows.filter(r => r.on).map(r => r.t.split(' (')[0]).join(' · ') + ' 포함';
 }
 
 function payload() {
-  const sg = F.suggest, ck = ls('checklist2', {}), ru = ls('rules', {}), st = ls('storage', {}), req = {permit: {id: F.id, fields: vals, fmt: 'both'}};
+  const sg = F.suggest, ck = ls('checklist2', {}), ru = ls('rules', {}), st = ls('storage', {}), fields = {...vals};
+  delete fields._ai;
+  const req = {permit: {id: F.id, fields, fmt: 'both'}};
   if (use.checklist && sg.checklist) {
     const s = ck[sg.checklist] || {};
     req.checklist = {id: sg.checklist, facility: s.fac || sg.facility || '', inputs: s.vals || {}, marks: s.marks || {}};
@@ -102,15 +269,33 @@ function payload() {
   return req;
 }
 
-document.addEventListener('click', e => { const b = e.target.closest('#forms button'); if (b) pickForm(b.dataset.f); });
-document.addEventListener('change', e => { if (e.target.dataset.u) use[e.target.dataset.u] = e.target.checked; });
+document.addEventListener('click', e => {
+  const t = e.target;
+  const fb = t.closest('#forms button'); if (fb) { pickForm(fb.dataset.f); scrollTo({top: 0}); return; }
+  if (t.closest('#change')) { $('#forms').classList.toggle('open'); return; }
+  const fold = t.closest('.fold > button'); if (fold) { fold.parentElement.classList.toggle('open'); return; }
+  const op = t.closest('[data-open]'); if (op) { e.preventDefault(); const f = document.getElementById(op.dataset.open); f.classList.add('open'); f.scrollIntoView({behavior: 'smooth', block: 'start'}); return; }
+  const ch = t.closest('[data-ch]'); if (ch) { vals[F.choose[0]] = ch.dataset.ch; saveDraft(); drawFields(); drawFinal(); return; }
+  if (t.closest('[data-unch]')) { vals[F.choose[0]] = ''; saveDraft(); drawFields(); drawFinal(); return; }
+  const ed = t.closest('[data-ed]'); if (ed) { editing = editing === ed.dataset.ed ? null : ed.dataset.ed; drawFields(); return; }
+});
+document.addEventListener('change', e => {
+  if (e.target.dataset.u) { use[e.target.dataset.u] = e.target.checked; drawFinal(); return; }
+  if (e.target.dataset.k) {
+    if (e.target.dataset.k === 'site' && hasSite) openSite3d();
+    if (!editing) { drawFields(); drawFinal(); }
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && editing && e.target.dataset.k) { editing = null; drawFields(); drawFinal(); } });
 document.addEventListener('input', e => {
-  const k = e.target.dataset.k; if (!k) return;
+  const k = e.target.dataset.k; if (!k || !F) return;
   vals[k] = e.target.value;
-  const d = ls('pkgDraft', {}); d[F.id] = vals; lsSet('pkgDraft', d);
+  if (aiKeys.has(k)) aiKeys.delete(k);
+  saveDraft();
   if (MEMO_KEYS.includes(k) && e.target.value.trim()) { const m = ls('formMemo', {}); m[k] = e.target.value.trim(); lsSet('formMemo', m); }
 });
 $('#go').onclick = async () => {
+  if (!F) return;
   const req = payload();
   // 점검표 시설 종류가 비어 있으면 그 점검표의 첫 종류로
   if (req.checklist && !req.checklist.facility) {
@@ -123,20 +308,28 @@ $('#go').onclick = async () => {
   }
   $('#go').disabled = true; $('#go').textContent = '만드는 중…';
   try {
+    const plan = use.plan && hasSite ? ls('site3dPlan', null) : null;
+    if (plan && window.SitePlan) {
+      const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+      req.attach = [{name: '05_시설배치도_초안.pdf', b64: b64(await SitePlan.pdf(plan)), desc: '시설 배치도 초안 (A3, 안전거리 검토표·기준선, 3D 부지 검토)'},
+        {name: '05_시설배치도_초안.dxf', b64: b64(new TextEncoder().encode(SitePlan.dxf(plan))), desc: '같은 배치도 CAD 파일 (설계사용, 단위 m)'}];
+    }
     const r = await fetch('/api/package', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(req)});
     if (!r.ok) throw new Error((await r.json()).error || r.status);
     const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob());
     a.download = `${F.title}_제출꾸러미${vals.company ? '_' + vals.company : ''}.zip`;
     document.body.appendChild(a); a.click(); a.remove();
+    lsSet('pkgDone', {id: F.id, at: new Date().toISOString()});
   } catch (err) { alert('꾸러미를 만들지 못했습니다: ' + err.message); }
-  $('#go').disabled = false; $('#go').textContent = '꾸러미(zip) 받기';
+  $('#go').disabled = false; $('#go').textContent = '제출 꾸러미 받기';
 };
 
 (async () => {
   LIST = await fetch('/api/package').then(r => r.json());
   $('#forms').innerHTML = LIST.map(f => `<button data-f="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.desc)}</span></button>`).join('');
-  const want = new URLSearchParams(location.search).get('f') || ls('pkgLast', '');
-  if (want) pickForm(want);
+  const prof = ls('h2profile', {}) || {};
+  const want = new URLSearchParams(location.search).get('f') || ls('pkgLast', '') || MAIN_FORM[prof.kind] || 'gas_permit';
+  pickForm(LIST.some(f => f.id === want) ? want : LIST[0].id);
 })();
 </script>
 </body></html>

@@ -2,6 +2,7 @@
 // 검색: search.py 의 점수 규칙(제목 가산·시설 유형·가스 종류·절차/설치·기준일·일본)을
 //       D1 SQL 한 번으로 계산한다. 무거운 계산은 D1 이 하고 워커 CPU 는 결과 몇 줄만 만진다.
 // 답변 곁가지: 캐시(D1 answer_cache)·발표 잠금·규제 사례·확정 자료·체크리스트·재작성·검증·근거 없는 문장.
+import { llmFetch, llmName } from './llm.js';            // OPENAI_API_KEY 가 있으면 ChatGPT 로
 import DATA from './data.json';
 import { kgsTableCurrent } from './kgs_updates.js';
 
@@ -40,6 +41,16 @@ const gasOf = text => Object.entries(S.gas).filter(([, ws]) => ws.some(w => text
 const facilityTags = text => Object.entries(S.facility).filter(([, ws]) => ws.some(w => text.includes(w))).map(([k]) => k);
 const COLS = 'id, country, law, article, title, future, effective_date, kind, ref, link';
 
+// search.py title_words: 질문 낱말(3글자 이상, 조사 뗀 것) 중 조문 제목에 통째로 있으면 1.5배
+function titleWords(query) {
+  if (!S.title_particle) return [];
+  const P = new RegExp(S.title_particle), skip = new Set(S.title_skip || []), out = [];
+  for (let w of query.match(/[가-힣]{3,}/g) || []) {
+    w = w.replace(P, '');
+    if (w.length >= 3 && !skip.has(w) && !(w in DATA.expand) && !out.includes(w)) out.push(w);   // 확장표 낱말은 제외
+  }
+  return out.slice(0, 6);
+}
 // search.py Index.search 의 점수식을 SQL 로. opts.ids 가 있으면 그 조각만 점수를 매긴다(별표 딸림용).
 function scoreSql(query, opts = {}, state = []) {
   const q = [...new Set(tokenize(expand(query)))].slice(0, 90);
@@ -70,6 +81,9 @@ function scoreSql(query, opts = {}, state = []) {
     if (want.size) m.push('(CASE WHEN fac THEN 1.3 ELSE 1 END)');
     m.push(`(CASE WHEN ${anyIn('law', S.core)} THEN 1.15 ELSE 1 END)`);
     m.push(`(CASE WHEN ${anyIn('title', NOISE)} THEN 0.2 ELSE 1 END)`);
+    const tw = S.define && new RegExp(S.define).test(query) ? [] : titleWords(query);   // 정의 질문은 '정의' 조문이 답이다
+    if (tw.length) m.push(`(CASE WHEN law NOT LIKE 'KGS%' AND (${tw.map(w => `instr(title, ${lit(w)}) > 0`).join(' OR ')}) THEN 1.35 ELSE 1 END)`);
+    if (S.define && new RegExp(S.define).test(query)) m.push("(CASE WHEN title = '정의' THEN 2.5 ELSE 1 END)");
     if (INSTALL.test(query)) m.push(`(CASE WHEN substr(law, 1, 6) IN (${S.make_code.map(lit).join(',')}) THEN 0.6 ELSE 1 END)`);
     if (wantGas.size) {
       const all = Object.values(S.gas).flat(), mine = [...wantGas].flatMap(k => S.gas[k]);
@@ -242,7 +256,7 @@ export async function rewriteQuery(question, key) {
   for (const model of C.rewrite_chain) {
     if (isExhausted(model)) continue;
     try {
-      const r = await fetch(`${API}/${model}:generateContent?key=${key}`, {
+      const r = await llmFetch(`${API}/${model}:generateContent?key=${key}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: C.rewrite_prompt + question }] }], generationConfig: { temperature: 0, maxOutputTokens: 300 } }),
         signal: AbortSignal.timeout(20000),
@@ -268,7 +282,10 @@ const CACHE_TTL = 30 * 86400, CACHE_MAX = 2000;
 export async function cacheKey(q, country, facility, asOf, checklist, state = []) {
   const norm = q.replace(/[\s?？!.~,]+/g, '').toLowerCase();
   const revision = state.length ? state.map(r => `${r.law}:${r.version || "-"}:${r.updated_at}`).join(",") + "|" : "";
-  const raw = `${revision}${norm}|${country || ''}|${facility || ''}|${asOf || ''}|${checklist ? 1 : 0}`;
+  const prov = llmName() === 'gemini' ? '' : llmName() + '|';      // 공급자가 바뀌면 지난 답을 쓰지 않는다
+  // 자료(조각 수)가 바뀌면 지난 답을 쓰지 않는다. 11/17 절차 안내를 넣기 전 답이 캐시로 계속 나가 1번 문항이 빠진 단계로 답했다.
+  const data = `d${DATA.articles}|`;
+  const raw = `${data}${prov}${revision}${norm}|${country || ''}|${facility || ''}|${asOf || ''}|${checklist ? 1 : 0}`;
   const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(raw));
   return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 }
@@ -400,7 +417,10 @@ export function buildContext(hits, groups) {
 }
 
 // ── 답변 검증(verify) ──
-const NUM_RE = /\d+(?:\.\d+)?\s*(?:m|㎡|㎥|kg|㎏|톤|일|개월|년|원|%|미터|퍼센트)/g;
+const NUM_RE = /(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s*(?:m|㎡|㎥|kg|㎏|톤|일|개월|년|원|%|미터|퍼센트)/g;
+// 단위·천단위 쉼표를 한 모양으로. 원문은 '2,400세제곱미터', 답은 '2,400㎥' 라 표 행이 통째로 지워졌다(채점 14번).
+const canon = s => noWs(s).replace(/(\d),(?=\d{3})/g, '$1').replace(/세제곱미터|m3|㎥/g, '㎥').replace(/제곱미터|m2|㎡/g, '㎡')
+  .replace(/킬로그램|kg|㎏/gi, 'kg').replace(/퍼센트|%/g, '%').replace(/미터/g, 'm');
 const ORG_RE = /(한국가스안전공사|산업통상(?:자원)?부장관|기후에너지환경부장관|중소벤처기업부장관|국토교통부장관|환경부장관|소방서장|시ㆍ도지사|시·도지사|시장ㆍ군수|시장·군수|구청장|허가관청|신고관청|등록관청|규제자유특구위원회|규제특례심의위원회|한국산업안전보건공단|한국에너지공단|가스기술기준위원회)/g;
 const REF_RE = /제\d+조(?:의\d+)?|별표\s*\d+(?:의\d+)?|별지\s*제\d+호\s*서식|KGS\s*[A-Z]{2}\d{3}(?:\s+\d[\d.]*)?/g;
 const NAMED_REF = /\[([가-힣][가-힣\s·ㆍ]{3,60}?)\s*(제\d+조(?:의\d+)?|별표\s*\d+(?:의\d+)?)\]/g;
@@ -459,7 +479,8 @@ function lawInHits(law, ref, hits) {
 export function verify(answer, hits, userText, sib) {
   const body = splitFollowups(answer)[0];
   const flat = noWs([...sib, ...hits.map(h => h.content), userText || ''].join(' '));
-  const badNums = uniq(body.match(NUM_RE) || []).filter(n => !flat.includes(noWs(n)));
+  const flatC = canon(flat);
+  const badNums = uniq(body.match(NUM_RE) || []).filter(n => !flat.includes(noWs(n)) && !flatC.includes(canon(n)));
   const badRefs = uniq(body.match(REF_RE) || []).filter(r => !flat.includes(noWs(r)));
   for (const m of body.matchAll(NAMED_REF)) {
     const law = m[1].trim(), ref = noWs(m[2]);
@@ -523,7 +544,7 @@ export function citedRefs(body, shown) {
 // ── 모델 부르기 ──
 export async function callModel(model, prompt, key) {
   try {
-    const r = await fetch(`${API}/${model}:generateContent?key=${key}`, {
+    const r = await llmFetch(`${API}/${model}:generateContent?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 2048 } }),
       signal: AbortSignal.timeout(120000),
@@ -550,7 +571,7 @@ export async function judgeAnswer(body, context, key, answerModel) {
   try { return JSON.parse(m[0]).filter(i => Number.isInteger(i) && i >= 1 && i <= sents.length).map(i => sents[i - 1]); } catch (e) { return null; }
 }
 export async function* streamModel(model, contents, key, system) {
-  const r = await fetch(`${API}/${model}:streamGenerateContent?alt=sse&key=${key}`, {
+  const r = await llmFetch(`${API}/${model}:streamGenerateContent?alt=sse&key=${key}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: system }] },
       generationConfig: { temperature: 0.2, maxOutputTokens: 8192 } }),

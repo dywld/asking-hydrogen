@@ -58,6 +58,9 @@ def search_meta(idx):
         "core": list(search.CORE_LAWS),
         "make_code": list(search.MAKE_CODE),
         "install": search.INSTALL.pattern,
+        "define": search.DEFINE.pattern,
+        "title_particle": search.TITLE_PARTICLE.pattern,
+        "title_skip": sorted(search.TITLE_SKIP),
         "gas": {k: list(v) for k, v in search.GAS.items()},
         "noise_title": search.NOISE_TITLE.pattern,
         "cur_fut": cur_fut,
@@ -152,6 +155,7 @@ CREATE INDEX docs_law_article ON docs(law, article);
         # 답하기 전에 조건부터 묻는 질문(샌드박스 신청서·안전거리·수수료…). 정규식은 글자로 넘긴다.
         "ask": [[need.pattern, [[k, t, o, h.pattern] for k, t, o, h in steps]] for need, steps in app.ASK],
         "dist_other": app.DIST_OTHER.pattern,
+        "ask_skip": app.ASK_SKIP.pattern,
         "other": app.OTHER,
         "clarify": [[n.pattern, h.pattern, t, o] for n, h, t, o in app.CLARIFY],
         "kind_words": app.KIND_WORDS,

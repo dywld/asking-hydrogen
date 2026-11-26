@@ -25,3 +25,11 @@ service = "hydrogen-bot"
 [placement]
 mode = "targeted"
 region = "gcp:asia-northeast3"
+
+# AI 공급자: 비밀값 OPENAI_API_KEY 가 있으면 아래 OpenAI 모델을 쓴다(없으면 Gemini). cf/src/llm.js
+# gpt-6.1-sol: 지능·비용 균형형(입력 $2 / 출력 $10, 100만 토큰당). sol 은 생각 깊이 none 이 없어 low 가 가장 빠르다.
+[vars]
+OPENAI_MODEL = "gpt-6.1-sol"
+OPENAI_EFFORT = "low"
+# 간단한 질문(짧고 절차·비교 말이 없거나, 확정 표가 답인 것)은 이 모델이 생각 없이 바로 답한다. "off" 면 끔
+OPENAI_FAST_MODEL = "gpt-6-luna"

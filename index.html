@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>수소시설 인허가 가이드</title>
+<title>수소문 · 수소충전소 인허가</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   /* 밝고 넓은 한 장짜리 화면. 사용자 말만 말풍선, 답은 본문처럼 쓴다.
@@ -19,14 +19,14 @@
     --ok: #1c7c4a;  --ok-soft: #e6f5ec;
     --warn: #8a5a00; --warn-soft: #fff6e0;
     --radius: 14px;
-    --fs-s: 13px; --fs: 15.5px; --fs-l: 22px;
-    --w: 780px;
+    --fs-s: 14px; --fs: 17px; --fs-l: 24px;
+    --w: 768px;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
     background: var(--bg); color: var(--ink);
-    font: var(--fs)/1.65 Pretendard, -apple-system, "Apple SD Gothic Neo",
+    font: var(--fs)/1.75 Pretendard, -apple-system, "Apple SD Gothic Neo",
           "Malgun Gothic", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     display: flex; flex-direction: column;
@@ -40,9 +40,9 @@
   }
   .logo {
     width: 30px; height: 30px; border-radius: 9px; flex: none;
-    background: linear-gradient(150deg, #6ea8ff, #2f6fed);
-    color: #fff; font-weight: 700; font-size: 15px; display: grid; place-items: center;
+    display: grid; place-items: center;
   }
+  .logo img { width: 34px; height: 34px; object-fit: contain; }
   header h1 { font-size: var(--fs); font-weight: 700; margin: 0; letter-spacing: -.01em; }
   header .st { font-size: var(--fs-s); color: var(--ink-2); margin-left: 2px; }
   header .sp { flex: 1; }
@@ -71,16 +71,120 @@
   }
   .pop .hint { padding: 4px 12px 8px; font-size: 12px; color: var(--ink-2); }
 
+  /* ── ChatGPT식 틀: 왼쪽 사이드바 + 오른쪽 대화 ── */
+  body { flex-direction: row; }
+  .col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; height: 100%; }
+  #side { flex: none; width: 260px; height: 100%; background: #f7f8fa; border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 10px 10px 12px; gap: 2px; z-index: 30; }
+  #side .sh { display: flex; align-items: center; gap: 8px; padding: 4px 6px 12px; }
+  #side .sh b { font-size: 17px; flex: 1; }
+  #side .srow, #side .ibtn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; border-radius: 10px; background: none; font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; text-align: left; }
+  #side .srow:hover, #side .ibtn:hover { background: #eceef2; color: var(--ink); border: 0; }
+  #side .srow svg, #side .ibtn svg { width: 18px; height: 18px; flex: none; color: var(--ink-2); }
+  #side .ibtn .lbl { display: inline !important; }
+  #side .hlab { font-size: 13px; color: var(--ink-2); padding: 16px 10px 4px; cursor: default; }
+  #side .hist { position: static; display: block; width: auto; border: 0; box-shadow: none; background: none; padding: 0; flex: 1 1 auto; overflow-y: auto; max-height: none; border-radius: 0; }
+  #side .hist .row { border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+  #side .hist .row:hover { background: #eceef2; }
+  #side .hist .row small { display: none; }
+  #side .hist .row .x { visibility: hidden; }
+  #side .hist .row:hover .x { visibility: visible; }
+  #side .sfoot { position: relative; border-top: 1px solid var(--line); padding-top: 8px; }
+  #side .pop { left: 0; right: auto; top: auto; bottom: 48px; }
+  .ic { width: 36px; height: 36px; border: 0; border-radius: 10px; background: none; display: grid; place-items: center; color: var(--ink-2); cursor: pointer; flex: none; }
+  .ic:hover { background: #eceef2; }
+  .ic svg { width: 20px; height: 20px; }
+  header .hbrand { display: none; align-items: center; gap: 8px; }
+  #sideopen { display: none; }
+  body.fold #side { display: none; }
+  body.fold #sideopen, body.fold header .hbrand { display: flex; }
+  .sidebg { display: none; }
+  @media (max-width: 900px) {
+    #side { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); transition: transform .2s; box-shadow: 0 0 40px rgba(0,0,0,.15); }
+    body.sideon #side { transform: none; display: flex; }
+    body.sideon .sidebg { display: block; position: fixed; inset: 0; background: rgba(20,25,35,.35); z-index: 25; }
+    #sideopen, header .hbrand { display: flex; }
+    #sidefold { display: none; }
+  }
+  /* 답 아래: 복사·좋아요·싫어요·근거·바로가기를 아이콘 한 줄로. 추천 질문·신청 사이트는 연한 링크. */
+  .ai .wrap { min-width: 0; }
+  .tblwrap.over { cursor: grab; box-shadow: inset -18px 0 14px -14px rgba(20,30,50,.18); }
+  .tblwrap.over.end { box-shadow: none; }
+  .tblwrap.drag { cursor: grabbing; user-select: none; }
+  .acts { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; margin-top: 10px; }
+  .acts .ic { width: 32px; height: 32px; border-radius: 8px; }
+  .acts .ic svg { width: 17px; height: 17px; }
+  .acts .ic.done { color: var(--ok); }
+  .acts .fb { margin: 0; gap: 0; }
+  .acts .fb button { border: 0; background: none; width: 32px; height: 32px; padding: 0; border-radius: 8px; color: var(--ink-2); display: grid; place-items: center; }
+  .acts .fb button:hover { background: #eceef2; color: var(--ink); }
+  .acts .fb button.on { color: var(--accent); background: var(--accent-soft); }
+  .acts .fb button svg { width: 17px; height: 17px; }
+  .acts .fb .thanks { margin-left: 4px; }
+  .acts .pill { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; margin-left: 4px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink-2); font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; white-space: nowrap; }
+  .acts .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .acts .pill small { color: #8b95a1; font-size: 12px; }
+  .acts .pill.go { color: var(--accent); border-color: #cfe0ff; background: #f5f8ff; }
+  .acts .tags { margin-left: auto; font-size: 12px; color: #8b95a1; display: flex; gap: 8px; flex-wrap: wrap; }
+  .acts .tags .tag { background: none; padding: 0; }
+  .srcs.open .cap { display: none; }
+  .ai .srcs { margin-top: 8px; }
+  .ai .wrap > .chips { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-top: 10px; }
+  .ai .wrap > .chips .chip { background: none; border: 0; padding: 5px 0; color: var(--ink-2); font-size: 15px; border-radius: 0; }
+  .ai .wrap > .chips .chip::before { content: '↳ '; color: #b0b8c1; }
+  .ai .wrap > .chips .chip:hover { color: var(--accent); background: none; }
+  .ai .apply { background: none; border: 0; padding: 0; margin-top: 4px; font-size: 13px; gap: 4px 12px; }
+  .ai .apply a, .ai .apply a.sub { background: none; border: 0; padding: 0; color: var(--ink-2); text-decoration: underline; font-weight: 400; }
+  .ai .apply .note { display: none; }
+
   /* ── 대화 ── */
   main { flex: 1 1 auto; overflow-y: auto; }
   #log { max-width: var(--w); margin: 0 auto; padding: 28px 20px 24px; }
 
   /* 처음 화면: 가운데 정렬 · 입력창을 가운데로 · 카드 2×2 */
   .hero { text-align: center; padding: 24px 0 12px; min-height: calc(100vh - 200px); display: flex; flex-direction: column; justify-content: center; }
-  .hero .hlogo { width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 15px; color: #fff; font-weight: 700; font-size: 24px;
-                 display: grid; place-items: center; background: linear-gradient(150deg, #6ea8ff, #2f6fed); box-shadow: 0 8px 20px rgba(47,111,237,.25); }
+  .hero .hlogo { width: 112px; height: 112px; margin: 0 auto 6px; }
+  .hero .hlogo img { width: 100%; height: 100%; object-fit: contain; }
   .hero h2 { font-size: 27px; }
   .hero .hslot .composer { padding: 0; margin: 0 0 18px; }
+  /* 내 사업장 진행판(사업장 정보가 있으면 첫 화면) */
+  .dash { text-align: left; max-width: 760px; margin: 0 auto; width: 100%; padding: 28px 0 12px; min-height: calc(100vh - 200px); display: flex; flex-direction: column; justify-content: center; }
+  .dashbg { position: fixed; inset: 0; background: rgba(20,25,35,.45); z-index: 60; display: none; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 48px 16px; }
+  .dashbg.open { display: flex; }
+  .dashbg .dbox { background: #fff; border-radius: 20px; width: 100%; max-width: 760px; padding: 8px 28px 24px; position: relative; }
+  .dashbg .dbox > .close { position: absolute; right: 14px; top: 12px; }
+  .dash.inmodal { min-height: 0; padding: 20px 0 4px; }
+  .hero .cards.c3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 640px) { .hero .cards.c3 { grid-template-columns: 1fr; } }
+  .hero .hhi { font-size: 14px; font-weight: 600; color: #8b95a1; margin: 0 0 4px; }
+  .nexts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 2px; }
+  .nexts a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 999px; background: #f2f6ff; color: #2f6fed; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; border: 1px solid #dfe8fb; }
+  .nexts a:hover { background: #e6efff; }
+  .nexts a small { color: #8b95a1; font-weight: 500; }
+  .dash .dsub { font-size: 14px; color: #8b95a1; font-weight: 600; }
+  .dash h2 { font-size: 30px; letter-spacing: -.6px; margin: 6px 0 0; }
+  .dash h2 em { font-style: normal; color: #3182f6; }
+  .dnext { margin-top: 22px; background: #191f28; color: #fff; border-radius: 22px; padding: 22px 24px; display: flex; align-items: center; gap: 16px; }
+  .dnext .di { width: 56px; height: 56px; border-radius: 50%; background: #fff; display: grid; place-items: center; flex: none; overflow: hidden; }
+  .dnext .di img { width: 50px; height: 50px; object-fit: contain; }
+  .dnext .di svg { width: 22px; height: 22px; fill: #fff; stroke: none; }
+  .dnext .dx { flex: 1; min-width: 0; }
+  .dnext small { font-size: 13px; color: #8b95a1; font-weight: 600; }
+  .dnext b { display: block; font-size: 19px; margin-top: 4px; }
+  .dnext p { font-size: 14px; color: #c5cbd3; margin: 4px 0 0; }
+  .dnext button { background: #3182f6; color: #fff; border: 0; border-radius: 14px; height: 48px; padding: 0 20px; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; white-space: nowrap; }
+  .dtrack { margin: 18px 0 20px; }
+  .dtrack .ds { display: flex; align-items: center; gap: 14px; padding: 13px 4px; border-top: 1px solid #f2f4f6; cursor: pointer; border-radius: 10px; }
+  .dtrack .ds:first-child { border-top: 0; }
+  .dtrack .ds:hover { background: #f9fafb; }
+  .dtrack .dk { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: 13px; font-weight: 800; background: #f2f4f6; color: #8b95a1; }
+  .dtrack .dk.ok { background: #e5f8ef; color: #00a050; } .dtrack .dk.now { background: #3182f6; color: #fff; }
+  .dtrack .ds b { font-size: 16px; display: block; } .dtrack .ds span { font-size: 13.5px; color: #8b95a1; }
+  .dtrack .ds .rt { margin-left: auto; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+  .dash .hslot .composer { padding: 0; margin: 0 0 12px; }
+  .dchips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dchips button { border: 1px solid #e5e8eb; background: #fff; border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14px; color: #4e5968; cursor: pointer; }
+  .dbar { height: 6px; background: #f2f4f6; border-radius: 9px; margin-top: 14px; overflow: hidden; } .dbar i { display: block; height: 100%; background: #3182f6; border-radius: 9px; transition: width .8s; }
+  @media (max-width: 600px) { .dnext { flex-wrap: wrap; } .dnext button { width: 100%; } .dash h2 { font-size: 25px; } }
   .hero .cards { grid-template-columns: 1fr 1fr; text-align: left; }
   .hero .card { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid var(--line); transition: border-color .15s, transform .15s, box-shadow .15s; }
   .hero .card:hover { background: #fff; border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(20,30,50,.08); }
@@ -116,12 +220,12 @@
     max-width: 78%; background: var(--accent-soft); color: var(--ink);
     padding: 10px 16px; border-radius: 18px 18px 4px 18px; white-space: pre-wrap;
   }
-  .ai { display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
+  .ai { display: grid; grid-template-columns: 32px 1fr; gap: 12px; }
   .ai .avatar {
-    width: 30px; height: 30px; border-radius: 9px; margin-top: 2px;
-    background: linear-gradient(150deg, #6ea8ff, #2f6fed); color: #fff;
-    font-weight: 700; font-size: 14px; display: grid; place-items: center;
+    width: 32px; height: 32px; border-radius: 50%; margin-top: 0;
+    background: #e8f3ff; display: grid; place-items: center; overflow: hidden;
   }
+  .ai .avatar img { width: 28px; height: 28px; object-fit: contain; }
   .ai .body { min-width: 0; white-space: pre-wrap; word-break: break-word; }
   .ai .body .h { font-weight: 700; margin: 14px 0 2px; }
   .ai .body .h:first-child { margin-top: 0; }
@@ -179,7 +283,7 @@
 
   /* 표 */
   .tblwrap { overflow-x: auto; margin: 10px 0 12px; border: 1px solid var(--line); border-radius: 10px; }
-  .tblwrap table { border-collapse: collapse; width: 100%; font-size: var(--fs-s); }
+  .tblwrap table { border-collapse: collapse; width: 100%; font-size: 15px; }
   .tblwrap th, .tblwrap td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
   .tblwrap tr:last-child td { border-bottom: 0; }
   .tblwrap th { background: var(--surface); font-weight: 600; color: var(--ink-2); }
@@ -263,6 +367,29 @@
     color: rgba(220, 38, 38, .75); font-size: 11px; }
   .pfedit .pg .sg:hover { background: rgba(220, 38, 38, .1); }
   .pfedit .pg .sg img { width: 100%; height: 100%; object-fit: contain; }
+  /* AI로 채우기: 마스코트가 칸마다 튀어가 글자를 친다(11/24) */
+  .pfedit .aigo { border: 0; border-radius: 12px; padding: 9px 16px 9px 10px; font: inherit; font-size: 14.5px; font-weight: 700; color: #fff; cursor: pointer;
+    background: linear-gradient(90deg, #3182f6, #7b5cff); box-shadow: 0 6px 16px rgba(91, 92, 240, .35); display: flex; align-items: center; gap: 6px; animation: aipulse 1.8s ease-in-out infinite; }
+  .pfedit .aigo img { width: 26px; height: 26px; }
+  @keyframes aipulse { 50% { box-shadow: 0 6px 22px rgba(91, 92, 240, .6); transform: translateY(-1px); } }
+  .pfedit .aiprog { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: 700; color: #5b5cf0; font-size: 14px; }
+  .pfedit .aiprog .bar { flex: 1; height: 6px; border-radius: 6px; background: #eef0ff; overflow: hidden; }
+  .pfedit .aiprog .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3182f6, #7b5cff); transition: width .25s; }
+  .pfedit .aiband { flex: 1; display: flex; align-items: center; gap: 10px; background: #e9f9f0; border: 1px solid #bfeccf; border-radius: 12px; padding: 8px 12px; animation: aiin .4s ease-out; }
+  .pfedit .aiband .ck { width: 28px; height: 28px; border-radius: 50%; background: #03a65a; color: #fff; display: grid; place-items: center; font-weight: 900; flex: none; }
+  .pfedit .aiband b { flex: none; font-size: 15px; } .pfedit .aiband span { display: block; color: #4e5968; font-size: 12.5px; }
+  @keyframes aiin { from { opacity: 0; transform: translateY(-6px); } }
+  .pfedit .pg .aibot { position: absolute; width: 46px; height: 46px; z-index: 5; pointer-events: none; filter: drop-shadow(0 5px 8px rgba(0,0,0,.25));
+    transition: left .26s cubic-bezier(.5, 1.6, .5, 1), top .26s cubic-bezier(.5, 1.6, .5, 1); }
+  .pfedit .pg .aibub { position: absolute; z-index: 6; pointer-events: none; background: #191f28; color: #fff; font-size: 12px; font-weight: 700; border-radius: 9px;
+    padding: 5px 9px; white-space: nowrap; transition: left .26s, top .26s; }
+  .pfedit .pg .aibub em { font-style: normal; color: #8fd3ff; }
+  .pfedit .pg input.aion { border: 1.5px solid #3182f6 !important; background: rgba(49, 130, 246, .13) !important; box-shadow: 0 0 0 3px rgba(49, 130, 246, .18); }
+  .pfedit .pg input.aidone { background: rgba(3, 166, 90, .08); border-color: rgba(3, 166, 90, .5); }
+  .pfedit .pg .aiflash { animation: aiflash 1.4s ease-out; }
+  @keyframes aiflash { 0%, 35% { background: rgba(3, 166, 90, .25); border-color: #03a65a; box-shadow: 0 0 0 4px rgba(3, 166, 90, .2); } }
+  .pfedit.aiwait .pg input, .pfedit.aiwait .pg .sg { border-style: dashed; }
+  .pfedit.aiwait .pg input::placeholder { color: transparent; } .pfedit.aiwait .pg .sg { color: transparent; }
   .sgpad { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; }
   .sgpad .bx { background: #fff; border-radius: 14px; padding: 16px; width: min(560px, 100%); }
   .sgpad .bx b { display: block; margin-bottom: 8px; }
@@ -297,6 +424,16 @@
   .cklink a:hover { background: #f3fbf6; }
   .cklink b { display: block; font-size: var(--fs-s); }
   .cklink span { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+  .sitecard { margin-top: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-left: 4px solid #3182f6; border-radius: 10px; padding: 10px 12px; }
+  .sitecard .sc-i svg { width: 22px; height: 22px; fill: none; stroke: #3182f6; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; display: block; }
+  .sitecard .sc-t { flex: 1; min-width: 0; }
+  .sitecard b { display: block; font-size: var(--fs-s); }
+  .sitecard em { font-style: normal; color: #3182f6; }
+  .sitecard em.ord { color: #d97706; } .sitecard em.no { color: #f04452; }
+  .sitecard small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-2); }
+  .sitecard .sc-go { flex: none; background: #3182f6; color: #fff; text-decoration: none; font-weight: 700; font-size: 13px; padding: 9px 13px; border-radius: 9px; }
+  .sitecard .sc-go:hover { background: #1b64da; }
+  @media (max-width: 600px) { .sitecard { flex-wrap: wrap; } .sitecard .sc-go { width: 100%; text-align: center; } }
   .regs { margin-top: 12px; font-size: var(--fs-s); color: var(--ink-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
   .regs summary { cursor: pointer; color: var(--ink); }
   .regs .reg { margin-top: 8px; line-height: 1.6; }
@@ -461,6 +598,55 @@
   .hist .row .x { color: var(--ink-2); cursor: pointer; }
   .hist .empty { padding: 12px 14px; font-size: var(--fs-s); color: var(--ink-2); }
   /* 사업자 정보 묻기: 한 줄씩 차례로 고른다 */
+  /* 신청서 고르기 B안 */
+  .pfroad { display: flex; gap: 6px; margin-top: 12px; position: sticky; top: 0; z-index: 3; background: var(--bg, #fff); padding: 4px 0; }
+  .pfroad button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 12px; padding: 9px 8px; font: inherit; font-size: 13.5px; font-weight: 700; background: #f2f4f6; color: #8b95a1; cursor: default; transition: all .25s; }
+  .pfroad button i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 12px; }
+  .pfroad button.ok { background: #e3f6ec; color: #037a44; } .pfroad button.ok i { background: #03a65a; color: #fff; }
+  .pfroad button.on { background: linear-gradient(90deg, #3182f6, #7b5cff); color: #fff; box-shadow: 0 4px 12px rgba(91, 92, 240, .28); } .pfroad button.on i { color: #3182f6; }
+  .pfroad button:not(:disabled) { cursor: pointer; animation: aipulse 1.8s ease-in-out infinite; }
+  @media (max-width: 560px) { .pfroad button { font-size: 12px; padding: 8px 4px; } }
+  .pfpick2 { margin-top: 12px; } .pfpick2[hidden], .pfsel[hidden], .pfall[hidden] { display: none; }
+  .pf2 { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; cursor: pointer; line-height: 1.45; transition: border-color .15s, box-shadow .15s, transform .1s; }
+  .pf2:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(49, 130, 246, .12); }
+  .pf2:active { transform: scale(.99); }
+  .pf2 b { display: block; font-size: 15px; } .pf2 small { display: block; color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+  .pf2.rec { position: relative; border: 1.5px solid var(--accent); background: linear-gradient(135deg, #f3f8ff, #f6f3ff); padding: 18px 20px; border-radius: 18px; }
+  .pf2.rec b { font-size: 19px; letter-spacing: -.3px; margin-top: 8px; }
+  .pf2.rec small { font-size: 14px; color: #4e5968; }
+  .pf2.rec em { display: block; font-style: normal; font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+  .pf2.rec .tg { display: inline-block; font-size: 12px; font-weight: 800; color: #fff; background: linear-gradient(90deg, #3182f6, #7b5cff); border-radius: 999px; padding: 3px 10px; }
+  .pf2.rec .go { position: absolute; right: 18px; bottom: 16px; font-style: normal; font-weight: 800; color: #fff; background: var(--accent); border-radius: 12px; padding: 9px 14px; font-size: 14px; }
+  .pfh { font-size: 13px; font-weight: 700; color: var(--ink-2); margin: 16px 2px 6px; }
+  .pfgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .pfmore { margin-top: 10px; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; padding: 6px 2px; }
+  .pfsel { margin-top: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; background: #f9fafb; }
+  .pfsel span { font-size: 12.5px; color: var(--ink-2); } .pfsel b { flex: 1; font-size: 15px; }
+  .pfsel button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .pfnext { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: #fff; animation: aiin .4s ease-out; }
+  .pfnext .h { font-weight: 800; margin-bottom: 10px; }
+  .pfnext .fl { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; }
+  .pfnext .fl li { flex: 1; border-radius: 10px; background: #f2f4f6; padding: 9px 11px; font-size: 13px; line-height: 1.45; }
+  .pfnext .fl li.on { background: #eaf3ff; } .pfnext .fl li b { display: block; color: var(--accent); }
+  .pfnext .dc { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+  .pfnext .dc b { margin-right: 4px; } .pfnext .dc span { background: #f2f4f6; border-radius: 8px; padding: 3px 9px; }
+  .pfnext .asg { margin-top: 14px; width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; border: 0; border-radius: 14px; padding: 13px 16px; cursor: pointer; font: inherit; color: #fff;
+    background: linear-gradient(90deg, #3182f6, #7b5cff); box-shadow: 0 8px 20px rgba(91, 92, 240, .3); transition: transform .1s, box-shadow .15s; }
+  .pfnext .asg:hover { box-shadow: 0 10px 26px rgba(91, 92, 240, .45); } .pfnext .asg:active { transform: scale(.99); }
+  .pfnext .asg img { width: 36px; height: 36px; flex: none; background: #fff; border-radius: 10px; padding: 3px; }
+  .pfnext .asg span { flex: 1; } .pfnext .asg b { display: block; font-size: 16px; } .pfnext .asg small { display: block; font-size: 12.5px; opacity: .88; }
+  .pfnext .asg i { font-style: normal; font-size: 20px; font-weight: 800; }
+  .asov { position: fixed; inset: 0; z-index: 9000; background: #fff; display: flex; flex-direction: column; opacity: 0; transform: scale(.985); transition: opacity .25s, transform .25s; }
+  .asov.on { opacity: 1; transform: none; }
+  .asov .ash { flex: none; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 14px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #f3f8ff, #f6f3ff); }
+  .asov .ash img { width: 30px; height: 30px; } .asov .ash b { font-size: 16px; }
+  .asov .ash span { flex: 1; color: var(--ink-2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asov .ash button { border: 0; background: #fff; border-radius: 10px; width: 36px; height: 36px; font-size: 16px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .asov iframe { flex: 1; width: 100%; border: 0; }
+  .pfnext .lk { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pfnext .lk button { border: 1px solid #cfe0ff; background: #fff; color: var(--accent); border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .pfnext .lk a { font-size: 13px; color: var(--ink-2); }
+  @media (max-width: 560px) { .pfnext .fl { flex-direction: column; } .pf2.rec .go { position: static; display: inline-block; margin-top: 10px; } }
   .pfpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin-top: 12px; }
   .pfpick .pfg { grid-column: 1 / -1; font-size: var(--fs-s); font-weight: 700; color: #1e3a8a; margin: 8px 0 -2px; }
   .pfpick .pf { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; cursor: pointer; font-size: var(--fs-s); line-height: 1.45; }
@@ -565,28 +751,16 @@
 </head>
 <body>
 
-<header>
-  <div class="logo">H</div>
-  <h1>수소시설 인허가 가이드</h1>
-  <span class="st" id="status"></span>
-  <span class="sp"></span>
-  <button class="ibtn" id="histbtn" title="지난 대화">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="lbl">지난 대화</span>
-  </button>
+<aside id="side">
+  <div class="sh"><div class="logo"><img src="/brand/mascot-96.png" alt=""></div><b>수소문</b><button class="ic" id="sidefold" title="사이드바 닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button></div>
+  <button class="srow" id="reset" title="새 대화"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>새 대화</span></button>
+  <button class="srow" id="calc" title="안전거리 계산기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h3M13 12h3M8 16h3M13 16h3"/></svg><span>안전거리 계산기</span></button>
+  <div class="hlab" id="histbtn">지난 대화</div>
   <div class="hist" id="hist"></div>
-  <button class="ibtn" id="calc" title="안전거리 계산기">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h3M13 12h3M8 16h3M13 16h3"/></svg><span class="lbl">계산기</span>
-  </button>
-  <button class="ibtn" id="share" title="대화 공유">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span class="lbl">공유</span>
-  </button>
-  <button class="ibtn" id="reset" title="새 대화">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">새 대화</span>
-  </button>
-  <button class="ibtn" id="gear" title="설정">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-  </button>
+  <div class="sfoot">
+  <button class="srow" id="gear" title="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>설정</span></button>
   <div class="pop" id="pop">
+    <button type="button" id="dashOpen" style="display:block;width:100%;margin:0 0 10px;padding:9px 12px;border:1px solid var(--line,#e4e8ee);border-radius:10px;background:#fff;font:inherit;font-size:13px;color:var(--accent,#2f6fed);cursor:pointer;text-align:left">내 사업장 진행판</button>
     <label>검색 범위
       <select id="country"><option value="">한국 + 일본</option><option value="한국">한국만</option><option value="일본">일본만</option></select>
     </label>
@@ -606,6 +780,18 @@
     </label>
     <div class="hint">발표 모델은 더 정확하지만 하루 20번만 쓸 수 있습니다.</div>
   </div>
+  </div>
+</aside>
+<div class="sidebg" id="sidebg"></div>
+<div class="col">
+<header>
+  <button class="ic" id="sideopen" title="사이드바 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button>
+  <div class="hbrand"><div class="logo"><img src="/brand/mascot-96.png" alt="수소문"></div><h1>수소문</h1></div>
+  <span class="st" id="status"></span>
+  <span class="sp"></span>
+  <button class="ibtn" id="share" title="대화 공유">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span class="lbl">공유</span>
+  </button>
 </header>
 
 <main><div id="log"></div></main>
@@ -620,6 +806,7 @@
   </div>
   <div class="foot">법령 검색 결과를 바탕으로 한 참고용 안내입니다. 실제 인허가는 관할 관청과 원문을 확인해 주세요.</div>
 </footer>
+</div>
 
 <!-- 안전거리 계산기: 표에서 바로 찾는다. AI 를 거치지 않아 틀릴 자리가 없다. -->
 <div class="modal-bg" id="calcbg">
@@ -653,10 +840,13 @@
   </div>
 </div>
 
+<script src="/zone-rules.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const log = $('#log'), main = document.querySelector('main');
 let messages = [], turns = [], busy = false, STATUS = {};
+// 되묻기 버튼으로 고른 조건은 이 대화에서만 쓴다. 저장하면 다음 대화의 다른 질문에까지 붙었다(채점 2·29·30번).
+let PICKS = {};
 
 fetch('/api/status').then(r => r.json()).then(d => {
   STATUS = d;
@@ -669,6 +859,16 @@ fetch('/api/status').then(r => r.json()).then(d => {
 });
 
 $('#gear').onclick = e => { e.stopPropagation(); $('#pop').classList.toggle('open'); $('#hist').classList.remove('open'); };
+// 사이드바: 넓은 화면은 접기(기억), 좁은 화면은 위로 덮어 열기.
+const narrow = () => matchMedia('(max-width: 900px)').matches;
+try { if (localStorage.getItem('sideFold') === '1') document.body.classList.add('fold'); } catch (e) {}
+$('#sidefold').onclick = () => { document.body.classList.add('fold'); try { localStorage.setItem('sideFold', '1'); } catch (e) {} };
+$('#sideopen').onclick = () => {
+  if (narrow()) return document.body.classList.add('sideon');
+  document.body.classList.remove('fold'); try { localStorage.setItem('sideFold', '0'); } catch (e) {}
+};
+$('#sidebg').onclick = () => document.body.classList.remove('sideon');
+$('#side').addEventListener('click', e => { if (narrow() && e.target.closest('#reset, #calc, .hist .row:not(.x)')) document.body.classList.remove('sideon'); });
 $('#histbtn').onclick = e => { e.stopPropagation(); renderHist(); $('#hist').classList.toggle('open'); $('#pop').classList.remove('open'); };
 document.addEventListener('click', e => {
   if (!$('#pop').contains(e.target) && !$('#gear').contains(e.target)) $('#pop').classList.remove('open');
@@ -689,6 +889,7 @@ function saveConv() {
     list.unshift({id: convId, t: new Date().toISOString().slice(0, 16).replace('T', ' '), title: turns[0].q, turns, messages});
     localStorage.setItem('convs', JSON.stringify(list.slice(0, 12)));
   } catch (e) {}
+  renderHist();
 }
 function renderHist() {
   const box = $('#hist'), list = loadHist();
@@ -699,10 +900,12 @@ function renderHist() {
     r.className = 'row';
     r.innerHTML = `<span>${esc(c.title)}</span><small>${esc(c.t.slice(5))}</small><span class="x" title="지우기">✕</span>`;
     r.querySelector('.x').onclick = e => { e.stopPropagation(); localStorage.setItem('convs', JSON.stringify(list.filter(x => x.id !== c.id))); renderHist(); };
+    r.title = c.title;
     r.onclick = () => { $('#hist').classList.remove('open'); openConv(c); };
     box.appendChild(r);
   });
 }
+setTimeout(renderHist, 0);
 function openConv(c) {
   log.innerHTML = '';
   messages = c.messages || []; turns = []; convId = c.id;
@@ -736,11 +939,12 @@ const ICONS = {
   doc: '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 14l2 2 3.5-4"/></svg>',
   dist: '<svg viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M6 9l-3 3 3 3"/><path d="M18 9l3 3-3 3"/><path d="M9 7v3M12 7v3M15 7v3"/></svg>',
   pen: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v6"/><path d="M6 3v18h6"/><path d="M14 21l1-3 5-5 2 2-5 5z"/></svg>',
+  site: '<svg viewBox="0 0 24 24"><path d="M12 15.5s-5-4-5-7.8a5 5 0 0 1 10 0c0 3.8-5 7.8-5 7.8z"/><circle cx="12" cy="7.7" r="1.8"/><path d="M7 15.2L2.5 17.6 12 21l9.5-3.4-4.5-2.4"/></svg>',
   flask: '<svg viewBox="0 0 24 24"><path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M7.5 15h9"/></svg>',
 };
 const HOME_CARDS = [
   ['doc', '어떤 허가가 필요할까?', '수전해·충전소·저장소 허가/신고 대상', '수전해로 수소를 만들어 저장하려면 어떤 허가가 필요해?'],
-  ['dist', '안전거리 확인', '보호시설에서 몇 m 떨어져야 하나', '수소충전소는 제1종보호시설에서 몇 미터 떨어져야 해?'],
+  ['site', '내 땅 3D 확인', '주소만 넣으면 용도지역·안전거리 자동 판정', '', true, '/site3d'],   // 부지 3D 검토(주소 찾기 -> 핀 -> 확인 연출)
   ['pen', '허가 신청서 자동 작성', '칸만 채우면 공식 서식 PDF 완성', '허가 신청서 작성해줘', true],
   ['flask', '실증특례 신청서', '규제샌드박스 신청서·사업실시계획서', '실증특례 신청서 초안 써줘'],
 ];
@@ -773,88 +977,142 @@ function profileLine(p) {
 
 // ── 허가·신고·검사 신청서: 서식 고르기 → 한 장 입력 → 공식 PDF + 어디에 내는지 ──
 // 처리기간·첨부서류·수수료는 서버가 서식 본문에서 옮긴 값(permit_forms.py)을 그대로 쓴다.
+// 신청서 고르기(11/24 B안): 맨 위에 내 사업장 기준 AI 추천 한 장, 아래 자주 쓰는 신청서, 나머지는 [전체 보기].
+// 고르면 질문 칸 없이 실제 양식이 바로 열리고 [AI로 채우기]로 채운다. 접수처·첨부서류는 채운 뒤 '다음 할 일'로 아래에 둔다.
+const PF_REC = [[/충전소|생산|제조시설|저장|운송/, 'gas_permit'], [/수소용품/, 'h2_maker'], [/연료전지|발전|사용시설/, 'h2_review']];
+const PF_COMMON = ['gas_review', 'gas_inspect', 'gas_manager', 'h2_maker'];
 function permitPicker(ai, ev) {
-  ai.body.innerHTML = '어떤 신청서인가요? 고르면 그 서식에 맞춰 칸을 보여 드립니다.';
-  const pick = document.createElement('div');
-  pick.className = 'pfpick';
-  ai.wrap.appendChild(pick);
-  const open = f => {
-    pick.querySelectorAll('.pf').forEach(x => x.classList.toggle('on', x.dataset.id === f.id));
-    ai.wrap.querySelectorAll('.sbform, .pfout').forEach(x => x.remove());
-    const steps = [];
-    if (f.choose) steps.push({key: f.choose[0], q: f.choose[1], options: f.choose[2]});
-    f.fields.forEach(x => steps.push(x));
-    sbForm(ai.wrap, steps, async got => {
-      const vals = {};
-      Object.entries(got).forEach(([k, v]) => { if (v && v !== '모름') vals[k] = v; });
-      const box = document.createElement('div');
-      box.className = 'sbx pfout';
-      const step = (n, t, who, body) => `<div class="nd"><b>${n} ${t}</b><span class="who">${who}</span>${body}</div>`;
-      box.innerHTML = `<div class="hd">${esc(f.title)} 신청서 · 어디에 내나요</div>`
-        + `<div class="stp"><span class="on">① 신청서 작성</span><span>② 첨부서류</span><span>③ 공사 제출</span><span>④ 검토 결과</span></div><div class="fl">`
-        + (f.before ? step('①', '먼저', '한국가스안전공사', esc(f.before)) + '<i>→</i>' : '')
-        + step(f.before ? '②' : '①', '신청', esc(f.who), `처리기간 <b style="display:inline">${esc(f.days)}</b><br><small>수수료 ${esc(f.fee)}</small>`)
-        + '<i>→</i>' + step(f.before ? '③' : '②', '다음 할 일', '', esc(f.after || '처리 결과를 받습니다.'))
-        + `</div><div class="fast"><b>같이 낼 서류</b> ${f.docs.length ? f.docs.map(esc).join(' · ') : '없음'}</div>`
-        // PDF 받기·공사에 제출은 아래 신청서 편집 화면에 있다. 여기는 다른 형식과 접수처만 둔다.
-        + `<div class="bt"><button data-ink="black" style="display:none"></button><button data-ink="hwpx" class="sub">한글(HWPX) 받기</button><button data-ink="blue" class="sub">검토용 PDF</button><a href="https://www.gov.kr" target="_blank" rel="noopener">정부24 ↗</a>`
-        + `<a href="https://cyber.kgs.or.kr" target="_blank" rel="noopener">가스안전공사 사이버지사 ↗</a></div>`;
-      ai.wrap.appendChild(box);
-      const dl = async (b) => {
-        const old = b.textContent;
-        b.textContent = '만드는 중…'; b.disabled = true;
-        try {
-          const r = await fetch('/api/permit/file', {method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: f.id, fields: vals, ink: b.dataset.ink === 'blue' ? 'blue' : 'black',
-              fmt: b.dataset.ink === 'hwpx' ? 'hwpx' : 'pdf'})});
-          if (!r.ok) throw new Error((await r.json()).error || r.status);
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(await r.blob());
-          a.download = b.dataset.ink === 'hwpx' ? `${f.title}_신청서.hwpx`
-            : `${f.title}_신청서${b.dataset.ink === 'blue' ? '_검토용' : ''}.pdf`;
-          a.click(); URL.revokeObjectURL(a.href);
-        } catch (e) { alert('파일을 만들지 못했습니다: ' + e.message); }
-        b.textContent = old; b.disabled = false;
-      };
-      box.querySelectorAll('button[data-ink]').forEach(b => b.onclick = () => dl(b));
-      permitEditor(ai.wrap, f, vals, () => dl(box.querySelector('button[data-ink="black"]')),
-        where => submitDemo(where || box, f, vals));
-    }, {auto: true});
-  };
-  // 종류별로 묶어 보인다. 규제샌드박스 2종은 채팅 흐름(실증특례·임시허가 신청서)으로 연다.
-  const GROUPS = [
-    ['시설 허가·신고', ['gas_permit', 'gas_report', 'gas_use']],
-    ['완성검사', ['gas_inspect', 'h2_use_inspect']],
-    ['수소용품', ['h2_maker', 'h2_product']],
-  ];
-  const card = (to, title, desc, fn, id) => {
-    const c = document.createElement('div');
-    c.className = 'pf'; if (id) c.dataset.id = id;
-    c.innerHTML = `<b>${esc(title)}</b><small>${esc(desc)}</small>`;
-    c.onclick = fn;
-    to.appendChild(c);
-  };
-  const grp = name => {
-    const h = document.createElement('div'); h.className = 'pfg'; h.textContent = name; pick.appendChild(h);
-    return pick;
-  };
-  const used = new Set();
-  GROUPS.forEach(([name, ids]) => {
-    const fs = ids.map(id => ev.forms.find(f => f.id === id)).filter(Boolean);
-    if (!fs.length) return;
-    grp(name);
-    fs.forEach(f => { used.add(f.id); card(pick, f.title, f.desc, () => open(f), f.id); });
+  const prof = (() => { try { return JSON.parse(localStorage.getItem('h2profile')) || {}; } catch (e) { return {}; } })();
+  const memo = formMemo();
+  const who = [prof.kind, prof.region].filter(Boolean).join(' · ') || memo.company || '';
+  const byId = id => ev.forms.find(f => f.id === id);
+  const recId = (ev.guess && byId(ev.guess)) ? ev.guess : (PF_REC.find(([re]) => re.test(prof.kind || '')) || [, 'gas_permit'])[1];
+  const rec = byId(recId) || ev.forms[0];
+  ai.body.innerHTML = `어떤 신청서를 쓸까요? <b>맨 위가 ${who ? esc(who) + ' 기준 ' : ''}추천</b>이에요. 고르면 AI가 실제 서식을 바로 채워 드려요.`;
+  // ①②③ 길잡이: 지금 어디까지 왔는지 항상 보인다. ③은 다 채운 뒤 눌러서 신청 도우미를 연다.
+  const road = document.createElement('div');
+  road.className = 'pfroad';
+  road.innerHTML = ['신청서 고르기', 'AI가 채우기', '신청 도우미로 제출'].map((t, i) => `<button type="button" data-i="${i}" disabled><i>${i + 1}</i>${t}</button>`).join('');
+  ai.wrap.appendChild(road);
+  let cur = null;
+  const stage = n => road.querySelectorAll('button').forEach((b, i) => {
+    b.className = i < n ? 'ok' : i === n ? 'on' : '';
+    b.querySelector('i').textContent = i < n ? '✓' : i + 1;
+    b.disabled = !(i === 2 && n === 2);
   });
-  const rest = ev.forms.filter(f => !used.has(f.id));
-  if (rest.length) { grp('기타'); rest.forEach(f => card(pick, f.title, f.desc, () => open(f), f.id)); }
-  grp('규제샌드박스');
-  card(pick, '실증특례', '법·기준이 없거나 맞지 않아 막힌 사업을 구역·기간을 정해 실증', () => send({text: '실증특례 신청서 작성해줘'}));
-  card(pick, '임시허가', '안전성은 검증됐는데 기준이 없어 출시를 못 할 때 먼저 시장 출시', () => send({text: '임시허가 신청서 작성해줘'}));
-  const g = ev.forms.find(f => f.id === ev.guess);
-  if (g) open(g);
+  road.querySelector('[data-i="2"]').onclick = () => cur && openAssist(cur.title);
+  stage(0);
+  const pick = document.createElement('div');
+  pick.className = 'pfpick2';
+  ai.wrap.appendChild(pick);
+  const meta = f => [f.who, f.days && '처리 ' + f.days].filter(Boolean).map(esc).join(' · ');
+  const card = (f, cls = '') => {
+    const c = document.createElement('button');
+    c.type = 'button'; c.className = 'pf2 ' + cls; c.dataset.id = f.id;
+    c.innerHTML = cls.includes('rec')
+      ? `<span class="tg">AI 추천</span><b>${esc(f.title)}</b><small>${who ? esc(who) + ' 사업장이면 이 신청서부터 내요' : esc(f.desc || '')}</small><em>${meta(f)}</em><i class="go">이 신청서 쓰기 →</i>`
+      : `<b>${esc(f.title)}</b><small>${esc(f.desc || '')}</small>`;
+    c.onclick = () => open(f);
+    return c;
+  };
+  pick.appendChild(card(rec, 'rec'));
+  const common = PF_COMMON.filter(id => id !== rec.id).map(byId).filter(Boolean).slice(0, 3);
+  const sec = (t, list) => { const h = document.createElement('div'); h.className = 'pfh'; h.textContent = t; list.appendChild(h); };
+  const grid = document.createElement('div'); grid.className = 'pfgrid';
+  common.forEach(f => grid.appendChild(card(f)));
+  sec('자주 쓰는 신청서', pick); pick.appendChild(grid);
+  // 전체 목록(접힘)
+  const more = document.createElement('button'); more.type = 'button'; more.className = 'pfmore';
+  more.textContent = `전체 신청서 보기 (${ev.forms.length + 2}개) ▾`;
+  const all = document.createElement('div'); all.className = 'pfall'; all.hidden = true;
+  const GROUPS = [['시설 허가·신고', ['gas_permit', 'gas_report', 'gas_use', 'gas_review']], ['검사', ['gas_mid', 'gas_inspect', 'h2_use_inspect', 'gas_use_inspect']],
+    ['수소용품', ['h2_maker', 'h2_product', 'h2_review']], ['안전관리', ['gas_rules', 'gas_manager', 'h2_rules', 'h2_manager', 'gas_start']]];
+  const used = new Set();
+  const addGrp = (name, fs) => { if (!fs.length) return; sec(name, all); const g = document.createElement('div'); g.className = 'pfgrid'; fs.forEach(f => { used.add(f.id); g.appendChild(card(f)); }); all.appendChild(g); };
+  GROUPS.forEach(([name, ids]) => addGrp(name, ids.map(byId).filter(Boolean)));
+  addGrp('기타', ev.forms.filter(f => !used.has(f.id)));
+  sec('규제샌드박스', all);
+  const sg = document.createElement('div'); sg.className = 'pfgrid';
+  [['실증특례', '법·기준이 없거나 맞지 않아 막힌 사업을 구역·기간을 정해 실증', '실증특례 신청서 작성해줘'], ['임시허가', '안전성은 검증됐는데 기준이 없어 출시를 못 할 때 먼저 시장 출시', '임시허가 신청서 작성해줘']]
+    .forEach(([t, d, q]) => { const c = document.createElement('button'); c.type = 'button'; c.className = 'pf2'; c.innerHTML = `<b>${t}</b><small>${d}</small>`; c.onclick = () => send({text: q}); sg.appendChild(c); });
+  all.appendChild(sg);
+  more.onclick = () => { all.hidden = !all.hidden; more.textContent = all.hidden ? `전체 신청서 보기 (${ev.forms.length + 2}개) ▾` : '접기 ▴'; };
+  pick.append(more, all);
+  // 고른 뒤: 목록은 한 줄로 접고, 실제 양식을 바로 연다.
+  const bar = document.createElement('div'); bar.className = 'pfsel'; bar.hidden = true;
+  ai.wrap.appendChild(bar);
+  const open = f => {
+    ai.wrap.querySelectorAll('.pfedit, .pfnext, .subm').forEach(x => x.remove());
+    pick.hidden = true; bar.hidden = false;
+    bar.innerHTML = `<span>선택한 신청서</span><b>${esc(f.title)}</b><button type="button">다른 신청서</button>`;
+    cur = f; stage(1);
+    bar.querySelector('button').onclick = () => { stage(0); pick.hidden = false; bar.hidden = true; ai.wrap.querySelectorAll('.pfedit, .pfnext, .subm').forEach(x => x.remove()); pick.scrollIntoView({block: 'nearest', behavior: 'smooth'}); };
+    const vals = {};
+    // 서식 기본값(가스 종류 등)과 시설 종류로 정해지는 허가 구분(제조·저장소설치·판매)은 미리 넣어 둔다.
+    (f.fields || []).forEach(x => { if (x.value) vals[x.key] = x.value; });
+    if (f.choose) {
+      const k = prof.kind || '', o = f.choose[2] || [];
+      const hit = /충전|생산|제조/.test(k) ? o.find(x => /제조/.test(x)) : /저장/.test(k) ? o.find(x => /저장/.test(x)) : null;
+      if (hit) vals[f.choose[0]] = hit;
+    }
+    const dl = async (fmt, ink, btn) => {
+      const old = btn && btn.textContent;
+      if (btn) { btn.textContent = '만드는 중…'; btn.disabled = true; }
+      try {
+        const r = await fetch('/api/permit/file', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: f.id, fields: vals, ink, fmt})});
+        if (!r.ok) throw new Error((await r.json()).error || r.status);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(await r.blob());
+        a.download = fmt === 'hwpx' ? `${f.title}_신청서.hwpx` : `${f.title}_신청서${ink === 'blue' ? '_검토용' : ''}.pdf`;
+        a.click(); URL.revokeObjectURL(a.href);
+      } catch (e) { alert('파일을 만들지 못했습니다: ' + e.message); }
+      if (btn) { btn.textContent = old; btn.disabled = false; }
+    };
+    // 다음 할 일: 접수 흐름과 같이 낼 서류. 신청서를 다 채운 뒤 아래에 보인다.
+    const next = () => {
+      stage(2);
+      if (ai.wrap.querySelector('.pfnext')) return;
+      const nx = document.createElement('div'); nx.className = 'pfnext';
+      const steps = [...(f.before ? [['먼저', f.before]] : []), ['접수', `${f.who || '관할 기관'}${f.days ? ' · 처리 ' + f.days : ''}`], ['다음', f.after || '처리 결과를 받습니다.']];
+      nx.innerHTML = `<div class="h">다음 할 일</div><ol class="fl">${steps.map(([t, d], i) => `<li${i === 0 ? ' class="on"' : ''}><b>${i + 1}. ${t}</b><span>${esc(d)}</span></li>`).join('')}</ol>`
+        + `<div class="dc"><b>같이 낼 서류</b>${f.docs && f.docs.length ? f.docs.map(d => `<span>${esc(d)}</span>`).join('') : '<span>없음 · 신청서만 내면 돼요</span>'}</div>`
+        + `<button type="button" class="asg"><img src="/brand/mascot-96.png" alt=""><span><b>신청 도우미로 제출하기</b><small>이 화면에서 바로 민원 사이트를 열고 AI가 칸·서류를 넣어요 · 제출 버튼은 직접</small></span><i>→</i></button>`
+        + `<div class="lk"><button type="button" data-f="hwpx">한글(HWPX) 받기</button><button type="button" data-f="blue">검토용 PDF</button><a href="https://www.gov.kr" target="_blank" rel="noopener">정부24 ↗</a><a href="https://cyber.kgs.or.kr" target="_blank" rel="noopener">가스안전공사 사이버지사 ↗</a></div>`;
+      nx.querySelector('.asg').onclick = () => openAssist(f.title);
+      nx.querySelector('[data-f="hwpx"]').onclick = e => dl('hwpx', 'black', e.target);
+      nx.querySelector('[data-f="blue"]').onclick = e => dl('pdf', 'blue', e.target);
+      const ed = ai.wrap.querySelector('.pfedit');
+      (ed || bar).after(nx);
+    };
+    permitEditor(ai.wrap, f, vals, null, null, {
+      after: bar,
+      buttons: [['PDF 받기', ed => dl('pdf', 'black', ed.querySelector('.bt2 button'))], ['공사에 제출', where => submitDemo(where, f, vals), true]],
+      onFilled: next,
+    });
+  };
+  if (ev.guess && byId(ev.guess)) open(byId(ev.guess));
 }
 
-const MEMO_KEYS = ['company', 'ceo', 'office', 'tel', 'site', 'bizno', 'email', 'address', 'applicant'];
+// 신청 도우미: 새 창 대신 같은 화면 위에 꽉 차게 띄운다(앱·웹 같음). ✕·Esc 로 닫으면 채팅으로 돌아온다.
+function openAssist(title) {
+  if (document.querySelector('.asov')) return;
+  const ov = document.createElement('div');
+  ov.className = 'asov';
+  ov.innerHTML = `<div class="ash"><img src="/brand/mascot-96.png" alt=""><b>신청 도우미</b><span>${esc(title || '')} · 민원 사이트에 AI가 대신 입력해요 (시연용 가상 민원24)</span><button type="button" aria-label="닫기">✕</button></div>`
+    + `<iframe src="/apply-demo.html?auto=1" title="신청 도우미"></iframe>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('on'));
+  const close = () => { clearInterval(tm); ov.classList.remove('on'); document.removeEventListener('keydown', esc1); setTimeout(() => ov.remove(), 250); };
+  const esc1 = e => { if (e.key === 'Escape') close(); };
+  ov.querySelector('.ash button').onclick = close;
+  // 도우미 안(겹친 iframe 포함, 페이지가 바뀌어도)에 포커스가 있어도 Esc 로 닫히게 키 듣기를 계속 붙인다.
+  const fr = ov.querySelector('iframe');
+  const hook = w => { try { if (!w.__h2esc) { w.__h2esc = 1; w.addEventListener('keydown', esc1, true); } w.document.querySelectorAll('iframe').forEach(x => hook(x.contentWindow)); } catch (e) {} };
+  const tm = setInterval(() => hook(fr.contentWindow), 400);
+  document.addEventListener('keydown', esc1);
+}
+
+const MEMO_KEYS = ['company', 'ceo', 'office', 'tel', 'site', 'bizno', 'email', 'address', 'applicant', 'gas', 'cap', 'mgr_name', 'mgr_qual', 'mgr_no', 'permit_no', 'permit_date'];
 function formMemo() { try { return JSON.parse(localStorage.getItem('formMemo')) || {}; } catch (e) { return {}; } }
 function saveMemo(got) {
   const m = formMemo();
@@ -1080,12 +1338,58 @@ function resetProfile() {
 if (/^\/s\/[A-Za-z0-9]{6,12}$/.test(location.pathname)) loadShare(location.pathname.split('/')[2]);
 else greet();
 
+// ── 내 사업장 진행판: 사업장 정보가 있으면 첫 화면을 '다음 할 일' 중심으로 ──
+// 값은 모두 이 브라우저의 기록(formMemo·h2profile·site3d·pkgDraft·pkgDone)에서 센다.
+function lsj(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } }
+function dashSteps() {
+  const MAIN_FORM = {'수소충전소': 'gas_permit', '수소 생산': 'gas_permit', '저장·운송': 'gas_permit', '수소용품 제조': 'h2_maker', '연료전지 발전': 'h2_use_inspect'};
+  const MAIN_FIELDS = {gas_permit: ['company', 'ceo', 'office', 'tel', 'bizno', 'email', 'site', 'gas'], h2_maker: ['company', 'ceo', 'office', 'tel', 'site', 'spec'], h2_use_inspect: ['company', 'ceo', 'office', 'tel', 'email', 'bizno']};
+  const m = lsj('formMemo', {}), p = lsj('h2profile', {}) || {}, kind = p.kind || '수소충전소', fid = MAIN_FORM[kind] || 'gas_permit';
+  const info = ['company', 'ceo', 'bizno', 'office', 'tel', 'email', 'site'], nInfo = info.filter(k => (m[k] || '').trim()).length;
+  const s3d = lsj('site3d', null), draft = (lsj('pkgDraft', {}) || {})[fid] || {}, done = lsj('pkgDone', null);
+  const fk = MAIN_FIELDS[fid], nForm = fk.filter(k => String(draft[k] ?? m[k] ?? '').trim()).length, opened = Object.keys(draft).length > 0;
+  const steps = [
+    {t: '사업장 정보', ok: nInfo >= 6, r: nInfo / 7, s: nInfo >= 6 ? `${m.company || '회사'} · 신청서 공통 칸 ${nInfo}/7` : `신청서 공통 칸 ${nInfo}/7 입력`, go: () => window.h2onboard && h2onboard.open(),
+      next: ['사업장 정보를 넣어 주세요', '한 번만 넣으면 신청서 16종이 자동으로 채워져요', '정보 넣기']},
+  ];
+  if (fid === 'gas_permit') steps.push({t: '부지 3D 검토', ok: !!s3d, r: s3d ? 1 : 0,
+    s: s3d ? (s3d.bad.length ? `고칠 곳 ${s3d.bad.length}개: ${s3d.bad.join(', ')}` : `안전거리 ${s3d.n}가지 모두 통과`) : (m.site ? '시설 주소로 주변 건물과 거리를 재요' : '시설 주소가 있으면 바로 재요'),
+    bad: !!(s3d && s3d.bad.length), go: () => { location.href = '/site3d' + (m.site ? '?addr=' + encodeURIComponent(m.site) : ''); },
+    next: [s3d && s3d.bad.length ? `부지 검토에서 고칠 곳 ${s3d.bad.length}개가 나왔어요` : '부지를 3D로 검토해 볼까요?', s3d && s3d.bad.length ? 'AI가 배치를 옮기거나 방호벽을 넣어 고쳐 볼 수 있어요' : `${m.site ? esc(m.site) + ' 주변' : '시설 주변'} 학교·주택까지 거리를 AI가 재요`, s3d && s3d.bad.length ? '고치러 가기' : '검토하기']});
+  steps.push({t: '신청서 작성', ok: opened && nForm === fk.length, r: opened ? nForm / fk.length : 0,
+    s: opened ? `${fk.length}칸 중 ${nForm}칸 채움` : `내 정보로 ${nForm}칸을 바로 채울 수 있어요`, go: () => { location.href = '/package?f=' + fid; },
+    next: [opened ? `신청서 빈칸 ${fk.length - nForm}개만 확인해 주세요` : '신청서를 채워 드릴까요?', opened ? 'AI가 채운 칸을 확인하고 남은 칸을 넣어 주세요' : `AI가 내 사업장 정보로 ${nForm}칸을 한 번에 채워요`, opened ? '확인하기' : '채우기']});
+  steps.push({t: '제출 전 최종 점검', ok: !!done, r: done ? 1 : 0, s: done ? `꾸러미 받음 (${String(done.at).slice(0, 10)})` : '빠진 서류·빈칸·거리 기준을 한 번에 봐요', go: () => { location.href = '/package?f=' + fid; },
+    next: ['제출 꾸러미를 받아 보세요', '신청서·점검표·안전관리규정을 한 번에 묶어 드려요', '꾸러미 받기']});
+  return steps;
+}
+function dashboard(h, inModal) {
+  const m = lsj('formMemo', {}), p = lsj('h2profile', {}) || {}, steps = dashSteps();
+  const pct = Math.round(steps.reduce((a, x) => a + x.r, 0) / steps.length * 100), cur = steps.findIndex(x => !x.ok || x.bad), nx = steps[cur];
+  h.className = inModal ? 'dash inmodal' : 'dash';
+  h.innerHTML = `<div class="dsub">${esc([m.company, p.kind, m.site || p.region].filter(Boolean).join(' · '))}</div>
+    <h2>${pct >= 100 ? '제출 준비가 <em>끝났어요</em>' : `허가 준비 <em>${pct}%</em> 됐어요`}</h2><div class="dbar"><i style="width:0"></i></div>
+    ${nx ? `<div class="dnext"><div class="di"><img src="/brand/mascot-96.png" alt=""></div><div class="dx"><small>다음 할 일</small><b>${nx.next[0]}</b><p>${nx.next[1]}</p></div><button>${nx.next[2]}</button></div>` : ''}
+    <div class="dtrack">${steps.map((x, i) => `<div class="ds" data-i="${i}"><div class="dk ${x.ok && !x.bad ? 'ok' : i === cur ? 'now' : ''}">${x.ok && !x.bad ? '✓' : i + 1}</div><div><b>${x.t}</b><span>${esc(x.s)}</span></div>
+      <span class="rt" style="color:${x.bad ? '#f04452' : x.ok ? '#00a050' : i === cur ? '#3182f6' : '#b0b8c1'}">${x.bad ? '고칠 곳 있음' : x.ok ? '완료' : i === cur ? '지금 할 일' : '대기'}</span></div>`).join('')}</div>
+    ${inModal ? '' : '<div class="hslot"></div><div class="dchips"></div>'}`;
+  if (nx) h.querySelector('.dnext button').onclick = nx.go;
+  h.querySelectorAll('.ds').forEach(d => { d.onclick = () => steps[+d.dataset.i].go(); });
+  if (!inModal) [['허가 기간은 얼마나 걸려?', '수소충전소 허가 처리 기간은 얼마나 걸려?'], ['학교 옆에 지을 수 있나요?', '수소충전소를 학교 근처에 지을 수 있어?'], ['안전관리자 자격', '수소충전소 안전관리자는 어떤 자격이 필요해?'], ['실증특례 신청서', '실증특례 신청서 초안 써줘']]
+    .forEach(([t, q]) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { $('#q').value = q; send(); }; h.querySelector('.dchips').appendChild(b); });
+  requestAnimationFrame(() => requestAnimationFrame(() => { h.querySelector('.dbar i').style.width = pct + '%'; }));
+}
 function greet() {
+  // 첫 화면에서 다시 부르면 입력창이 지난 hero 안에 있어 같이 지워진다. 먼저 제자리로 돌려 둔다.
+  if (log.contains($('.composer'))) $('#modebar').after($('.composer'));
   log.innerHTML = '';
-  messages = []; turns = []; convId = null;
+  messages = []; turns = []; convId = null; PICKS = {};
   const h = document.createElement('div');
+  const memo0 = lsj('formMemo', {});
+  $('#q').placeholder = '수소 인허가, 무엇이든 물어보세요';
+  if (memo0.company || PROFILE.kind) return greetMine(h, memo0);
   h.className = 'hero';
-  h.innerHTML = '<div class="hlogo">H</div><h2>수소 인허가, 무엇이든 물어보세요</h2>'
+  h.innerHTML = '<div class="hlogo"><img src="/brand/mascot.png" alt=""></div><h2>수소 인허가, 무엇이든 물어보세요</h2>'
     + '<p>허가 대상부터 신청서 작성까지 법령 근거로 답합니다.</p>'
     + '<div class="hslot"></div><div class="cards"></div>'
     + '<div class="trust">법령·KGS Code 32,217조각에서 찾아 답마다 출처 번호를 붙입니다 · 참고용 안내</div>'
@@ -1099,11 +1403,11 @@ function greet() {
     c.querySelector('a').onclick = resetProfile;
     cards.before(c);
   }
-  HOME_CARDS.forEach(([icon, title, sub, q, isNew]) => {
+  HOME_CARDS.forEach(([icon, title, sub, q, isNew, url]) => {
     const b = document.createElement('button');
     b.className = 'card';
     b.innerHTML = `<i>${ICONS[icon]}</i><span><b>${esc(title)}${isNew ? '<em>NEW</em>' : ''}</b><small>${esc(sub)}</small></span>`;
-    b.onclick = () => { $('#q').value = q; send(); };
+    b.onclick = () => { if (url) { location.href = url; return; } $('#q').value = q; send(); };
     cards.appendChild(b);
   });
   // 처음 화면에서는 입력창을 가운데로 올린다(ChatGPT 처럼). 질문을 보내면 send()가 아래로 되돌린다.
@@ -1111,6 +1415,153 @@ function greet() {
   log.appendChild(h);
   if (history.state !== null || location.pathname !== '/') history.replaceState(null, '', '/');
   $('#q').focus();
+}
+// 사업장 정보가 있으면: '한빛수소 님' 인사 + 그 시설·지역에 맞춘 추천 질문 3개. 진행판은 설정(톱니) 안에 둔다.
+function greetMine(h, m) {
+  const kind = PROFILE.kind || '수소충전소', place = regionOf(m) || PROFILE.region || '';
+  const who = (m.company || '').replace(/\s*(주식회사|\(주\)|㈜)\s*/g, '').trim();
+  const qs = kind === '수소충전소' ? [
+    ['doc', '허가는 어디에 내나요?', `${place || '우리 지역'} 관할 기관과 절차`, `${place ? place + '에 ' : ''}수소충전소를 지으려면 어떤 허가가 필요하고 어디에 신청해?`],
+    ['site', '내 땅 3D 확인', '주소만 넣으면 용도지역·안전거리 자동 판정', '', '/site3d'],
+    ['pen', '안전관리자는 누구로?', '자격과 선임 신고', '수소충전소 안전관리자는 어떤 자격이 필요하고 언제 선임 신고해?'],
+  ] : [
+    ['doc', `${kind} 허가 절차`, `${place || '우리 지역'} 관할 기관과 절차`, `${place ? place + '에서 ' : ''}${kind} 사업을 하려면 어떤 허가가 필요하고 어디에 신청해?`],
+    ['site', '내 땅 3D 확인', '주소만 넣으면 용도지역·안전거리 자동 판정', '', '/site3d'],
+    ['pen', '안전관리자는 누구로?', '자격과 선임 신고', `${kind} 안전관리자는 어떤 자격이 필요해?`],
+  ];
+  h.className = 'hero';
+  h.innerHTML = '<div class="hlogo"><img src="/brand/mascot.png" alt=""></div>'
+    + `<p class="hhi">${esc([kind, place].filter(Boolean).join(' · '))}</p>`
+    + `<h2>${who ? esc(who) + ' 님, ' : ''}무엇이든 물어보세요</h2>`
+    + `<p>${esc(place ? place + ' ' + kind : kind)} 기준으로 법령 근거를 찾아 답해요.</p>`
+    + '<div class="hslot"></div><div class="cards"></div>'
+    + '<div class="trust">법령·KGS Code에서 찾아 답마다 출처 번호를 붙입니다 · 참고용 안내</div>';
+  const cards = h.querySelector('.cards');
+  cards.classList.add('c3');
+  qs.forEach(([icon, title, sub, q, url]) => {
+    const b = document.createElement('button');
+    b.className = 'card';
+    b.innerHTML = `<i>${ICONS[icon]}</i><span><b>${esc(title)}</b><small>${esc(sub)}</small></span>`;
+    b.onclick = () => { if (url) { location.href = url; return; } $('#q').value = q; send(); };
+    cards.appendChild(b);
+  });
+  h.querySelector('.hslot').appendChild($('.composer'));
+  log.appendChild(h);
+  if (history.state !== null || location.pathname !== '/') history.replaceState(null, '', '/');
+  $('#q').focus();
+}
+// 시설 주소에서 '서울 강동구'처럼 시도 + 시군구를 뽑는다. 관할 구청을 짚어 답하게 서버에 보낸다.
+function regionOf(m) {
+  const t = String((m || formMemo()).site || '').trim().split(/\s+/);
+  if (t.length < 2 || !/(시|군|구)$/.test(t[1])) return '';
+  const sido = (t[0].match(/^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청북|충청남|충북|충남|전라북|전라남|전북|전남|경상북|경상남|경북|경남|제주)/) || [])[1] || t[0];
+  const SH = {충청북: '충북', 충청남: '충남', 전라북: '전북', 전라남: '전남', 경상북: '경북', 경상남: '경남'};
+  return `${SH[sido] || sido} ${t[1]}`;
+}
+// 설정 > 내 사업장 진행판: 홈에서 뺀 진행판을 모달로 띄운다.
+$('#dashOpen').onclick = e => {
+  e.stopPropagation(); $('#pop').classList.remove('open');
+  let bg = $('#dashbg');
+  if (!bg) {
+    bg = document.createElement('div'); bg.id = 'dashbg'; bg.className = 'dashbg';
+    bg.innerHTML = '<div class="dbox"><button class="close">✕</button><div class="dslot"></div></div>';
+    bg.onclick = ev => { if (ev.target === bg || ev.target.classList.contains('close')) bg.classList.remove('open'); };
+    document.body.appendChild(bg);
+  }
+  const h = document.createElement('div');
+  dashboard(h, true);
+  bg.querySelector('.dslot').replaceChildren(h);
+  bg.classList.add('open');
+};
+// 답 아래를 ChatGPT처럼 한 줄로 모은다: 복사 · 좋아요 · 싫어요 · 근거 n건 · 서식 채우기 · 3D.
+// 각 기능의 원래 요소(이벤트가 달린 것)를 그대로 옮겨 담는다. 추천 질문·신청 사이트는 그 아래 연한 링크.
+const IC_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+const IC_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-10"/></svg>';
+const IC_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 10v11H4V10zM7 10l4-7a2 2 0 0 1 3 2l-1 5h6a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 17.6 21H7"/></svg>';
+const IC_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 14V3H4v11zM7 14l4 7a2 2 0 0 0 3-2l-1-5h6a2 2 0 0 0 2-2.3l-1.4-7A2 2 0 0 0 17.6 3H7"/></svg>';
+function actRow(ai) {
+  const w = ai.wrap;
+  if (w.querySelector('.acts')) return;
+  markWide(w);
+  const row = document.createElement('div');
+  row.className = 'acts';
+  const cp = document.createElement('button');
+  cp.className = 'ic'; cp.title = '복사'; cp.innerHTML = IC_COPY;
+  cp.onclick = async () => {
+    try { await navigator.clipboard.writeText(ai.body.innerText); cp.innerHTML = IC_OK; cp.classList.add('done'); setTimeout(() => { cp.innerHTML = IC_COPY; cp.classList.remove('done'); }, 1500); } catch (e) {}
+  };
+  row.appendChild(cp);
+  const meta = w.querySelector('.meta'), fb = meta && meta.querySelector('.fb');
+  if (fb) {
+    fb.querySelectorAll('button').forEach(b => { b.innerHTML = b.dataset.v === 'up' ? IC_UP : IC_DOWN; });
+    row.appendChild(fb);
+  }
+  const tog = w.querySelector('.srcs .cap .tog');
+  if (tog) { tog.className = 'pill tog'; row.appendChild(tog); }
+  const nx = w.querySelector('.nexts');
+  if (nx) { nx.querySelectorAll('a').forEach(a => { a.className = 'pill go'; row.appendChild(a); }); nx.remove(); }
+  const mk = w.querySelector('.mkform');
+  if (mk) {
+    const b = mk.querySelector('button'), p = document.createElement('button');
+    p.className = 'pill go'; p.textContent = '신청서 작성'; p.onclick = () => b.click();
+    row.appendChild(p); mk.hidden = true;
+  }
+  if (meta) {
+    const tags = [...meta.querySelectorAll('.tag')];
+    if (tags.length) { const t = document.createElement('span'); t.className = 'tags'; tags.forEach(x => t.appendChild(x)); row.appendChild(t); }
+    meta.remove();
+  }
+  const srcs = w.querySelector('.srcs');
+  srcs ? srcs.before(row) : w.appendChild(row);
+  // 추천 질문·신청 사이트는 줄 아래로
+  const after = srcs || row;
+  const fu = w.querySelector(':scope > .chips'), ap = w.querySelector(':scope > .apply');
+  if (ap) after.after(ap);
+  if (fu) after.after(fu);
+}
+// 넓은 표: 넘치면 오른쪽에 그림자, 마우스로 잡고 좌우로 끌어서 본다(터치는 원래 밀어서 됨).
+function markWide(root) {
+  (root || document).querySelectorAll('.tblwrap').forEach(t => {
+    const over = t.scrollWidth > t.clientWidth + 2;
+    t.classList.toggle('over', over);
+    t.classList.toggle('end', over && t.scrollLeft + t.clientWidth >= t.scrollWidth - 2);
+    if (over && !t.dataset.sw) { t.dataset.sw = 1; t.addEventListener('scroll', () => t.classList.toggle('end', t.scrollLeft + t.clientWidth >= t.scrollWidth - 2), {passive: true}); }
+  });
+}
+addEventListener('resize', () => markWide());
+document.addEventListener('mousedown', e => {
+  const t = e.target.closest('.tblwrap.over');
+  if (!t || e.button || e.target.closest('a, button, .cite, sup')) return;
+  const x0 = e.clientX, s0 = t.scrollLeft;
+  let moved = false;
+  const mv = ev => { const dx = ev.clientX - x0; if (!moved && Math.abs(dx) > 4) { moved = true; t.classList.add('drag'); } if (moved) t.scrollLeft = s0 - dx; };
+  const up = () => {
+    removeEventListener('mousemove', mv); removeEventListener('mouseup', up); t.classList.remove('drag');
+    if (moved) addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); }, {capture: true, once: true});
+  };
+  addEventListener('mousemove', mv); addEventListener('mouseup', up);
+});
+// 답 끝 다음 행동: 서류 얘기면 '내 정보로 채우기', 거리 얘기면 '3D로 재 보기'. 신청서 화면이 이미 있으면 붙이지 않는다.
+function attachNext(ai, full) {
+  if (ai.wrap.querySelector('.nexts, .pfpick, .pfpick2, .sbform, .sbx') || ai.sandbox) return;
+  const q = ai.q || '', t = q + ' ' + full, m = formMemo(), kind = PROFILE.kind || '';
+  const out = [];
+  if (/(신청서|신고서|서식|허가\s*신청|완성검사|사용\s*신고|선임\s*신고)/.test(t) && !/(일본|해외)/.test(q)) {
+    const fid = /완성검사/.test(t) ? 'gas_inspect' : /사용\s*신고/.test(t) ? 'gas_use' : /수소용품/.test(t) || kind === '수소용품 제조' ? 'h2_maker'
+      : kind === '연료전지 발전' ? 'h2_use_inspect' : 'gas_permit';
+    const n = ['company', 'ceo', 'bizno', 'office', 'tel', 'email', 'site'].filter(k => (m[k] || '').trim()).length;
+    out.push(`<a href="/package?f=${fid}">이 서식 내 정보로 채우기${n ? ` <small>${n}칸 자동</small>` : ''}</a>`);
+  }
+  if (/(안전거리|이격|떨어져|보호시설|학교|주택|몇\s*m|몇\s*미터)/.test(t) && !/(수소용품|연료전지)/.test(kind)) {
+    out.push(`<a href="/site3d${m.site ? '?addr=' + encodeURIComponent(m.site) : ''}">3D로 부지 재 보기${m.site ? ' <small>' + esc(regionOf(m) || '내 주소') + '</small>' : ''}</a>`);
+  }
+  if (!out.length) return;
+  // 신청서는 부수 기능: 큰 '신청서 작성하기' 카드 대신 이 작은 버튼 하나만 둔다.
+  if (out[0].includes('/package')) ai.wrap.querySelectorAll('.mkform').forEach(x => x.remove());
+  const d = document.createElement('div');
+  d.className = 'nexts'; d.innerHTML = out.join('');
+  const meta = ai.wrap.querySelector('.meta');
+  meta ? meta.before(d) : ai.wrap.appendChild(d);
 }
 // 답을 쓰는 중에 새 대화를 열면, 끝난 답이 새 대화의 turns 에 섞인다. 끝날 때까지 기다리게 한다.
 // 새 대화는 맨 위에서 시작하고, 지난 대화에서 남은 ↓ 단추는 치운다.
@@ -1130,7 +1581,7 @@ const atBottom = () => main.scrollHeight - main.scrollTop - main.clientHeight < 
 main.addEventListener('wheel', e => { if (e.deltaY < 0) follow = false; }, {passive: true});
 main.addEventListener('touchmove', () => { if (!atBottom()) follow = false; }, {passive: true});
 main.addEventListener('scroll', () => {
-  if (atBottom()) follow = true;
+  if (atBottom() && userScrolled) follow = true;
   downBtn.classList.toggle('on', !atBottom() && !!log.querySelector('.turn'));
 }, {passive: true});
 // 답변이 길면 끝만 보이고 첫 줄을 놓친다. 질문을 화면 위쪽에 두고, 그 뒤로는 움직이지 않는다.
@@ -1206,13 +1657,20 @@ function addMe(text) {
   r.className = 'turn me';
   const b = document.createElement('div');
   b.className = 'bubble'; b.textContent = text;
-  r.appendChild(b); log.appendChild(r); userScrolled = false; follow = true; scroll();
+  r.appendChild(b); log.appendChild(r); userScrolled = false; follow = false;
 }
 function addAI() {
   const r = document.createElement('div');
   r.className = 'turn ai';
-  r.innerHTML = '<div class="avatar">H</div><div class="wrap"><div class="body"></div></div>';
+  r.innerHTML = '<div class="avatar"><img src="/brand/mascot-96.png" alt=""></div><div class="wrap"><div class="body"></div></div>';
   log.appendChild(r);
+  // ChatGPT 처럼 방금 보낸 질문을 화면 위쪽에 두고 답은 그 아래로 채운다. 지난 답의 자리 잡기는 푼다.
+  log.querySelectorAll('.turn.ai').forEach(x => { if (x !== r) x.style.minHeight = ''; });
+  const me = r.previousElementSibling;
+  if (me && me.classList.contains('turn')) {
+    r.style.minHeight = Math.max(0, main.clientHeight - me.offsetHeight - 48) + 'px';
+    requestAnimationFrame(() => scrollToTurn(me));
+  }
   return {row: r, wrap: r.querySelector('.wrap'), body: r.querySelector('.body')};
 }
 
@@ -1237,15 +1695,16 @@ async function send(opts = {}) {
   if (!text || busy) return;
   busy = true; $('#go').disabled = true;
   $('#q').value = ''; $('#q').style.height = 'auto';
-  const hero = log.querySelector('.hero');
-  if (hero) { $('#modebar').after($('.composer')); hero.remove(); }
+  // 질문을 보내면 입력창은 늘 화면 맨 아래(footer)에 둔다. 첫 화면(.hero·.dash) 안에 있으면 꺼내고 첫 화면은 지운다.
+  if (log.contains($('.composer'))) $('#modebar').after($('.composer'));
+  log.querySelectorAll('.hero, .dash').forEach(x => x.remove());
   // 샌드박스 [신청서 만들기]는 같은 질문을 칸 값과 함께 다시 보낸다. 말풍선을 또 띄우면 질문이 두 번 보여 헷갈린다.
   if (!opts.sandbox) addMe(text);
   messages.push({role: 'user', text});
 
   const ai = addAI();
   ai.q = text;
-  ai.ctx = profileLine(PROFILE);
+  ai.ctx = profileLine({...PROFILE, ...(regionOf() ? {region: regionOf()} : {})});
   ai.sandbox = opts.sandbox || null;
   const stage = progress(ai.wrap, ai.body);
   if (opts.sandbox) {
@@ -1269,7 +1728,7 @@ async function send(opts = {}) {
       body: JSON.stringify({messages, country: $('#country').value,
                             mode: $('#mode').value, facility: $('#facility').value,
                             as_of: $('#asof').value, checklist: $('#checklist').checked,
-                            profile: PROFILE, no_ask: !!opts.noAsk, sandbox: opts.sandbox || null,
+                            profile: {...PROFILE, ...(regionOf() ? {region: regionOf()} : {}), ...PICKS}, no_ask: !!opts.noAsk, sandbox: opts.sandbox || null,
                             code: localStorage.getItem('botCode') || ''})
     });
     if (!r.ok) {
@@ -1360,8 +1819,7 @@ async function send(opts = {}) {
         return send({text: ai.ask.q, noAsk: true, sandbox: sb});
       }
       const picked = Object.entries(got).filter(([, v]) => v !== '모름');
-      picked.filter(([k]) => k !== 'dist').forEach(([k, v]) => { PROFILE[k] = v; });
-      if (picked.length) saveProfile(PROFILE);
+      picked.filter(([k]) => k !== 'dist').forEach(([k, v]) => { PICKS[k] = v; });
       const cond = picked.map(([, v]) => v).join(', ');
       send({text: cond ? `${ai.ask.q} (${cond})` : ai.ask.q, noAsk: true});
     });
@@ -1394,12 +1852,15 @@ function render(ai, full) {
   if (ai.clarify) attachClarify(ai.wrap, ai.clarify);
   if (ai.regs) attachRegs(ai.wrap, ai.regs);
   if (ai.checklists) attachChecklists(ai.wrap, ai.checklists);
+  attachSiteCard(ai.wrap, ai.q);
   if (ai.sandbox) attachSandbox(ai.wrap, ai.sandbox, full, order);
   if (order.length) attachSources(ai.wrap, order, ai);
   wireForms(ai.body, order);
   attachApply(ai.wrap, full, order);
   if (ai.followups) attachFollowups(ai.wrap, ai.followups);
+  attachNext(ai, full);
   wireCites(ai.body, order);
+  actRow(ai);
 }
 
 // ── 서식 내려받기 · 별표 원문 · 바로 신청 ──────────────────────────
@@ -1819,12 +2280,93 @@ async function permitEditor(wrap, f, vals, onPdf, onSubmit, cfg = {}) {
   let draft = {};
   try { draft = JSON.parse(localStorage.getItem(dkey)) || {}; } catch (e) {}
   const memo = formMemo();
+  const fromChat = new Set(Object.keys(vals).filter(k => (vals[k] || '').trim && (vals[k] || '').trim()));
   d.boxes.forEach(b => {
     if (b.kind === 'sign' || (vals[b.key] || '').trim()) return;
     const v = draft[b.key] || (b.kind === 'check' ? '' : memo[b.key]);
     if (v) vals[b.key] = v;
   });
-  if (!vals.sign && draft.sign) vals.sign = draft.sign;
+  if (!vals.sign) vals.sign = draft.sign || lastSign();      // 온보딩에서 미리 해 둔 서명
+  if (!vals.sign) delete vals.sign;
+  // AI로 채우기: 한 번도 저장한 적 없는 신청서면 값을 잠시 빼 두고 빈 칸으로 보인다. 버튼을 누르면 마스코트가 하나씩 채운다.
+  const ai = {}, src = {};
+  if (!Object.keys(draft).length) {
+    let byDoc = false;
+    try { byDoc = ((JSON.parse(localStorage.getItem('h2onboard')) || {}).docs || []).some(x => /사업자/.test(x.type || '')); } catch (e) {}
+    d.boxes.forEach(b => {
+      if (b.kind === 'check') return;
+      const k = b.kind === 'sign' ? 'sign' : b.key;
+      if (k in ai) return;
+      const v = vals[k] || (b.kind === 'sign' ? '' : b.value);
+      if (!v) return;
+      ai[k] = v; delete vals[k]; b.value = '';
+      src[k] = k === 'sign' ? '미리 해 둔 서명을' : /^date_/.test(k) ? '오늘 날짜를' : (f.fields || []).some(x => x.key === k && x.value === v) ? '시설 정보로 ' + b.q.replace(/\s*\(.*$/, '') + '를'
+        : fromChat.has(k) && memo[k] !== v ? '앞 대화에서 ' + b.q.replace(/\s*\(.*$/, '') + '를'
+        : byDoc && /^(company|ceo|bizno|office|address|applicant)$/.test(k) ? '사업자등록증에서 ' + b.q.replace(/\s*\(.*$/, '') + '를'
+        : '내 사업장 정보에서 ' + b.q.replace(/\s*\(.*$/, '') + '를';
+    });
+  }
+  let aiWait = Object.keys(ai).length > 0;
+  if (aiWait) {
+    ed.classList.add('aiwait');
+    const eh = ed.querySelector('.eh');
+    eh.querySelector('small').textContent = '버튼을 누르면 AI가 직접 칸을 채워요';
+    const go = document.createElement('button');
+    go.className = 'aigo'; go.innerHTML = '<img src="/brand/mascot-96.png" alt="">AI로 채우기';
+    go.onclick = () => aiFill(go);
+    eh.appendChild(go);
+  }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const aiFill = async go => {
+    if (!aiWait) return;
+    if (cur !== 0) { cur = 0; show(); }
+    closeBub();
+    ed.scrollIntoView({behavior: 'smooth', block: 'start'});
+    const eh = ed.querySelector('.eh'), t0 = Date.now();
+    const order = [...new Set(d.boxes.filter(b => b.kind !== 'check').map(b => b.kind === 'sign' ? 'sign' : b.key))].filter(k => k in ai);
+    eh.innerHTML = `<div class="aiprog">AI가 작성 중 <span class="n">0/${order.length}</span><div class="bar"><i></i></div></div>`;
+    const bot = document.createElement('img'); bot.className = 'aibot'; bot.src = '/brand/mascot-96.png'; bot.alt = '';
+    const bb = document.createElement('div'); bb.className = 'aibub';
+    pg.append(bot, bb);
+    const W = () => pg.clientWidth;
+    bot.style.left = (W() / 2) + 'px'; bot.style.top = '-10px';
+    const per = Math.max(260, Math.min(520, 4600 / order.length));
+    for (let i = 0; i < order.length; i++) {
+      const k = order[i];
+      const els = k === 'sign' ? [...pg.querySelectorAll('.sg')] : [...pg.querySelectorAll('input')].filter(x => x.dataset.key === k);
+      const el = els[0];
+      if (!el) { vals[k] = ai[k]; continue; }
+      const x = el.offsetLeft + el.offsetWidth, y = el.offsetTop - 30;
+      const bx = Math.min(x - 8, W() - 48);
+      bot.style.left = bx + 'px'; bot.style.top = y + 'px';
+      bb.innerHTML = '<em>' + esc(src[k]).replace(/에서 /, '에서</em> ').replace(/^(미리 해 둔 서명을|오늘 날짜를)/, '$1</em>') + ' 넣어요';
+      if (!bb.innerHTML.includes('</em>')) bb.innerHTML = bb.innerHTML.replace('<em>', '');
+      let bl = bx + 50, bt = y + 12;
+      if (bl + bb.offsetWidth > W() - 4) { bl = Math.max(4, Math.min(el.offsetLeft, W() - bb.offsetWidth - 4)); bt = el.offsetTop + el.offsetHeight + 6; }
+      bb.style.left = bl + 'px'; bb.style.top = bt + 'px';
+      els.forEach(e => e.classList.add('aion'));
+      await sleep(per * 0.45);
+      if (k === 'sign') { vals.sign = ai.sign; els.forEach(e => { e.innerHTML = `<img src="${ai.sign}" alt="서명">`; }); await sleep(per * 0.4); }
+      else {
+        const t = String(ai[k]), n = Math.min(t.length, 14);
+        for (let c = 1; c <= n; c++) { const part = c === n ? t : t.slice(0, Math.ceil(t.length * c / n)); els.forEach(e => { e.value = part; e.placeholder = ''; }); await sleep(per * 0.45 / n); }
+        vals[k] = t;
+      }
+      els.forEach(e => { e.classList.remove('aion'); e.classList.add('aidone'); });
+      eh.querySelector('.n').textContent = `${i + 1}/${order.length}`;
+      eh.querySelector('.bar i').style.width = ((i + 1) / order.length * 100) + '%';
+      await sleep(per * 0.1);
+    }
+    aiWait = false; ed.classList.remove('aiwait');
+    bot.remove(); bb.remove();
+    save(); show();
+    pg.querySelectorAll('input, .sg').forEach(e => { if (e.value || e.querySelector && e.querySelector('img')) e.classList.add('aiflash'); });
+    const secs = Math.max(1, Math.round((Date.now() - t0) / 1000));
+    const [e, sg] = missing();
+    const left = [e ? `빈 칸 ${e}개` : '', sg ? '서명' : ''].filter(Boolean).join('·');
+    if (cfg.onFilled) cfg.onFilled();
+    eh.innerHTML = `<div class="aiband"><span class="ck">✓</span><div><b>AI가 ${order.length}칸을 ${secs}초 만에 채웠어요</b><span>${left ? `빨간 칸(${left})만 직접 해 주세요 · ` : ''}칸을 눌러 고칠 수 있어요</span></div></div>`;
+  };
   const save = () => {
     const o = {};
     d.boxes.forEach(b => { const k = b.kind === 'sign' ? 'sign' : b.key; if (vals[k]) o[k] = vals[k]; });
@@ -1834,6 +2376,7 @@ async function permitEditor(wrap, f, vals, onPdf, onSubmit, cfg = {}) {
   };
   // 빈 칸·서명 없음은 빨간 테두리로 보인다.
   const mark = () => {
+    if (aiWait) return;
     pg.querySelectorAll('input').forEach(i => i.classList.toggle('need', !i.value.trim()));
     pg.querySelectorAll('.ckb').forEach(c => c.classList.toggle('ckg', !String(vals[c.dataset.key] || '').trim()));
     const sg = pg.querySelector('.sg');
@@ -1906,6 +2449,7 @@ async function permitEditor(wrap, f, vals, onPdf, onSubmit, cfg = {}) {
       inp.style.width = (b.w / d.w * 100) + '%';
       inp.style.height = (b.h / d.h * 100) + '%';
       inp.dataset.fs = b.fs;
+      inp.dataset.key = b.key;
       inp.readOnly = true;                       // 휴대폰에서 작은 칸에 자판이 뜨지 않게
       inp.onclick = () => bubble(inp, b);
       pg.appendChild(inp);
@@ -1975,6 +2519,7 @@ async function permitEditor(wrap, f, vals, onPdf, onSubmit, cfg = {}) {
   ed.querySelector('.pv').onclick = () => { if (cur > 0) { cur--; show(); } };
   ed.querySelector('.nx').onclick = () => { if (cur < d.pages.length - 1) { cur++; show(); } };
   show();
+  if (!aiWait && cfg.onFilled) cfg.onFilled();
   ed.scrollIntoView({block: 'nearest'});
 }
 
@@ -2244,6 +2789,67 @@ function attachChecklists(wrap, items) {
   meta ? meta.before(d) : wrap.appendChild(d);
 }
 
+// 질문에 땅 주소(…동·리·가·로·길 + 번지)가 있으면: 그 자리 용도지역으로 수소충전소 가능 여부 한 줄 + 부지 3D 검토로 가는 버튼.
+// 주소 찾기·용도지역은 /api/site/parcel(브이월드, AZZAS3D 서버 경유), 판정표는 /zone-rules.js(국토계획법 시행령 별표 2~22). 열기 전엔 아무것도 띄우지 않는다.
+const SITE_ADDR = /((?:[가-힣]+(?:특별시|광역시|특별자치시|특별자치도|도)\s+)?(?:[가-힣]+(?:시|군|구)\s+){0,2}[가-힣0-9]*[가-힣](?:동|읍|면|리|가|로|길)\s*\d{1,5}(?:-\d{1,5})?)(?![\d.]*\s*(?:m|M|미터|킬로|km|㎡|평|개|층|%|년|월|일|시간|분|초|원|kg|기압|MPa|bar|대|명|호|조|번째))/;
+const SITE_NOT = /(거리|정도|도로|차로|경로|대로변|이격거리|안전거리)\s*\d/;
+const SITE_SKIP = /^(도|철|제|천|구|유|공|묘|학)$/;      // 도로·하천·공원·학교용지 등은 충전소 부지로 보지 않는다(부지 3D 검토와 같은 규칙)
+// 주소 점 -> 판정할 필지와 그 필지의 용도지역(필지 안 격자 표본의 다수). 3D 검토의 첫 핀과 같은 필지를 고른다
+async function sitePick(g) {
+  const kx = 111320 * Math.cos(g.lat * Math.PI / 180), ky = 111320, toXY = ([x, y]) => [(x - g.lon) * kx, (y - g.lat) * ky];
+  const segD = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / ((dx * dx + dy * dy) || 1))); return Math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dy * t); };
+  const area = P => Math.abs(P.reduce((t, p, i) => { const r = P[(i + 1) % P.length]; return t + p[0] * r[1] - r[0] * p[1]; }, 0)) / 2;
+  const [a, z] = await Promise.all([fetch(`/api/site/parcel/around?lat=${g.lat}&lon=${g.lon}&r=60`).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(`/api/site/parcel/zone?lat=${g.lat}&lon=${g.lon}&r=80`).then(r => r.ok ? r.json() : null).catch(() => null)]);
+  const ps = ((a && a.parcels) || []).map(q => ({...q, pts: (q.rings[0] || []).map(toXY)})).filter(q => q.pts.length >= 3).map(q => ({...q, a: area(q.pts)}));
+  const inP = (p, P) => window.ZONE_RULES.inPoly(p, [P]);
+  let q = ps.filter(x => inP([0, 0], x.pts)).sort((x, y) => x.a - y.a)[0] || null, moved = false;
+  if (!q || SITE_SKIP.test(q.jimok)) {
+    const o = ps.filter(x => !SITE_SKIP.test(x.jimok) && x.a >= 150).map(x => ({x, d: Math.min(...x.pts.map((p, i) => segD([0, 0], p, x.pts[(i + 1) % x.pts.length])))})).sort((u, v) => u.d - v.d)[0];
+    if (o && o.d < 60) { q = o.x; moved = true; }
+  }
+  const zones = z && z.zones, cnt = {}; let n = 0, gb = 0;
+  if (q && zones) {
+    const xs = q.pts.map(p => p[0]), ys = q.pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    for (let i = 0; i < 14; i++) for (let j = 0; j < 14; j++) {
+      const p = [x0 + (x1 - x0) * (i + 0.5) / 14, y0 + (y1 - y0) * (j + 0.5) / 14]; if (!inP(p, q.pts)) continue;
+      const at = window.ZONE_RULES.at(zones, g.lon + p[0] / kx, g.lat + p[1] / ky); n++;
+      if (at.name) cnt[at.name] = (cnt[at.name] || 0) + 1; if (at.gb) gb++;
+    }
+  }
+  let name = Object.entries(cnt).sort((u, v) => v[1] - u[1])[0]?.[0] || '', isGb = n > 0 && gb / n >= 0.5;
+  if (!n && zones) { const at = window.ZONE_RULES.at(zones, g.lon, g.lat); name = at.name; isGb = at.gb; }
+  return {q, moved, name, gb: isGb, many: Object.keys(cnt).length > 1};
+}
+async function attachSiteCard(wrap, q) {
+  if (!q || !window.ZONE_RULES || wrap.querySelector('.sitecard')) return;
+  const m = String(q).match(SITE_ADDR); if (!m || SITE_NOT.test(m[1])) return;
+  const addr = m[1].replace(/\s+/g, ' ').trim();
+  try {
+    const g = await fetch(`/api/site/parcel/geocode?q=${encodeURIComponent(addr)}`).then(r => r.ok ? r.json() : null);
+    if (!g || !g.lat || wrap.querySelector('.sitecard')) return;
+    let full = g.text || addr, short = full.split(' ').slice(-2).join(' '), moved = '';
+    let zone = '', verdict = '', tone = '';
+    try {
+      const pk = await sitePick(g);
+      if (pk.q && pk.q.addr) {
+        const jb = pk.q.jibun.replace(/[^\d-]+$/, ''), nm = pk.q.addr.split(' ').slice(-2).join(' ');
+        if (pk.moved) moved = '입력한 자리는 도로·하천 등이라 가장 가까운 필지로 봤어요';
+        full = pk.q.addr; short = `${nm.split(' ')[0]} ${jb}`;
+      }
+      if (pk.gb) { zone = '개발제한구역'; verdict = '허가 대상인지 확인'; tone = 'ord'; }
+      else if (pk.name) { tone = window.ZONE_RULES.HY[pk.name][0]; zone = pk.name + (pk.many ? ' 외' : ''); verdict = window.ZONE_RULES.HY_SHORT[tone]; }
+    } catch (e) {}
+    const d = document.createElement('div');
+    d.className = 'sitecard';
+    d.innerHTML = `<span class="sc-i">${ICONS.site}</span><span class="sc-t"><b>${esc(short)}${zone ? ` · ${esc(zone)}` : ''}${verdict ? ` · <em class="${tone}">${esc(verdict)}</em>` : ''}</b>`
+      + `<small>${esc(moved || (zone ? '용도지역 기준 미리 판정 · 안전거리·배치는 3D에서 확인' : '용도지역·안전거리를 3D에서 바로 확인'))}</small></span>`
+      + `<a class="sc-go" href="/site3d?addr=${encodeURIComponent(full)}">3D로 확인하기</a>`;
+    const meta = wrap.querySelector('.meta');
+    meta ? meta.before(d) : wrap.appendChild(d);
+  } catch (e) {}
+}
+
 // 이미 알려진 규제 애로(수소경제 포털)와 겹치면 답 아래에 접어서 보여준다.
 function attachRegs(wrap, items) {
   const d = document.createElement('details');
@@ -2415,8 +3021,8 @@ function fmt(t, order) {
       if (hit) n = `<span class="n">${hit.n}</span>`;
     }
     const href = citeLink(inner, hit);
-    // 근거 카드와 짝이 맞으면 번호만, 아니면 이름을 그대로 보인다.
-    if (hit && href) return `<a class="cite only" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(inner)}">${n}</a>`;
+    // 법령 이름은 늘 보인다. 번호만 남기고 같은 번호를 지우면 답에서 근거 법 이름이 사라졌다(채점 근거 점수).
+    if (hit && href) return `<a class="cite" href="${esc(href)}" target="_blank" rel="noopener" title="원문 보기">${n}${inner}</a>`;
     if (href) return `<a class="cite" href="${esc(href)}" target="_blank" rel="noopener" title="원문 보기">${n}${inner}</a>`;
     return `<span class="cite">${n}${inner}</span>`;
   });
@@ -2678,7 +3284,7 @@ async function loadShare(id) {
     b.className = 'banner';
     b.textContent = `공유된 대화 · ${d.t} 저장 · 아래에서 이어서 질문할 수 있습니다`;
     log.appendChild(b);
-    messages = []; turns = [];
+    messages = []; turns = []; PICKS = {};
     for (const t of d.turns) {
       addMe(t.q);
       messages.push({role: 'user', text: t.q});

@@ -18,7 +18,10 @@ EXTRA = HERE / "public_extra"
 TAG = '<script src="/cf-shim.js"></script>'
 # 팀원 도구 화면(자체점검표·안전관리규정·제출 꾸러미)은 cf-tools.js 도 붙인다(cf-shim 다음).
 TOOLS = '<script src="/cf-tools.js"></script>'
-TOOL_PAGES = ("checklist.html", "rules.html", "package.html")
+TOOL_PAGES = ("checklist.html", "rules.html", "package.html", "site3d.html")
+# 첫 화면은 처음 설정(온보딩) 화면도 붙인다. 화면 코드가 다 돈 뒤에 뜨도록 defer.
+ONBOARD = '<script src="/onboard.js" defer></script>'
+ICON = '<link rel="icon" href="/brand/favicon.png"><link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">'
 LIMIT = 25 * 1024 * 1024          # 워커 정적 자산 한 파일 한도
 
 
@@ -38,7 +41,13 @@ def main():
     for name in ("index.html", "review.html", "demo.html") + TOOL_PAGES:
         src = ROOT / name
         if src.exists():
-            (PUB / name).write_text(inject(src.read_text(encoding="utf-8"), name in TOOL_PAGES),
+            html = inject(src.read_text(encoding="utf-8"), name in TOOL_PAGES)
+            # 탭 아이콘(마스코트). 화면 파일에 이미 있으면 두지 않는다.
+            if 'rel="icon"' not in html and "</head>" in html:
+                html = html.replace("</head>", ICON + "\n</head>", 1)
+            if name == "index.html" and ONBOARD not in html:
+                html = html.replace("</body>", ONBOARD + "\n</body>", 1) if "</body>" in html else html + ONBOARD
+            (PUB / name).write_text(html,
                                     encoding="utf-8", newline="")
             print("html", name)
     if not (EXTRA / "docs" / "layout.json").exists():
@@ -53,6 +62,21 @@ def main():
             shutil.copy2(p, dst)
             n += 1
     print("extra files", n)
+    # 윈도우 앱이 켤 때 보는 화면 버전. 공개 파일 내용이 바뀌면 id 가 바뀌고, 앱이 '업데이트가 있어요!'를 띄운다.
+    import hashlib, json, datetime
+    h = hashlib.sha256()
+    for p in sorted(PUB.rglob("*")):
+        if p.is_file() and p.name != "version.json":
+            h.update(str(p.relative_to(PUB)).encode()); h.update(p.read_bytes())
+    vid = h.hexdigest()[:12]
+    old = {}
+    try:
+        old = json.loads((PUB / "version.json").read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    label = old.get("label") if old.get("id") == vid else datetime.date.today().strftime("%Y.%m.%d")
+    (PUB / "version.json").write_text(json.dumps({"id": vid, "label": label}), encoding="utf-8")
+    print("version", vid, label)
 
 
 if __name__ == "__main__":

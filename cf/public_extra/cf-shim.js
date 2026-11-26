@@ -664,6 +664,8 @@
   };
   // 시험용: 화면 없이 바로 부를 수 있게 둔다
   // cf-tools.js(점검표·규정·꾸러미)도 이것을 쓴다
+  // 시설 배치도(site-plan.js)가 같은 pdf-lib·글꼴로 그린다
+  const pdfKit = async () => { const PDFLib = await pdfLib(), font = await bytes('font.ttf'); return {PDFLib, font, fk: await fontkitFont(font), trimFont}; };
   window.__cfDocs = {permitFill, sandboxFill, permitHwpx, sandboxHwpx, sandboxDocx, pagesPng, layout,
-    makeHwpx, hwpxSection, permitVals, jszip, ymd};
+    makeHwpx, hwpxSection, permitVals, jszip, ymd, pdfKit};
 })();

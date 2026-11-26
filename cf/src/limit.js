@@ -3,11 +3,13 @@
 // 세는 곳은 D1 표 하나(usage). 워커 위치를 서울로 고정해 두어(wrangler.toml placement) 한 곳에서 센다.
 // D1 이 안 되면(한도 바닥 등) 막지 않는다: 그때 채팅은 오라클판으로 넘어가고, 거기는 자체 제한이 있다.
 
-// 묶음별 한도. per_min·per_day 는 IP 하나, total 은 하루 전체(모든 IP 합).
+// 묶음별 한도. per_min·per_day 는 IP 하나, total 은 하루 전체(모든 IP 합). per_min 0 = 분당 제한 없음(11/17 사용자 결정).
 const RULES = [
-  { re: /^\/api\/chat$/, name: 'chat', per_min: 8, per_day: 100, total: 3000 },
-  // 앱 서류 폴더 검토와 웹 접수 시연은 파일을 통째로 보내 Gemini 를 크게 쓴다. 둘을 한 묶음으로 센다.
-  { re: /^\/api\/(app\/review|review\/submit)$/, name: 'doc', per_min: 3, per_day: 20, total: 300 },
+  { re: /^\/api\/chat$/, name: 'chat', per_min: 0, per_day: 100, total: 3000 },
+  // 앱 서류 폴더 검토·처음 설정의 서류 읽기·웹 접수 시연은 파일을 통째로 보내 Gemini 를 크게 쓴다. 모두 한 묶음으로 센다.
+  { re: /^\/api\/(app\/review|app\/extract|review\/submit)$/, name: 'doc', per_min: 0, per_day: 20, total: 300 },
+  // 3D 부지 검토의 배치도 읽기(그림 1장을 ChatGPT 로). 같은 그림은 캐시로 답해 세지만 비용은 들지 않는다.
+  { re: /^\/api\/site\/drawing$/, name: 'site', per_min: 0, per_day: 20, total: 200 },
 ];
 
 const json = (o, status) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '60' } });
@@ -32,7 +34,7 @@ export async function checkLimit(req, env, path) {
   if (!rule || !env.DB) return null;
   // 배포된 워커에서는 클라우드플레어가 늘 붙여 주고 손님이 지울 수 없다. 없으면 내 컴퓨터(wrangler dev·채점기)라 세지 않는다.
   const ip = req.headers.get('cf-connecting-ip');
-  if (!ip) return null;
+  if (!ip || ip === '127.0.0.1' || ip === '::1') return null;     // 내 컴퓨터 wrangler dev 는 루프백 주소를 붙인다
   const { day, min } = stamp();
   const keys = [`${rule.name}|m|${min}|${ip}`, `${rule.name}|d|${day}|${ip}`, `${rule.name}|t|${day}`];
   try {
@@ -42,7 +44,7 @@ export async function checkLimit(req, env, path) {
     const [m, d, t] = res.map(r => r.results?.[0]?.n || 0);
     // 지난 날 기록은 가끔 지운다(100번에 1번)
     if (Math.random() < 0.01) await env.DB.prepare('DELETE FROM usage WHERE day < ?1').bind(day).run();
-    if (m > rule.per_min) return json({ error: '요청이 너무 잦습니다. 1분 뒤에 다시 해 주세요.' }, 429);
+    if (rule.per_min && m > rule.per_min) return json({ error: '요청이 너무 잦습니다. 1분 뒤에 다시 해 주세요.' }, 429);
     if (d > rule.per_day) return json({ error: `오늘 쓸 수 있는 횟수(${rule.per_day}번)를 다 썼습니다. 내일 다시 해 주세요.` }, 429);
     if (t > rule.total) return json({ error: '오늘은 이용자가 많아 잠시 멈췄습니다. 내일 다시 해 주세요.' }, 429);
   } catch (e) { /* 세지 못하면 막지 않는다 */ }
