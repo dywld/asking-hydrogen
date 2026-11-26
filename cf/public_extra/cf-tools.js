@@ -537,7 +537,16 @@
           summary.storage = res.combined_m3;
         }
       }
-      const docsRows = f.docs.length ? f.docs.map(d => [d, '직접 준비']) : [['없음', '-']];
+      // 브라우저에서 만든 첨부(3D 부지 검토의 시설 배치도 초안 PDF·DXF). 파이썬판에는 없는 칸이라 없으면 그대로.
+      const att = Array.isArray(req.attach) ? req.attach.slice(0, 4) : [];
+      for (const x of att) {
+        if (!x || typeof x.name !== 'string' || typeof x.b64 !== 'string' || x.b64.length > 12e6) continue;
+        const bin = atob(x.b64), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        files.push([cut(x.name.replace(/[\\/:*?"<>|]/g, ''), 60), u8, cut(pystr(x.desc || ''), 80)]);
+      }
+      const plan = att.some(x => x && /배치도/.test(x.name || ''));
+      const docsRows = f.docs.length ? f.docs.map(d => [d, plan && /도면/.test(d) ? '배치도 초안 들어 있음(05번, 설계사 확인 후 제출)' : '직접 준비']) : [['없음', '-']];
       const blocks = [
         ['title', `${f.title} 제출 꾸러미`],
         ['table', [['사업장', company || '[직접 입력]'], ['신청서', `${f.law} 별지 제${f.no}호서식 — ${f.title}`],

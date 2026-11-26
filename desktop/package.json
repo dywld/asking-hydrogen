@@ -1,17 +1,19 @@
 {
   "name": "hydrogen-permit-desktop",
   "productName": "수소시설 인허가 가이드",
-  "version": "0.1.0",
+  "version": "0.2.4",
   "description": "수소시설 인허가 AI 가이드 윈도우 앱 (화면은 서버에서 불러온다)",
   "main": "main.js",
   "author": "강원대학교 WE-Meet 수소 인허가 팀",
   "license": "UNLICENSED",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis --x64"
+    "dist": "electron-builder --win nsis --x64",
+    "release": "electron-builder --win nsis --x64 --publish never && node tools/release.js"
   },
   "dependencies": {
     "cfb": "1.2.2",
+    "electron-updater": "6.8.11",
     "jszip": "3.10.1"
   },
   "devDependencies": {
@@ -21,15 +23,40 @@
   "build": {
     "appId": "kr.ac.kangwon.hydrogenpermit",
     "productName": "수소시설 인허가 가이드",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "offline.html", "lib/**", "package.json"],
-    "win": { "target": "nsis", "icon": "build/icon.png" },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "mascot.png",
+      "assist-demo.html",
+      "assist-preload.js",
+      "assist-site.js",
+      "assist.html",
+      "update.html",
+      "lib/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "수소시설 인허가 가이드",
       "artifactName": "hydrogen-permit-setup-${version}.${ext}"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "tmdfoqhdl030-ai",
+        "repo": "hydrogen-permit-releases"
+      }
+    ]
   }
 }

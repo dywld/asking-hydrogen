@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="h2a-tour" content="1">
+<title>민원24 (예시) - 고압가스 제조 허가</title>
+<!-- 신청 도우미 시연용 가상 민원 사이트. 실제 정부 사이트가 아니며 아무것도 접수되지 않는다.
+     data-h2a-type / data-h2a-click 는 시연에서 AI가 대신 검색·이동하는 자리 표시다(이 표시는 이 예시 화면에만 있다).
+     웹 시연(cf/public_extra/apply-site.html)은 이 파일을 그대로 복사한 것이다. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--blue:#256ef4;--navy:#063a74;--ink:#1e2124;--ink2:#464c53;--mut:#8a949e;--line:#dfe3e8;--bg:#f4f5f6;--soft:#eef2f7}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;font-family:"Pretendard GOV","Pretendard","Malgun Gothic",system-ui,sans-serif;color:var(--ink);font-size:15px}
+.demo{background:#f4f5f6;color:#464c53;font-size:12.5px;padding:7px 0;border-bottom:1px solid #eceef1}
+.demo div{max-width:1200px;margin:0 auto;padding:0 32px;display:flex;align-items:center;gap:8px}
+.demo b{display:inline-block;background:#ffefd6;color:#b15c00;border-radius:4px;padding:0 6px;font-size:11.5px}
+header{background:#fff;border-bottom:1px solid var(--line)}
+.hin{max-width:1200px;margin:0 auto;display:flex;align-items:center;padding:18px 32px 12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:24px;color:var(--ink);letter-spacing:-.8px}
+.logo i{width:34px;height:34px;border-radius:50%;background:conic-gradient(from 200deg,#256ef4 0 50%,#063a74 50% 100%);display:block;box-shadow:inset 0 0 0 7px #fff;border:2px solid #dfe7f5}
+.logo em{font-style:normal;color:var(--blue)}
+.logo small{font-size:12px;color:var(--mut);font-weight:600;letter-spacing:0;margin-left:2px}
+.util{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-size:12.5px;color:var(--ink2)}
+.util .row{display:flex;gap:16px}.util .row2{display:flex;gap:18px;font-size:13.5px;font-weight:700;color:var(--ink)}
+nav{max-width:1200px;margin:0 auto;display:flex;gap:44px;padding:0 32px;font-size:16px;font-weight:700;color:var(--ink2);height:52px;align-items:center}
+nav span:after{content:" ⌄";font-size:12px;color:var(--mut)}
+.wrap{background:var(--soft);border-top:1px solid var(--line);min-height:calc(100vh - 160px)}
+.page{max-width:1200px;margin:0 auto;padding:26px 32px 60px}
+section{display:none}section.on{display:block}
+.sch{max-width:720px;margin:4px auto 26px;display:flex;align-items:center;background:#fff;border:2px solid #23a6b8;border-radius:40px;padding:5px 5px 5px 24px;box-shadow:0 4px 14px rgba(6,58,116,.08)}
+.sch input{flex:1;border:0;font:inherit;font-size:16px;padding:9px 6px;outline:none;color:var(--ink)}
+.sch .gl{width:40px;height:40px;border:0;background:none;font-size:20px;color:var(--ink2);cursor:pointer}
+.sch .ai{border:0;font:inherit;font-weight:700;color:#fff;border-radius:0 40px 40px 0;padding:11px 28px;background:linear-gradient(90deg,#23a6b8,#256ef4);cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 320px;gap:18px}
+.box{background:#fff;border-radius:16px;padding:20px 22px;border:1px solid #e6eaf0}
+.box.tint{background:#e9f1fb;border-color:#dbe6f5}
+.box h3{margin:0 0 12px;font-size:17px}
+.fav{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.fav div{background:#fff;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.fav div:after{content:"";width:16px;height:16px;border-radius:4px;background:#f6a54a;opacity:.85}
+.side p{margin:0 0 14px;font-size:15px;font-weight:700;line-height:1.5}.side p u{color:var(--blue);text-decoration:none}
+.side ul{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13.5px;color:var(--ink2)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:6px;padding:11px 22px;cursor:pointer;background:var(--blue);color:#fff;font-size:15px}
+.btn.line{background:#fff;color:var(--ink);border:1px solid #c6ccd3}
+.btn.big{padding:13px 34px;font-size:16px}
+.btn.wide{width:100%}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:12px;padding:20px 24px;margin-top:12px}
+.res{display:flex;align-items:center;gap:14px}
+.res b{font-size:17px;color:var(--ink)}.res p{margin:5px 0 0;color:var(--ink2);font-size:14px}
+.res .btn{margin-left:auto}
+.tag{display:inline-block;font-size:12px;font-weight:700;color:var(--blue);background:#ecf2fe;border-radius:4px;padding:2px 7px;margin-right:6px}
+h2{font-size:24px;margin:0 0 4px;letter-spacing:-.5px}.sub{color:var(--ink2);font-size:14.5px;margin:0 0 18px}
+.panel{background:#fff;border-radius:16px;border:1px solid #e6eaf0;padding:28px 32px}
+dl.info{display:grid;grid-template-columns:160px 1fr;margin:0;border-top:2px solid var(--navy)}
+dl.info dt,dl.info dd{margin:0;padding:13px 16px;border-bottom:1px solid var(--line);font-size:15px}
+dl.info dt{background:var(--bg);font-weight:700;color:var(--ink2)}
+.center{text-align:center;margin-top:26px}
+.steps{display:flex;margin:0 0 22px;counter-reset:s}
+.steps span{flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--mut);padding:0 0 12px;border-bottom:3px solid #e1e5ea}
+.steps span.on{color:var(--navy);border-bottom-color:var(--navy)}
+table{width:100%;border-collapse:collapse;border-top:2px solid var(--navy);font-size:15px}
+th{width:200px;background:var(--bg);text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);color:var(--ink2);font-weight:700}
+td{padding:9px 16px;border-bottom:1px solid var(--line)}
+td input[type=text],td input[type=email]{width:100%;border:1px solid #c6ccd3;border-radius:6px;padding:10px 12px;font:inherit;font-size:15px}
+td input:focus{outline:2px solid var(--blue);border-color:var(--blue)}
+.req{color:#de3412;margin-left:3px}
+.login{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px}
+.login button{font:inherit;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;cursor:pointer}
+.login b{display:block;font-size:16px;margin-bottom:5px}.login small{color:var(--mut);font-size:13.5px}
+.wait{display:none;text-align:center;padding:44px 0;color:var(--ink2);font-weight:700}
+.wait.on{display:block}
+.spin{width:40px;height:40px;border:4px solid #dfe7f5;border-top-color:var(--blue);border-radius:50%;margin:0 auto 14px;animation:r .8s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+.sum td{color:var(--ink)}
+footer{background:#fff;border-top:1px solid var(--line);color:var(--mut);font-size:12.5px;padding:22px 32px;text-align:center}
+</style></head><body>
+<div class="demo"><div><b>예시</b>시연용 가상 화면입니다. 실제 정부 누리집이 아니며, 아무것도 접수되지 않습니다.</div></div>
+<header><div class="hin"><div class="logo"><i></i>민원<em>24</em><small>(예시)</small></div>
+<div class="util"><div class="row"><span>For Foreigners</span><span>어린이</span><span>시니어</span><span>화면크기</span></div><div class="row2"><span>AI 도우미</span><span>통합검색</span><span id="who">로그인</span><span>회원가입</span></div></div></div>
+<nav><span>민원서비스</span><span>혜택알리미</span><span>생활</span><span>정책정보</span><span>고객센터</span></nav></header>
+<div class="wrap"><div class="page">
+
+<section id="home" class="on">
+  <div class="sch"><input id="q" type="search" placeholder="안녕하세요. 무엇을 알고 싶으세요?" data-h2a-type="고압가스 제조 허가" data-h2a-label="민원 검색"><button class="gl" id="qb" data-h2a-click="검색 누르기" title="검색">⌕</button><button class="ai" type="button">AI 도우미</button></div>
+  <div class="grid">
+    <div class="box tint"><h3>자주 찾는 서비스</h3><div class="fav"><div>토지(임야)대장</div><div>주민등록등본(초본)</div><div>자동차등록원부</div><div>건축물대장</div><div>가족관계증명서</div><div>여권 재발급</div><div>지방세 납세증명</div><div>납세증명</div></div></div>
+    <div class="box side"><p><u>회원가입</u>하고 아래 서비스를<br>편리하게 이용하세요. (예시)</p><ul><li>민원신청</li><li>전자증명</li><li>혜택알리미</li><li>생활정보</li></ul><button class="btn wide" type="button">로그인</button></div>
+  </div>
+</section>
+<section id="results">
+  <h2>'<span id="qv">고압가스 제조 허가</span>' 검색 결과</h2><p class="sub">민원서비스 3건</p>
+  <div class="card res"><div><span class="tag">민원</span><b>고압가스 제조 허가</b><p>고압가스 제조(충전) 허가를 받으려는 자가 신청 · 산업통상부 · 시·군·구</p></div><button class="btn" id="r1" data-h2a-click="민원 고르기">신청</button></div>
+  <div class="card res"><div><span class="tag">민원</span><b>고압가스 판매·저장소설치 허가</b><p>판매·저장소 설치 허가</p></div><button class="btn line">신청</button></div>
+  <div class="card res"><div><span class="tag">민원</span><b>고압가스제조신고</b><p>냉동제조·충전사업 신고</p></div><button class="btn line">신청</button></div>
+</section>
+
+<section id="guide" class="panel">
+  <h2>고압가스 제조 허가</h2><p class="sub">민원 안내</p>
+  <dl class="info"><dt>처리기관</dt><dd>시·군·구 (예시)</dd><dt>처리기간</dt><dd>20일</dd><dt>수수료</dt><dd>없음</dd><dt>신청방법</dt><dd>인터넷, 방문, 우편</dd><dt>구비서류</dt><dd>사업계획서, 기술검토서, 정관(법인), 사업자등록증</dd></dl>
+  <div class="center"><button class="btn big" id="g1" data-h2a-click="인터넷 신청 열기">인터넷 신청하기</button></div>
+</section>
+
+<section id="login" class="panel">
+  <h2>로그인</h2><p class="sub">본인 확인 방법을 고르세요 (예시: 실제 인증은 하지 않습니다)</p>
+  <div id="lg" class="login">
+    <button id="l1" data-h2a-click="간편인증 (시연용)"><b>간편인증</b><small>네이버·카카오 등</small></button>
+    <button><b>공동인증서</b><small>PC·USB 인증서</small></button>
+    <button><b>금융인증서</b><small>은행 앱 인증서</small></button>
+  </div>
+  <div class="wait" id="lw"><div class="spin"></div>인증하는 중… (시연용)</div>
+</section>
+
+<section id="f1" class="panel">
+  <div class="steps"><span class="on">1. 신청인</span><span>2. 시설</span><span>3. 첨부</span><span>4. 확인·제출</span></div>
+  <h2>고압가스 제조 허가 신청서</h2><p class="sub">신청인 정보를 입력하세요</p>
+  <table>
+    <tr><th>상호(법인명)<span class="req">*</span></th><td><input type="text" name="corp"></td></tr>
+    <tr><th>대표자 성명<span class="req">*</span></th><td><input type="text" name="rep"></td></tr>
+    <tr><th>사업자등록번호<span class="req">*</span></th><td><input type="text" name="brn"></td></tr>
+    <tr><th>주소(본점)</th><td><input type="text" name="addr"></td></tr>
+    <tr><th>전화번호</th><td><input type="text" name="phone"></td></tr>
+    <tr><th>전자우편</th><td><input type="email" name="mail"></td></tr>
+  </table>
+  <div class="center"><button class="btn big" data-h2a-click="다음 (시설)" onclick="show('f2')">다음</button></div>
+</section>
+
+<section id="f2" class="panel">
+  <div class="steps"><span>1. 신청인</span><span class="on">2. 시설</span><span>3. 첨부</span><span>4. 확인·제출</span></div>
+  <h2>고압가스 제조 허가 신청서</h2><p class="sub">시설 정보를 입력하세요</p>
+  <table>
+    <tr><th>사업장 소재지<span class="req">*</span></th><td><input type="text" name="loc"></td></tr>
+    <tr><th>가스의 종류</th><td><input type="text" name="gas"></td></tr>
+    <tr><th>저장능력</th><td><input type="text" name="cap"></td></tr>
+    <tr><th>착공 예정일</th><td><input type="text" name="start" placeholder="예: 2027-03-01"></td></tr>
+  </table>
+  <div class="center"><button class="btn line big" onclick="show('f1')">이전</button> <button class="btn big" data-h2a-click="다음 (첨부)" onclick="show('f3')">다음</button></div>
+</section>
+
+<section id="f3" class="panel">
+  <div class="steps"><span>1. 신청인</span><span>2. 시설</span><span class="on">3. 첨부</span><span>4. 확인·제출</span></div>
+  <h2>고압가스 제조 허가 신청서</h2><p class="sub">구비서류를 첨부하세요</p>
+  <table>
+    <tr><th>사업계획서<span class="req">*</span></th><td><input type="file" name="d1"></td></tr>
+    <tr><th>기술검토서<span class="req">*</span></th><td><input type="file" name="d2"></td></tr>
+    <tr><th>정관(법인)</th><td><input type="file" name="d3"></td></tr>
+    <tr><th>사업자등록증</th><td><input type="file" name="d4"></td></tr>
+  </table>
+  <div class="center"><button class="btn line big" onclick="show('f2')">이전</button> <button class="btn big" data-h2a-click="다음 (확인)" onclick="sum();show('f4')">다음</button></div>
+</section>
+
+<section id="f4" class="panel">
+  <div class="steps"><span>1. 신청인</span><span>2. 시설</span><span>3. 첨부</span><span class="on">4. 확인·제출</span></div>
+  <h2>신청 내용 확인</h2><p class="sub">내용을 확인한 뒤 제출하세요</p>
+  <table class="sum" id="sumt"></table>
+  <div class="center"><button class="btn line big" onclick="show('f3')">이전</button> <button class="btn big" id="sub" onclick="alert('시연용 가상 화면이라 접수되지 않습니다.')">신청서 제출</button></div>
+</section>
+
+</div></div>
+<footer>민원24 (예시) · 수소문 신청 도우미 시연용 화면</footer>
+<script>
+function show(id) {
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === id));
+  window.scrollTo(0, 0);
+}
+document.getElementById('qb').onclick = () => { document.getElementById('qv').textContent = document.getElementById('q').value || '고압가스 제조 허가'; show('results'); };
+document.getElementById('q').onkeydown = e => { if (e.key === 'Enter') document.getElementById('qb').click(); };
+document.getElementById('r1').onclick = () => show('guide');
+document.getElementById('g1').onclick = () => show('login');
+document.getElementById('l1').onclick = () => {
+  // 시연용: 실제 인증 없이 잠깐 기다렸다 넘어간다. 기다리는 동안 data-h2a-busy 로 도우미에게 알린다.
+  document.body.dataset.h2aBusy = '1';
+  document.getElementById('lg').style.display = 'none'; document.getElementById('lw').classList.add('on');
+  setTimeout(() => { document.getElementById('who').textContent = '홍길동 님 (예시)'; delete document.body.dataset.h2aBusy; show('f1'); }, 1300);
+};
+function sum() {
+  const rows = [...document.querySelectorAll('#f1 tr, #f2 tr, #f3 tr')].map(tr => {
+    const i = tr.querySelector('input'); const v = i.type === 'file' ? (i.files[0] ? i.files[0].name : '') : i.value;
+    return '<tr><th>' + tr.querySelector('th').textContent.replace('*', '') + '</th><td>' + (v ? v.replace(/</g, '&lt;') : '<span style="color:#d0283c">비어 있음</span>') + '</td></tr>';
+  });
+  document.getElementById('sumt').innerHTML = rows.join('');
+}
+</script>
+</body></html>

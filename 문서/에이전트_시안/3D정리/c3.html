@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>부지 3D 검토 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--blue:#3182f6;--red:#f04452;--grn:#03b26c;--ink:#191f28;--sub:#4e5968;--mute:#8b95a1;--line:#f2f4f6;--bg:#f4f5f7}
+*{box-sizing:border-box;margin:0}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);background:var(--bg);overflow:hidden;-webkit-font-smoothing:antialiased;width:100vw;height:100vh}
+#view{position:fixed;inset:0}
+button{font-family:inherit;border:0;cursor:pointer}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--line);border-radius:999px;padding:7px 13px;font-size:14px;color:var(--sub);font-weight:600}
+.btn{background:var(--blue);color:#fff;border-radius:16px;height:56px;font-size:17px;font-weight:700;width:100%}
+.btn.ok{background:var(--ink)}
+.btn2{background:var(--line);color:var(--sub);border-radius:16px;height:52px;font-size:16px;font-weight:600;width:100%}
+.seg{position:fixed;top:28px;background:#fff;border-radius:14px;padding:4px;display:flex;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.seg span{padding:9px 16px;border-radius:10px;font-size:15px;font-weight:600;color:var(--mute)}
+.seg .on{background:var(--ink);color:#fff}
+.tag{position:fixed;top:28px;background:var(--ink);color:#fff;border-radius:12px;padding:10px 16px;font-size:16px;font-weight:700;z-index:5}
+.tag small{font-weight:500;opacity:.7;margin-left:8px}
+.osm{position:fixed;right:24px;bottom:16px;font-size:12px;color:var(--mute)}
+.lab{font-family:Pretendard,'Malgun Gothic',sans-serif;font-size:14px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;background:#fff;color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,.14)}
+.lab.r{background:var(--red);color:#fff}.lab.b{background:var(--blue);color:#fff}.lab.g{background:var(--grn);color:#fff}
+.lab.e{background:none;box-shadow:none;font-size:12.5px;color:var(--sub);padding:0;font-weight:600;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff}
+.lab.p{background:#ff8a8a;color:#fff;font-size:12.5px}
+h1{font-size:28px;font-weight:700;line-height:1.36;letter-spacing:-.6px}
+h1 em{font-style:normal;color:var(--red)}h1 em.ok{color:var(--blue)}
+.lead{margin-top:8px;font-size:16px;color:var(--sub)}
+
+/* 1안: 왼쪽 카드 */
+.v1 .card{position:fixed;left:28px;top:28px;bottom:28px;width:372px;background:#fff;border-radius:28px;box-shadow:0 8px 40px rgba(0,0,0,.08);padding:28px 26px 26px;display:flex;flex-direction:column}
+.v1 h1{margin-top:28px}
+.v1 .prob{margin-top:28px;background:#fff4f5;border-radius:18px;padding:18px 18px}
+.v1 .prob.ok{background:#f0f6ff}
+.v1 .prob .t{font-size:15px;color:var(--red);font-weight:700}.v1 .prob.ok .t{color:var(--blue)}
+.v1 .prob .n{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.v1 .prob .n b{font-size:30px;font-weight:800;letter-spacing:-.5px}.v1 .prob .n span{font-size:15px;color:var(--mute)}
+.v1 .pass{margin-top:12px;display:flex;align-items:center;justify-content:space-between;padding:16px 4px;font-size:16px;color:var(--sub);font-weight:600}
+.v1 .pass i{font-style:normal;color:var(--mute);font-weight:500}
+.v1 .sp{flex:1}.v1 .btn2{margin-top:10px}
+
+/* 2안: 아래 시트 */
+.v2 .top{position:fixed;left:28px;top:28px;display:flex;gap:8px}
+.v2 .top .chip{background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.v2 .sheet{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);width:760px;background:#fff;border-radius:28px;box-shadow:0 10px 44px rgba(0,0,0,.10);padding:26px 28px;display:flex;align-items:center;gap:24px}
+.v2 .ic{flex:none;width:56px;height:56px;border-radius:18px;background:#fff0f1;display:grid;place-items:center;font-size:28px;font-weight:800;color:var(--red)}
+.v2 .ic.ok{background:#e8f3ff;color:var(--blue)}
+.v2 .tx{flex:1;min-width:0}
+.v2 h1{font-size:23px}
+.v2 .lead{font-size:15px;margin-top:4px}
+.v2 .act{flex:none;width:200px}
+.v2 .act .btn{height:54px}
+.v2 .stats{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);display:flex;gap:8px}
+.v2 .stats span{background:#fff;border-radius:999px;padding:9px 15px;font-size:14.5px;font-weight:700;box-shadow:0 4px 18px rgba(0,0,0,.08);color:var(--sub)}
+.v2 .stats b{color:var(--ink);margin-left:4px}.v2 .stats .r b{color:var(--red)}
+
+/* 3안: 오른쪽 점수판 */
+.v3 .card{position:fixed;right:28px;top:28px;bottom:28px;width:380px;background:#fff;border-radius:28px;box-shadow:0 8px 40px rgba(0,0,0,.08);padding:28px 26px 26px;display:flex;flex-direction:column}
+.v3 .ring{margin:22px 0 4px;display:flex;align-items:center;gap:18px}
+.v3 .ring .c{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--p)*1%),#eef0f3 0)}
+.v3 .ring .c div{width:74px;height:74px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:24px;font-weight:800}
+.v3 .ring .c small{font-size:14px;color:var(--mute);font-weight:600}
+.v3 h1{font-size:25px}
+.v3 .grid{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.v3 .grid div{border-radius:14px;background:var(--line);padding:13px 14px;font-size:15px;font-weight:600;color:var(--sub);display:flex;justify-content:space-between;align-items:center}
+.v3 .grid div i{font-style:normal;font-weight:800;color:var(--grn)}
+.v3 .grid div.bad{background:#fff0f1;color:var(--red);grid-column:1/-1}
+.v3 .grid div.bad i{color:var(--red)}
+.v3 .sp{flex:1}.v3 .btn2{margin-top:10px}
+.v3 .left{position:fixed;left:28px;top:28px}.v3 .left .chip{background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+</style>
+<script type="importmap">{"imports":{"three":"/vendor/three/three.module.min.js"}}</script>
+</head><body>
+<div id="view"></div>
+<div id="ui"></div>
+<div class="osm">지도 © OpenStreetMap</div>
+<script type="module">
+import * as THREE from 'three';
+import { CSS2DRenderer, CSS2DObject } from '/vendor/three/CSS2DRenderer.js';
+const Q = new URLSearchParams(location.search), VAR = Q.get('v') || '1', OK = Q.get('st') === 'ok';
+const st = await fetch('/_mockc/' + (OK ? 'st_ok' : 'st_bad') + '.json').then(r => r.json());
+const {S, L, site} = st, M = st.m.lines, IN = st.m.inputs;
+const row = id => st.rows.find(r => r.id === id) || {};
+const AUTO = ['prot', 'wall30', 'boundary', 'road', 'rail', 'sc_dist', 'sc_count'];
+const rows = st.rows.filter(r => AUTO.includes(r.id) && r.verdict !== '해당 없음');
+const bad = rows.filter(r => r.verdict === '부적합'), nPass = rows.length - bad.length;
+const SHORT = {prot: '보호시설', wall30: '방호벽', boundary: '부지 경계', road: '도로', rail: '철도', sc_dist: '저장↔충전', sc_count: '저장 대수'};
+const f1 = v => (Math.round(v * 10) / 10).toString();
+const sc = M.sc.d, need = 8, more = Math.max(0, need - sc);
+const p1 = Math.round(M.p1.d);
+document.body.className = 'v' + VAR;
+const TAG = {'1': ['1안', '왼쪽 카드 한 장'], '2': ['2안', '지도 꽉 + 아래 한 줄'], '3': ['3안', '점수판 + 항목 칸']};
+
+// ------------------------------------------------ 화면 글(토스처럼 짧게)
+const head = OK ? `이 자리에<br><em class="ok">설치할 수 있어요</em>` : `거의 다 됐어요<br><em>1곳만 고치면 돼요</em>`;
+const addr = '서울 강동구 천호대로 · 저장식 3,000㎥';
+let html = '';
+if (VAR === '1') html = `<div class="card">
+  <span class="chip">${addr}</span>
+  <h1>${head}</h1>
+  <div class="lead">${OK ? `안전거리 ${rows.length}가지 모두 통과` : `안전거리 ${rows.length}가지 중 ${nPass}가지 통과`}</div>
+  ${OK ? `<div class="prob ok"><div class="t">저장설비 ↔ 충전기</div><div class="n"><b>${f1(sc)}m</b><span>기준 ${need}m 이상</span></div></div>`
+       : `<div class="prob"><div class="t">저장설비 ↔ 충전기</div><div class="n"><b>${f1(sc)}m</b><span>기준 ${need}m 이상</span></div></div>`}
+  <div class="pass"><span>통과한 ${nPass}가지</span><i>보기 ›</i></div>
+  <div class="sp"></div>
+  ${OK ? `<button class="btn ok">신청서에 넣기</button><button class="btn2">배치도 다시 올리기</button>` : `<button class="btn">AI에게 고쳐 달라고 하기</button><button class="btn2">배치도 다시 올리기</button>`}
+</div><div class="seg" style="right:28px"><span class="on">부지</span><span>주변</span><span>위에서</span></div>`;
+if (VAR === '2') html = `<div class="top"><span class="chip">${addr}</span></div>
+<div class="seg" style="right:28px"><span class="on">부지</span><span>주변</span><span>위에서</span></div>
+<div class="stats"><span>통과<b>${nPass}</b></span>${OK ? '' : `<span class="r">고칠 곳<b>${bad.length}</b></span>`}</div>
+<div class="sheet"><div class="ic ${OK ? 'ok' : ''}">${OK ? '✓' : '!'}</div>
+  <div class="tx"><h1>${OK ? '이 자리에 설치할 수 있어요' : `저장설비를 ${f1(more)}m만 더 띄우면 돼요`}</h1><div class="lead">${OK ? `안전거리 ${rows.length}가지 모두 통과` : `충전기와 ${f1(sc)}m · 기준 ${need}m`}</div></div>
+  <div class="act"><button class="btn ${OK ? 'ok' : ''}">${OK ? '신청서에 넣기' : 'AI가 고치기'}</button></div></div>`;
+if (VAR === '3') html = `<div class="left"><span class="chip">${addr}</span></div>
+<div class="seg" style="left:50%;transform:translateX(calc(-50% - 200px))"><span class="on">부지</span><span>주변</span><span>위에서</span></div>
+<div class="card">
+  <div class="ring"><div class="c" style="--p:${nPass / rows.length * 100};--c:${OK ? 'var(--blue)' : 'var(--red)'}"><div><span>${nPass}<small>/${rows.length}</small></span></div></div>
+  <h1>${OK ? '모두<br>통과했어요' : '1곳만<br>고치면 돼요'}</h1></div>
+  <div class="grid">${rows.slice().sort((a, b) => (b.verdict === '부적합') - (a.verdict === '부적합')).map(r => r.verdict === '부적합'
+    ? `<div class="bad">${SHORT[r.id]} ${f1(sc)}m<i>기준 ${need}m</i></div>` : `<div>${SHORT[r.id]}<i>✓</i></div>`).join('')}</div>
+  <div class="sp"></div>
+  ${OK ? `<button class="btn ok">신청서에 넣기</button>` : `<button class="btn">AI가 고치기</button>`}<button class="btn2">배치도 다시 올리기</button>
+</div>`;
+document.getElementById('ui').innerHTML = html + `<div class="tag" style="${VAR === '1' ? 'left:428px' : VAR === '2' ? 'left:50%;transform:translateX(-50%)' : 'left:28px;top:84px'}">${TAG[VAR][0]}<small>${TAG[VAR][1]}</small></div>`;
+
+// ------------------------------------------------ 3D: 납작한 지도 + 우리 부지만 입체
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true}); renderer.setPixelRatio(1.5); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+view.appendChild(renderer.domElement);
+const lab = new CSS2DRenderer(); lab.domElement.style.cssText = 'position:absolute;inset:0;pointer-events:none'; view.appendChild(lab.domElement);
+const scene = new THREE.Scene(), BG = 0xf4f5f7; scene.background = new THREE.Color(BG); scene.fog = new THREE.Fog(BG, 320, 760);
+const camera = new THREE.PerspectiveCamera(30, 1, 1, 4000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd5dbe3, 2.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.15); sun.position.set(-120, 220, 140); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, {left: -160, right: 160, top: 160, bottom: -160, far: 800}); sun.shadow.bias = -0.0005; scene.add(sun);
+const V = (x, y, h = 0) => new THREE.Vector3(x, h, -y);
+const local2w = (x, y) => { const a = site.ang * Math.PI / 180; return [site.cx + x * Math.cos(a) - y * Math.sin(a), site.cy + x * Math.sin(a) + y * Math.cos(a)]; };
+const rect = (cx, cy, w, d) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => local2w(cx + sx * w / 2, cy + sy * d / 2));
+const shape = pts => { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); return s; };
+const cen = pts => pts.reduce((s, p) => [s[0] + p[0] / pts.length, s[1] + p[1] / pts.length], [0, 0]);
+function flat(pts, color, h) { const g = new THREE.ShapeGeometry(shape(pts)); g.rotateX(-Math.PI / 2); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color})); m.position.y = h; m.receiveShadow = true; return m; }
+function ribbon(pts, w, color, h) {
+  const pos = [];
+  for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l * w / 2, ny = dx / l * w / 2;
+    const q = [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]].map(([x, y]) => [x, h, -y]); pos.push(...q[0], ...q[1], ...q[2], ...q[0], ...q[2], ...q[3]); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color, side: THREE.DoubleSide})); m.receiveShadow = true; return m;
+}
+function solid(pts, h, color, edge) {
+  const g = new THREE.ExtrudeGeometry(shape(pts), {depth: h, bevelEnabled: false}); g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color})); m.castShadow = m.receiveShadow = true;
+  const grp = new THREE.Group(); grp.add(m);
+  if (edge) grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), new THREE.LineBasicMaterial({color: edge, transparent: true, opacity: .9})));
+  return grp;
+}
+function label(text, cls, x, y, h) { const d = document.createElement('div'); d.className = 'lab ' + cls; d.textContent = text; const o = new CSS2DObject(d); o.position.copy(V(x, y, h)); scene.add(o); }
+function line(a, b, color, h, dashed) {
+  const g = new THREE.BufferGeometry().setFromPoints([V(a[0], a[1], h), V(b[0], b[1], h)]);
+  const l = new THREE.Line(g, dashed ? new THREE.LineDashedMaterial({color, dashSize: 2.5, gapSize: 2}) : new THREE.LineBasicMaterial({color})); if (dashed) l.computeLineDistances(); scene.add(l);
+  for (const p of [a, b]) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12), new THREE.MeshBasicMaterial({color})); s.position.copy(V(p[0], p[1], h)); scene.add(s); }
+}
+
+{ const gm = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshLambertMaterial({color: BG})); gm.rotation.x = -Math.PI / 2; gm.receiveShadow = true; scene.add(gm); }
+for (const z of S.zones) if (/park|pitch|grass|garden/.test(z.kind) || z.cls === 1) scene.add(flat(z.pts, z.cls === 1 ? 0xffe8e8 : 0xe3f1e0, 0.03));
+for (const r of S.roads) { if (/foot|cycle|path|steps|pedestrian|track/.test(r.kind)) continue; scene.add(ribbon(r.pts, r.w, 0xffffff, r.road_law ? 0.08 : 0.06)); }
+for (const r of S.rails) scene.add(ribbon(r.pts, 2.5, 0xb0b8c1, 0.1));
+const near = b => Math.hypot(cen(b.pts)[0] - site.cx, cen(b.pts)[1] - site.cy);
+const HOT = new Set(S.buildings.filter(b => b.cls > 0).sort((x, y) => near(x) - near(y)).slice(0, 4));
+for (const b of S.buildings) { const c = HOT.has(b) ? b.cls : 0; scene.add(solid(b.pts, Math.min(3.5, 1 + b.h * 0.05), c === 1 ? 0xff9a9a : c === 2 ? 0xffd27a : 0xe1e5ea, 0xffffff)); }
+
+// 우리 부지
+scene.add(flat(rect(0, 0, site.w, site.d), 0xe8f3ff, 0.12));
+scene.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(rect(0, 0, site.w, site.d).map(p => V(p[0], p[1], 0.18))), new THREE.LineBasicMaterial({color: 0x3182f6})));
+const EC = {process: 0xffd43b, compressed: 0xff922b, storage: 0x4dabf7, charger: 0x51cf66, building: 0xffffff, other: 0xced4da};
+const EH = {process: 3, compressed: 3.5, storage: 3.2, charger: 2.4, building: 4.5, other: 2};
+const NM = n => /튜브|저장/.test(n) ? '저장설비' : /충전기/.test(n) ? '' : n.replace(/\(.*\)/, '');
+for (const it of L.items) {
+  scene.add(solid(rect(it.cx, it.cy, it.w, it.d), EH[it.type] || 2, EC[it.type] || 0xced4da, 0xffffff));
+  const nm = NM(it.name); if (nm && ['storage', 'compressed', 'building'].includes(it.type) && !(OK && it.type === 'storage')) { const p = local2w(it.cx, it.cy); label(nm, 'e', p[0], p[1], (EH[it.type] || 2) + 3.6); }
+}
+for (const w of L.walls || []) {
+  const a = local2w(w.x1, w.y1), b = local2w(w.x2, w.y2), len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const box = new THREE.Mesh(new THREE.BoxGeometry(len, 2, 0.3), new THREE.MeshLambertMaterial({color: 0x8b95a1})); box.position.copy(V((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 1)); box.rotation.y = Math.atan2(b[1] - a[1], b[0] - a[0]); box.castShadow = true; scene.add(box);
+}
+// 선은 둘만: 문제(또는 고친) 거리 하나 + 가장 가까운 보호시설 방향
+{ const s = M.sc, col = OK ? 0x3182f6 : 0xf04452;
+  scene.add(ribbon([s.a, s.b], 0.7, col, 0.22));
+  for (const p of [s.a, s.b]) { const d = new THREE.Mesh(new THREE.CircleGeometry(0.7, 24), new THREE.MeshBasicMaterial({color: col})); d.rotation.x = -Math.PI / 2; d.position.copy(V(p[0], p[1], 0.24)); scene.add(d); }
+  const st = L.items.find(x => x.type === 'storage');
+  if (st) { const o = rect(st.cx, st.cy, st.w + 1.6, st.d + 1.6); scene.add(ribbon([...o, o[0]], 0.45, col, 0.2)); scene.add(flat(o, OK ? 0xd6e7ff : 0xffdcdf, 0.14)); }
+  const an0 = site.ang * Math.PI / 180, fy = [-Math.sin(an0), Math.cos(an0)], mx = (s.a[0] + s.b[0]) / 2 - fy[0] * 5, my = (s.a[1] + s.b[1]) / 2 - fy[1] * 5;
+  label(OK ? `${f1(s.d)}m ✓` : `${f1(s.d)}m`, OK ? 'b' : 'r', mx, my, 0.3); }
+{ const a = M.p1.a, b = M.p1.b, d = M.p1.d, k = Math.min(1, 34 / d), e = [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+  const g = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(a[0], a[1], 1.4), V(e[0], e[1], 1.4)]), new THREE.LineDashedMaterial({color: 0x8b95a1, dashSize: 2, gapSize: 1.6})); g.computeLineDistances(); scene.add(g);
+  label(`아파트까지 ${Math.round(d)}m ›`, '', e[0], e[1], 2); }
+
+// 카메라: 도로 쪽에서 비스듬히, 시안마다 카드 자리만큼 비켜서
+const an = site.ang * Math.PI / 180, fw = [-Math.sin(an), Math.cos(an)];
+const tgt = V(site.cx + fw[0] * 2, site.cy + fw[1] * 2, 0);
+const R = VAR === '2' ? 128 : 118, cp = [site.cx - fw[0] * R + Math.cos(an) * R * 0.42, site.cy - fw[1] * R + Math.sin(an) * R * 0.42];
+camera.position.copy(V(cp[0], cp[1], R * 0.95)); camera.lookAt(tgt);
+const OFF = {'1': [-200, 0], '2': [0, 70], '3': [200, 0]}[VAR];
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); lab.setSize(w, h); camera.aspect = w / h; camera.setViewOffset(w, h, OFF[0], OFF[1], w, h); camera.updateProjectionMatrix(); }
+resize(); addEventListener('resize', resize);
+let n = 0; (function loop() { renderer.render(scene, camera); lab.render(scene, camera); if (++n === 10) document.body.dataset.ready = '1'; requestAnimationFrame(loop); })();
+</script>
+</body></html>

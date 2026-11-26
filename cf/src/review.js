@@ -1,4 +1,5 @@
 // /api/review/* : 공사 쪽 서류 자동 검토(review.py 를 옮김). 접수함·첨부파일은 D1.
+import { llmFetch } from './llm.js';            // OPENAI_API_KEY 가 있으면 ChatGPT 로
 import MISC from './misc_data.json';
 
 const FORMS = MISC.forms;
@@ -239,7 +240,7 @@ async function gemini(env, parts, maxTok) {
   const body = JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0, maxOutputTokens: maxTok, responseMimeType: 'application/json' } });
   for (const model of CHAIN) {
     try {
-      const r = await fetch(`${API}/${model}:generateContent?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const r = await llmFetch(`${API}/${model}:generateContent?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body, signal: AbortSignal.timeout(12000) });
       if (!r.ok) continue;
       const d = await r.json();

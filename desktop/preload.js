@@ -27,10 +27,19 @@ if (ok) {
       show: p => call('file:show', p),
       save: (name, b64) => call('file:save', name, b64),
     },
+    assist: {
+      open: data => call('assist:open', data),
+    },
     review: {
       pick: () => call('review:pick'),
       drop: file => call('review:drop', webUtils.getPathForFile(file)),
       read: rels => call('review:read', rels),
+    },
+    update: {
+      go: () => call('upd:go'),
+      later: () => call('upd:later'),
+      onProgress: fn => ipcRenderer.on('upd:progress', (e, p) => fn(p)),
+      onState: fn => ipcRenderer.on('upd:state', (e, s) => fn(s)),
     },
     on: (name, fn) => {
       const ch = { downloaded: 'h2:downloaded', noticeClick: 'h2:notice-click' }[name];

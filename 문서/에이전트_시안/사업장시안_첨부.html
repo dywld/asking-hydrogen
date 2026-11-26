@@ -1,0 +1,123 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>내 사업장 PC 시안</title><style>
+:root{--bg:#fff;--surface:#f4f6fa;--line:#e8ebf0;--ink:#191f28;--ink-2:#4e5968;--muted:#8b95a1;--accent:#3182f6;--accent-soft:#e8f3ff;--ok:#1c7c4a;--ok-soft:#e6f5ec;--warn:#c26b00;--warn-soft:#fff4e0}
+*{box-sizing:border-box}
+body{margin:0;background:#dfe3e8;font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif;color:var(--ink)}
+.wrap{display:flex;gap:28px;padding:28px;align-items:flex-start}
+.col{width:440px}
+.tag{display:inline-block;font-weight:700;font-size:14px;color:#fff;background:var(--ink);border-radius:8px;padding:4px 10px;margin-bottom:10px}
+.tag small{font-weight:400;opacity:.8;margin-left:6px}
+.dr{background:var(--bg);border-radius:16px;box-shadow:0 6px 24px rgba(20,30,50,.12);overflow:hidden;min-height:760px;display:flex;flex-direction:column}
+.hd{display:flex;align-items:center;padding:18px 20px 6px}
+.hd h2{margin:0;font-size:19px;font-weight:700}
+.hd .sp{flex:1}
+.ib{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink-2);font-size:18px}
+.bd{padding:6px 20px 20px;flex:1}
+.cap{font-size:12.5px;color:var(--muted);margin:10px 2px 0;line-height:1.5}
+/* 공통 조각 */
+.name{font-size:22px;font-weight:800;margin:6px 0 4px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:5px 11px}
+.chip.gray{color:var(--ink-2);background:var(--surface)}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;background:var(--accent);color:#fff;text-align:center}
+.btn.sub{background:var(--surface);color:var(--ink)}
+.row{display:flex;align-items:center;gap:12px;padding:15px 2px;border-bottom:1px solid var(--line);font-size:15px}
+.row:last-child{border-bottom:0}
+.row .ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--surface);font-size:17px}
+.row .t{flex:1}
+.row .t small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.row .v{color:var(--muted);font-size:14px}
+.row .go{color:#b0b8c1;font-size:18px}
+.sec{font-size:13px;font-weight:700;color:var(--muted);margin:22px 2px 4px}
+.next{background:var(--surface);border-radius:14px;padding:16px;margin:16px 0}
+.next .l{font-size:12.5px;color:var(--muted);font-weight:600}
+.next .m{font-size:16.5px;font-weight:700;margin:4px 0 12px}
+/* B 탭 */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:10px -20px 0;padding:0 20px}
+.tabs span{padding:11px 10px;font-size:14.5px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent}
+.tabs span.on{color:var(--ink);border-color:var(--ink)}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:30px 10px 18px;line-height:1.6}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.input{border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14.5px;color:var(--muted);background:#fff}
+/* C 숫자 타일 */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.tile{background:var(--surface);border-radius:14px;padding:14px 12px}
+.tile .n{font-size:24px;font-weight:800}
+.tile .k{font-size:12.5px;color:var(--muted);margin-top:2px}
+.steps{margin:6px 0 0;padding:0;list-style:none}
+.steps li{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.steps .dot{width:22px;height:22px;border-radius:50%;border:2px solid #d1d6db;flex:none;margin-top:1px;display:grid;place-items:center;font-size:12px;color:#fff}
+.steps .dot.done{background:var(--accent);border-color:var(--accent)}
+.steps .dot.now{border-color:var(--accent)}
+.steps b{font-size:15px}
+.steps small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.menu{position:absolute;right:16px;top:52px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(20,30,50,.18);padding:6px;font-size:14px;width:170px}
+.menu div{padding:9px 12px;border-radius:8px}
+.menu div.red{color:#e5303f}
+.rel{position:relative}
+
+body{background:#fff}
+.win{width:1600px;height:940px;display:flex;position:relative;overflow:hidden;background:#fff}
+.side{width:280px;background:#f7f8fa;border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:4px;font-size:15px;color:var(--ink)}
+.side .logo{font-size:20px;font-weight:800;margin:0 8px 20px;display:flex;gap:8px;align-items:center}
+.side .logo i{width:30px;height:30px;border-radius:50%;background:var(--accent);display:inline-block}
+.side .it{padding:11px 10px;border-radius:10px;display:flex;gap:10px;align-items:center}
+.side .it.on{background:#eaf2ff;color:var(--accent);font-weight:700}
+.side .h{font-size:12.5px;color:var(--muted);margin:18px 10px 4px}
+.side .old{padding:9px 10px;color:var(--ink-2);font-size:14px}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--ink-2)}
+.main h1{font-size:28px;color:var(--ink);margin:0}
+.main .box{width:620px;border:1px solid var(--line);border-radius:18px;padding:18px 20px;color:var(--muted);font-size:15px}
+.dim{position:absolute;inset:0 0 0 280px;background:rgba(20,28,40,.28)}
+.pnl{position:absolute;top:0;right:0;bottom:0;width:600px;background:#fff;box-shadow:-8px 0 30px rgba(20,30,50,.15);display:flex;flex-direction:column}
+.pnl .dr{box-shadow:none;border-radius:0;min-height:0;height:100%}
+.pnl .hd{padding:26px 32px 8px}.pnl .bd{padding:8px 32px 28px}
+.pnl .menu{right:28px;top:62px}
+.lbl{position:absolute;left:300px;top:18px;z-index:9;font-weight:700;font-size:15px;color:#fff;background:var(--ink);border-radius:8px;padding:6px 12px}
+.lbl small{font-weight:400;opacity:.85;margin-left:6px}
+.win .tabs{margin:12px -32px 0;padding:0 32px}
+</style></head><body><style>
+.drop{border:2px dashed #c9d3df;border-radius:16px;background:#f8fafd;text-align:center;padding:26px 16px;margin:16px 0 6px}
+.drop .big{font-size:30px}
+.drop b{display:block;font-size:16px;margin:6px 0 4px}
+.drop span{font-size:13px;color:var(--muted)}
+.drop .pick{display:inline-block;margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 16px;font-size:14px;font-weight:600;color:var(--ink)}
+.prog{display:flex;align-items:center;gap:10px;margin:18px 2px 6px;font-size:14px;font-weight:700}
+.prog .bar{flex:1;height:8px;background:var(--surface);border-radius:8px;overflow:hidden}
+.prog .bar i{display:block;height:100%;width:50%;background:var(--accent);border-radius:8px}
+.prog small{color:var(--muted);font-weight:500}
+.doc{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--line)}
+.doc .st{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;flex:none}
+.doc .st.ok{background:var(--accent);color:#fff}.doc .st.no{border:2px solid #d1d6db}
+.doc .t{flex:1;font-size:15px}.doc .t small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.doc .t small.ai{color:var(--ok)}
+.doc .a{font-size:13.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:7px 12px}
+.doc .a.g{color:var(--ink-2);background:var(--surface)}
+.req{font-size:11.5px;color:#e5303f;font-weight:700;margin-left:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.slot{border-radius:14px;padding:16px;min-height:132px;display:flex;flex-direction:column}
+.slot.has{background:#fff;border:1px solid var(--line);box-shadow:0 2px 8px rgba(20,30,50,.05)}
+.slot.empty{border:2px dashed #cfd7e2;background:#fafbfd;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px}
+.slot.empty .p{width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:20px;color:var(--accent);margin-bottom:8px}
+.slot .fi{width:38px;height:46px;border-radius:6px;background:#eef3fb;display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--accent);margin-bottom:10px}
+.slot b{font-size:14.5px}.slot small{font-size:12px;color:var(--muted);margin-top:3px}
+.slot .ok{margin-top:auto;font-size:12px;color:var(--ok);font-weight:600}
+.slot.empty b{color:var(--ink);font-size:14px}
+.att{border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:16px}
+.att .top{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14.5px}
+.att .clip{width:38px;height:38px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.fc{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:10px;padding:8px 10px;font-size:13.5px}
+.fc .e{font-size:10.5px;font-weight:800;color:#fff;background:#e5484d;border-radius:4px;padding:2px 5px}
+.fc .e.png{background:#3182f6}
+.fc small{color:var(--muted)}
+.aibox{background:var(--ok-soft);border-radius:14px;padding:14px 16px;margin-top:14px;font-size:14px;line-height:1.6}
+.aibox b{color:var(--ok)}
+.miss{margin-top:16px}
+.miss .h{font-size:13px;font-weight:700;color:var(--muted);margin:0 2px 6px}
+.ms{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--line);background:#fff;border-radius:12px;margin-bottom:8px;font-size:14.5px}
+.ms.need{border-color:#ffd9dc;background:#fff7f8}
+.ms span{font-size:13px;color:var(--muted);font-weight:600}
+.ms.need span{color:#e5303f}
+</style><div class="win" id="w0"><div class="side"><div class="logo"><i></i>수소문</div><div class="it">＋ 새 대화</div><div class="it">▦ 안전거리 계산기</div><div class="it on">▢ 강원 수소충전소</div><div class="it">☑ 서류 검토</div><div class="h">지난 대화</div><div class="old">수전해로 수소를 …</div><div class="old">안녕하세요</div><div class="old">수소충전소 완성…</div><div class="old">제조식 수소충전…</div></div>
+<div class="main"><h1>한빛수소 님, 무엇이든 물어보세요</h1><div>서울 강동구 수소충전소 기준으로 법령을 찾아 답합니다</div><div class="box">수소 인허가, 무엇이든 물어보세요</div></div><div class="dim"></div><div class="lbl">A안 <small>끌어놓기 칸 + 필요한 서류 체크리스트</small></div><div class="pnl"><div class="dr"><div class="hd"><h2>내 사업장</h2><span class="sp"></span><span class="ib">⋯</span><span class="ib">✕</span></div><div class="bd"><div class="name">강원 수소충전소</div><span class="chip">수소충전소 · 서울 강동구</span><div class="drop"><div class="big">📎</div><b>서류를 여기에 끌어다 놓으세요</b><span>PDF·사진 모두 돼요. AI가 읽고 어떤 서류인지 알아서 맞춰요</span><br><span class="pick">파일 고르기</span></div><div class="prog">필요한 서류<div class="bar"><i></i></div><small>6개 중 3개</small></div><div class="doc"><span class="st ok">✓</span><div class="t">사업자등록증<span class="req">필수</span><small class="ai">AI가 회사명·대표·번호를 채웠어요</small></div><span class="a g">바꾸기</span></div><div class="doc"><span class="st ok">✓</span><div class="t">법인 등기사항증명서<span class="req">필수</span><small class="">등기.pdf · 11월 24일</small></div><span class="a g">바꾸기</span></div><div class="doc"><span class="st ok">✓</span><div class="t">안전관리자 자격증<span class="req">필수</span><small class="">자격증.png</small></div><span class="a g">바꾸기</span></div><div class="doc"><span class="st no"></span><div class="t">배치도<span class="req">필수</span><small class="">설비 위치와 거리가 보이는 도면</small></div><span class="a">첨부</span></div><div class="doc"><span class="st no"></span><div class="t">고압가스 제조허가증<small class="">이미 허가가 있으면</small></div><span class="a">첨부</span></div><div class="doc"><span class="st no"></span><div class="t">토지 사용 승낙서<small class="">남의 땅이면</small></div><span class="a">첨부</span></div></div></div></div></div><div class="win" id="w1"><div class="side"><div class="logo"><i></i>수소문</div><div class="it">＋ 새 대화</div><div class="it">▦ 안전거리 계산기</div><div class="it on">▢ 강원 수소충전소</div><div class="it">☑ 서류 검토</div><div class="h">지난 대화</div><div class="old">수전해로 수소를 …</div><div class="old">안녕하세요</div><div class="old">수소충전소 완성…</div><div class="old">제조식 수소충전…</div></div>
+<div class="main"><h1>한빛수소 님, 무엇이든 물어보세요</h1><div>서울 강동구 수소충전소 기준으로 법령을 찾아 답합니다</div><div class="box">수소 인허가, 무엇이든 물어보세요</div></div><div class="dim"></div><div class="lbl">B안 <small>서류 자리마다 하나씩 꽂기</small></div><div class="pnl"><div class="dr"><div class="hd"><h2>내 사업장</h2><span class="sp"></span><span class="ib">⋯</span><span class="ib">✕</span></div><div class="bd"><div class="name">강원 수소충전소</div><span class="chip">수소충전소 · 서울 강동구</span><div class="prog">서류 모으기<div class="bar"><i></i></div><small>6개 중 3개</small></div><div class="grid"><div class="slot has"><div class="fi">PDF</div><b>사업자등록증</b><small>사업자등록증.pdf</small><span class="ok">✓ AI 확인 · 회사 정보 채움</span></div><div class="slot has"><div class="fi">PDF</div><b>법인 등기사항증명서</b><small>등기.pdf</small><span class="ok">✓ AI 확인 · 본점 주소 일치</span></div><div class="slot has"><div class="fi">PNG</div><b>안전관리자 자격증</b><small>자격증.png</small><span class="ok">✓ AI 확인 · 가스산업기사</span></div><div class="slot empty"><div class="p">＋</div><b>배치도 (필수)</b>끌어놓거나 눌러서 첨부</div><div class="slot empty"><div class="p">＋</div><b>고압가스 제조허가증</b>있으면 첨부</div><div class="slot empty"><div class="p">＋</div><b>토지 사용 승낙서</b>남의 땅이면 첨부</div></div></div></div></div></div><div class="win" id="w2"><div class="side"><div class="logo"><i></i>수소문</div><div class="it">＋ 새 대화</div><div class="it">▦ 안전거리 계산기</div><div class="it on">▢ 강원 수소충전소</div><div class="it">☑ 서류 검토</div><div class="h">지난 대화</div><div class="old">수전해로 수소를 …</div><div class="old">안녕하세요</div><div class="old">수소충전소 완성…</div><div class="old">제조식 수소충전…</div></div>
+<div class="main"><h1>한빛수소 님, 무엇이든 물어보세요</h1><div>서울 강동구 수소충전소 기준으로 법령을 찾아 답합니다</div><div class="box">수소 인허가, 무엇이든 물어보세요</div></div><div class="dim"></div><div class="lbl">C안 <small>메일 첨부처럼 한꺼번에 + AI가 나눠 줌</small></div><div class="pnl"><div class="dr"><div class="hd"><h2>내 사업장</h2><span class="sp"></span><span class="ib">⋯</span><span class="ib">✕</span></div><div class="bd"><div class="name">강원 수소충전소</div><span class="chip">수소충전소 · 서울 강동구</span><div class="att"><div class="top"><span class="clip">📎</span>서류를 끌어다 놓거나 눌러서 한꺼번에 첨부하세요</div><div class="chips"><div class="fc"><span class="e">PDF</span>사업자등록증.pdf <small>✕</small></div><div class="fc"><span class="e">PDF</span>등기.pdf <small>✕</small></div><div class="fc"><span class="e png">PNG</span>자격증.png <small>✕</small></div></div></div><div class="aibox"><b>AI가 3개를 읽었어요.</b><br>사업자등록증 · 법인 등기 · 안전관리자 자격증으로 맞췄고, 회사 정보 7칸을 채웠어요.</div><div class="miss"><div class="h">아직 없는 서류</div><div class="ms need">배치도 <span>필수</span></div><div class="ms">고압가스 제조허가증 <span>있으면</span></div><div class="ms">토지 사용 승낙서 <span>남의 땅이면</span></div></div><div class="btn" style="margin-top:16px">AI로 전체 서류 검토하기</div></div></div></div></div></body></html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>신청 도우미</title>
+<style>
+:root{--surface:#f4f6fa;--line:#e5e8ec;--ink:#191f28;--ink-2:#4e5968;--muted:#8b95a1;--accent:#3182f6;--accent-soft:#e8f3ff;--ok:#12a36b;--warn:#e07b00;--warn-soft:#fff4e0}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif;color:var(--ink);background:#eef1f5;overflow:hidden}
+.bar{position:fixed;left:0;top:0;right:400px;height:52px;display:flex;align-items:center;gap:8px;padding:0 12px;background:#fff;border-bottom:1px solid var(--line)}
+.bar button{font:inherit;border:0;background:var(--surface);border-radius:8px;width:34px;height:34px;cursor:pointer;color:var(--ink-2)}
+.bar form{flex:1;display:flex}
+.bar input{flex:1;font:inherit;font-size:13.5px;border:0;background:var(--surface);border-radius:10px;padding:9px 14px;color:var(--ink-2);outline:none}
+.bar input:focus{outline:2px solid var(--accent-soft)}
+.ai{font-size:12.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:6px 12px;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.ai.idle{color:var(--ink-2);background:var(--surface)}
+.dots{display:inline-flex;gap:3px}.dots i{width:6px;height:6px;border-radius:50%;background:currentColor;animation:d 1s ease-in-out infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+.ai.idle .dots i{animation:none;opacity:.4}
+@keyframes d{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(-4px);opacity:1}}
+.ag{position:fixed;top:0;right:0;bottom:0;width:400px;background:#fff;border-left:1px solid var(--line);display:flex;flex-direction:column}
+.hd{padding:20px 22px 14px;border-bottom:1px solid var(--line)}
+.hd b{font-size:17px}.hd small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+.bd{padding:16px 22px;flex:1;overflow-y:auto}
+.prog{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;margin-bottom:12px}
+.prog .b{flex:1;height:7px;background:var(--surface);border-radius:7px;overflow:hidden}
+.prog .b i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3182f6,#7b61ff);border-radius:7px;transition:width .4s}
+.prog small{color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.st{list-style:none;margin:0;padding:0}
+.st li{display:flex;gap:10px;padding:9px 0;font-size:14px;align-items:flex-start;color:#b0b8c1}
+.st .d{width:20px;height:20px;border-radius:50%;flex:none;border:2px solid #d1d6db;display:grid;place-items:center;font-size:11px;color:#fff;margin-top:1px}
+.st li.done{color:var(--ink-2)}.st li.done .d{background:var(--ok);border-color:var(--ok)}
+.st li.now{color:var(--ink);font-weight:700}.st li.now .d{border-color:var(--accent);border-top-color:transparent;animation:s .7s linear infinite}
+.st li.me{color:var(--ink)}.st li.me .d{border-color:var(--warn);background:var(--warn)}
+.st li.skip{color:#b0b8c1;text-decoration:line-through}
+.st li small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:1px}
+@keyframes s{to{transform:rotate(360deg)}}
+.cur{font-size:12.5px;color:var(--accent);background:var(--accent-soft);border-radius:10px;padding:8px 10px;margin:4px 0 10px;min-height:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card{border-radius:14px;padding:14px;margin-top:12px;font-size:13px;line-height:1.55;color:var(--ink-2)}
+.card b{font-size:14px;display:block;margin-bottom:4px}
+.card.stop{border:1.5px solid #ffd8a8;background:var(--warn-soft)}.card.stop b{color:var(--warn)}
+.card.info{background:var(--surface)}
+.card ul{margin:6px 0 0;padding-left:18px}
+.btns{padding:14px 22px 18px;border-top:1px solid var(--line);display:flex;gap:8px}
+.btn{flex:1;font:inherit;font-size:14.5px;font-weight:700;border:0;border-radius:12px;padding:12px;cursor:pointer;background:var(--accent);color:#fff}
+.btn.sub{background:var(--surface);color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.pre{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pre button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;cursor:pointer;color:var(--ink-2)}
+</style></head><body>
+<div class="bar"><button id="back" title="뒤로">‹</button><form id="f"><input id="url" spellcheck="false" placeholder="민원 사이트 주소"></form><span class="ai idle" id="ai"><span class="dots"><i></i><i></i><i></i></span><span id="ait">대기 중</span></span></div>
+<div class="ag">
+  <div class="hd"><b>신청 도우미</b><small id="sub">내 사업장 정보로 신청서를 채워요</small></div>
+  <div class="bd">
+    <div class="prog">진행<div class="b"><i id="pb"></i></div><small id="pt">0%</small></div>
+    <div class="cur" id="now">신청서 화면을 열고 [채우기 시작]을 눌러 주세요</div>
+    <ul class="st" id="st">
+      <li data-k="open" class="now"><span class="d"></span><div>민원 찾아 신청서 열기<small id="opens">예시 화면은 AI가 검색해 들어가요</small></div></li>
+      <li data-k="login"><span class="d"></span><div>로그인<small id="logins">실제 사이트는 직접, 예시 화면은 AI가 통과</small></div></li>
+      <li data-k="fill"><span class="d"></span><div>신청 칸 채우기<small id="fills">내 사업장 정보에서</small></div></li>
+      <li data-k="files"><span class="d"></span><div>첨부 서류 올리기<small id="filess">내 사업장 서류 폴더에서</small></div></li>
+      <li data-k="check"><span class="d"></span><div>빠진 칸 확인</div></li>
+      <li data-k="me"><span class="d">✋</span><div>결제·마지막 제출<small>사용자가 직접</small></div></li>
+    </ul>
+    <div id="cards"></div>
+    <div class="card info"><b>처음이면 예시 민원24로 연습해 보세요</b>실제 민원 사이트에서는 로그인만 직접 하면, 칸 이름을 읽어 같은 방식으로 채워요.
+      <div class="pre"><button data-u="demo">예시 민원24</button><button data-u="https://www.gov.kr">정부24</button></div></div>
+  </div>
+  <div class="btns"><button class="btn sub" id="pause" disabled>잠깐 멈추기</button><button class="btn" id="go">채우기 시작</button></div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+let DEMO = '', paused = false, busy = false, loginSeen = false;
+const order = ['open', 'login', 'fill', 'files', 'check', 'me'];
+const li = k => document.querySelector('[data-k="' + k + '"]');
+function upTo(k, nowCls) { const i = order.indexOf(k); order.forEach((x, j) => { const l = li(x); if (l.className === 'skip' || (l.className === 'me' && x !== k)) return; if (j < i) l.className = 'done'; else if (j === i) l.className = nowCls || 'now'; else l.className = ''; }); }
+function ai(on, t) { $('#ai').className = 'ai' + (on ? '' : ' idle'); $('#ait').textContent = t; }
+// 진행 막대: 단계마다 구간을 나눠 채운다(찾기 0~20, 로그인 20~30, 칸 30~70, 서류 70~90, 확인 95, 끝 100)
+function prog(p) { p = Math.max(0, Math.min(100, Math.round(p))); $('#pb').style.width = p + '%'; $('#pt').textContent = p + '%'; }
+let pp = 0; const bump = p => { pp = Math.max(pp, p); prog(pp); };
+let fillN = 0, fileN = 0, tourN = 0;
+assist.onState(s => {
+  if (s.init) { DEMO = s.init.demo; $('#sub').textContent = (s.init.project ? s.init.project + ' · ' : '') + (s.init.company || '내 사업장') + ' 정보로 채워요'; }
+  if (s.url) $('#url').value = s.url.startsWith('file:') ? '민원24 (예시) · 앱 안에 든 연습용 가상 사이트' : s.url;
+  if (s.loaded && !busy) { $('#now').textContent = (s.title || '화면') + ' 을(를) 열었어요. [채우기 시작]을 누르면 AI가 이어서 해요'; }
+  if (s.now) $('#now').textContent = '지금: ' + s.now;
+  if (s.scan) {
+    $('#fills').textContent = '채울 칸 ' + s.scan.fill + '개 찾음';
+    $('#filess').textContent = s.scan.fileSlots ? '첨부 칸 ' + s.scan.fileSlots + '개 중 ' + s.scan.files + '개에 맞는 서류 있음' : '첨부 칸 아직 없음';
+    if (s.scan.login && !s.scan.auto && li('login').className !== 'done') { li('login').className = 'me'; loginSeen = true; }
+  }
+  if (s.step === 'tour') { upTo(loginSeen ? 'fill' : 'open'); tourN++; if (!loginSeen) bump(4 + tourN * 4); ai(true, 'AI가 화면을 넘기는 중'); }
+  if (s.step === 'login' && s.auto) { loginSeen = true; upTo('login'); $('#logins').textContent = '예시 화면이라 AI가 시연용 인증을 통과'; bump(22); ai(true, 'AI가 인증하는 중'); }
+  if (s.step === 'loginDone') { li('login').className = 'done'; bump(30); }
+  if (s.step === 'login' && !s.auto) { busy = false; upTo('login', 'me'); ai(false, '로그인 기다리는 중'); $('#now').textContent = '왼쪽에서 로그인한 뒤 신청서 화면으로 가서 다시 [채우기 시작]'; btns(); }
+  if (s.step === 'fill') { upTo('fill'); fillN = s.done; bump(30 + 40 * (s.total ? s.done / Math.max(s.total, 9) : 0)); ai(true, 'AI가 칸을 채우는 중'); }
+  if (s.step === 'files') { upTo('files'); fileN = s.done; bump(70 + 20 * (s.total ? s.done / s.total : 0)); ai(true, 'AI가 서류를 올리는 중'); }
+  if (s.step === 'check') {
+    if (!loginSeen) li('login').className = 'skip';
+    upTo('check', 'done'); bump(95);
+    const c = [];
+    if (s.missing && s.missing.length) c.push('<div class="card info"><b>사업장에 없는 첨부 서류</b><ul>' + s.missing.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>');
+    if (s.empty && s.empty.length) c.push('<div class="card info"><b>AI가 모르는 칸 (직접 확인)</b><ul>' + s.empty.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>');
+    $('#cards').innerHTML = c.join('');
+  }
+  if (s.step === 'me') {
+    busy = false; upTo('me', 'me'); ai(false, '다 채웠어요'); bump(100);
+    $('#now').textContent = '칸 ' + fillN + '개 · 서류 ' + fileN + '개 끝. 제출만 직접 눌러 주세요';
+    $('#cards').insertAdjacentHTML('afterbegin', '<div class="card stop"><b>✋ 여기서는 직접 해 주세요</b>내용을 한 번 훑어보고, 수수료 결제와 주황색으로 표시한 <b style="display:inline">[신청·제출]</b> 버튼은 직접 눌러 주세요. AI는 누르지 않아요.</div>');
+    btns();
+  }
+  if (s.error) { busy = false; ai(false, '멈춤'); $('#now').textContent = '이 화면은 채우지 못했어요: ' + s.error; btns(); }
+  if (s.reset) location.reload();
+});
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function btns() { $('#go').disabled = busy; $('#go').textContent = busy ? 'AI가 하는 중…' : '채우기 시작'; $('#pause').disabled = !busy; $('#pause').textContent = paused ? '이어서 하기' : '잠깐 멈추기'; }
+$('#go').onclick = () => { busy = true; paused = false; fillN = fileN = tourN = 0; pp = 0; prog(0); loginSeen = false; $('#cards').innerHTML = ''; order.forEach(k => li(k).className = ''); upTo('open'); ai(true, 'AI가 화면을 읽는 중'); $('#now').textContent = '화면을 읽는 중…'; btns(); assist.start(); };
+$('#pause').onclick = async () => { paused = !paused; await assist.pause(paused); ai(!paused, paused ? '멈춤' : 'AI가 이어서 하는 중'); btns(); };
+$('#f').onsubmit = e => { e.preventDefault(); assist.go($('#url').value.trim()); };
+$('#back').onclick = () => assist.back();
+document.querySelectorAll('.pre button').forEach(b => b.onclick = () => assist.go(b.dataset.u === 'demo' ? DEMO : b.dataset.u));
+</script>
+</body></html>

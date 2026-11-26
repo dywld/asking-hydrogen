@@ -106,6 +106,14 @@ EXPAND = {
     "사업 시작": "사업 개시 신고 제조허가 기술검토 완성검사 고압가스",
     "사업을 시작": "사업 개시 신고 제조허가 기술검토 완성검사 고압가스",
     "순서대로": "허가 기술검토 중간검사 완성검사 사업 개시 신고 고압가스",
+    # 아래는 팀 AI 성능테스트(30문항, 2026-11)에서 근거 조문이 자료에 있는데도 못 찾던 것들이다.
+    # 질문에 쓰는 말과 조문 제목의 말이 달라서다.
+    "밀집": "안전영향평가 입지 위험도",
+    "얼마마다": "정기검사의 대상별 검사주기",
+    "주기": "검사주기 대상별",
+    "자격": "안전관리자의 자격과 선임 인원",
+    "수전해": "수소용품 제조사업 허가",
+    "연료전지": "수소용품 제조사업",
 }
 
 
@@ -135,7 +143,29 @@ BUNDLES = {
     "특례": ["실증을 위한 규제특례", "임시허가", "규제 신속확인"],
     "검사": ["완성검사", "정기검사", "중간검사"],
     "안전관리자": ["안전관리자의 자격과 선임 인원", "안전관리자 선임 신고"],
+    # 인허가 전 과정을 물으면 허가·검사 조문만 걸리고 뒤쪽(선임·규정·사업 개시)이 빠졌다(팀 테스트 1번).
+    "인허가 절차": ["안전관리자 선임 신고", "사업 개시 등의 신고", "안전관리규정"],
 }
+
+# 질문의 낱말(3글자 이상, 조사 뗀 것)이 조문 제목에 통째로 있으면 끌어올린다.
+# 글자 2개씩 자른 점수로는 '품질검사'가 '검사'·'충전' 많은 별표에 졌다(팀 테스트 15번).
+TITLE_PARTICLE = re.compile(r"(으로|에서|에게|까지|부터|이나|이란|란|는|은|을|를|이|가|의|도|에|로|와|과)$")
+TITLE_SKIP = {"수소충전소", "충전소", "수소법", "고압가스법", "어떻게", "무엇이", "얼마나", "받아야", "하나요", "있나요",
+              "해야", "되나요", "알려주세요", "알려줘", "어디에", "필요한"}
+
+
+def title_words(query):
+    out = []
+    for w in re.findall(r"[가-힣]{3,}", query):
+        w = TITLE_PARTICLE.sub("", w)
+        # 확장표에 있는 말(실증특례 등)은 이미 확장으로 다룬다. 제목 가산까지 하면 한쪽 법으로 쏠렸다(채점 92번).
+        if len(w) >= 3 and w not in TITLE_SKIP and w not in EXPAND and w not in out:
+            out.append(w)
+    return out[:6]
+
+
+# 정의를 묻는 말("수소용품에는 무엇이 포함되나요?"). 제목이 '정의'인 조문(법 제2조)을 끌어올린다.
+DEFINE = re.compile(r"(이란|란\?|뜻이|뜻은|정의|무엇이 포함|포함되|해당하는 것|범위는)")
 
 # 개정 내용을 묻는 말. 시행 예정판을 앞세우고 현행판을 짝으로 붙인다.
 CHANGE = re.compile(r"(바뀌|바뀐|개정|변경|달라지|달라진|신설|새로 생긴|바뀔)")
@@ -318,6 +348,19 @@ def load_docs():
                 "source": m.get("file_name", ""),
                 "future": False,
                 "effective_date": None,
+            })
+
+    # 행정규칙(고시)·법제처 해석례·소관 안내. 팀 채점(수수료 17~20번, 품질검사 15번, 주무부처 23번)에서
+    # 자료가 없어 못 맞힌 것을 국가법령정보센터·법제처 원문으로 넣었다. 맨 뒤에 붙여 기존 문서 번호를 바꾸지 않는다.
+    nt = DATA / "notices.jsonl"
+    if nt.exists():
+        for line in nt.open(encoding="utf-8"):
+            r = json.loads(line)
+            docs.append({
+                "country": "한국", "law": r["file_name"],
+                "article": r["article"], "title": r["title"],
+                "content": r["content"], "source": r["file_name"],
+                "future": False, "effective_date": None,
             })
 
     for d in docs:
@@ -549,6 +592,8 @@ class Index:
         if "수소" in want_gas:
             want_gas.add("고압가스")      # 수소충전소·수소 저장도 고압가스법 소관이다
         want_install = bool(INSTALL.search(query))
+        want_define = bool(DEFINE.search(query))
+        tw = [] if want_define else title_words(query)     # 정의 질문은 '정의' 조문이 답이다
         scores = {}
         for i, tf in enumerate(self.tf):
             if country and self.docs[i]["country"] != country:
@@ -584,6 +629,11 @@ class Index:
             # 아무 질문에나 걸린다(실측: 인사말에 1등). 근거가 될 일이 없으니 뒤로 민다.
             if NOISE_TITLE.search(self.docs[i]["title"]):
                 s *= 0.2
+            # KGS 는 항목 제목이 잘게 나뉘어 아무 낱말에나 걸린다(긴급차단장치 → AA317). 법령 조문만.
+            if tw and not self.docs[i]["law"].startswith("KGS") and any(w in self.docs[i]["title"] for w in tw):
+                s *= 1.35
+            if want_define and self.docs[i]["title"] == "정의":
+                s *= 2.5
             if want_install and self.docs[i]["law"].startswith(MAKE_CODE):
                 s *= 0.6                  # 만드는 기준은 설치 질문의 답이 아니다
             if want_gas:
@@ -750,7 +800,7 @@ _index_lock = threading.Lock()
 def corpus_stamp():
     out = []
     for name in ("korea_laws.jsonl", "korea_laws_extra.jsonl", "gangwon_zone.jsonl",
-                 "korea_annexes.jsonl", "kgs_code.jsonl", "japan_laws.jsonl",
+                 "korea_annexes.jsonl", "kgs_code.jsonl", "japan_laws.jsonl", "notices.jsonl",
                  "embeddings.npy", "embeddings_have.npy", "embeddings.json"):
         try:
             s = (DATA / name).stat()

@@ -1,0 +1,7 @@
+{
+  "name": "hydrogen-guide",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.4.0"
+  }
+}

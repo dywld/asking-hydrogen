@@ -59,10 +59,10 @@ def check():
     docs = search.get_index().docs
     bad = 0
     for t in topics():
-        body = " ".join(
-            d["content"] for d in docs
-            if search.law_key(d["law"]) == search.law_key(t["law"])
-            and d["article"].startswith(t["ref"]) and not d.get("future"))
+        same = [d for d in docs if search.law_key(d["law"]) == search.law_key(t["law"])
+                and d["article"].startswith(t["ref"])]
+        # 현행본이 없고 시행 예정본만 있는 조문(수소법 제59조: 한 호만 2027 시행인데 조 전체가 예정본으로 들어옴)은 예정본으로 대조
+        body = " ".join(d["content"] for d in (([d for d in same if not d.get("future")]) or same))
         flat = re.sub(r"\s+", "", body)
         if not flat:
             print(f"✗ {t['id']}: 근거 조각을 찾지 못함 ({t['law']} {t['ref']})")

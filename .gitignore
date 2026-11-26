@@ -39,3 +39,6 @@ desktop/node_modules/
 desktop/dist/
 data/law_watch.json
 data/kgs_updates/
+
+# OpenAI 키를 올릴 때 잠깐 쓰는 파일(올린 뒤 지운다)
+cf/openai-key.json

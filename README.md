@@ -255,3 +255,19 @@ sudo journalctl -u hydrogen-bot -f     # 로그
 
 - 법령: 국가법령정보센터 (law.go.kr)
 - 한국·일본 법령 원본 데이터: 팀 리포지토리 `dywld/asking-hydrogen`
+
+## AI 공급자 바꾸기 (Gemini -> ChatGPT)
+
+클라우드플레어판(웹·윈도우 앱)은 워커 비밀값 `OPENAI_API_KEY` 가 있으면 OpenAI 를 부른다(`cf/src/llm.js`). 없으면 Gemini.
+
+```bash
+cd cf
+npx wrangler secret put OPENAI_API_KEY      # 키는 직접 붙여 넣는다
+```
+
+- 모델: `cf/wrangler.toml` [vars] 의 `OPENAI_MODEL` (지금 `gpt-6.1-sol`), 생각 깊이 `OPENAI_EFFORT` (지금 `low`)
+- 간단한 질문은 `OPENAI_FAST_MODEL` (지금 `gpt-6-luna`)이 바로 답한다(`isSimple`, cf/src/index.js). 질문 다듬기·검증·서류 읽기는 Gemini(`OPENAI_SCOPE=all` 이면 전부 OpenAI)
+- 되돌리기: `npx wrangler secret delete OPENAI_API_KEY`
+- 확인: 웹 주소 뒤 `/api/status` 의 `provider` 가 `openai`
+- 변환 점검: `node cf/test_llm.mjs`
+- 오라클 예비판(app.py)은 아직 Gemini 만 쓴다

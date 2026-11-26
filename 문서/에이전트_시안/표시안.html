@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>표 드래그 시안</title>
+<style>
+:root{--bg:#fff;--surface:#f4f6fa;--line:#e4e8ee;--ink:#1b2430;--ink-2:#4a5566;--muted:#8a94a3;--accent:#2f6fed;--accent-soft:#e9f0ff;--fs-s:13px;--fs:15.5px}
+*{box-sizing:border-box}
+body{margin:0;background:#eef1f5;font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif;color:var(--ink)}
+.page{width:860px;margin:0 auto;padding:28px 0 40px}
+.tag{display:inline-block;font-weight:700;font-size:14px;color:#fff;background:var(--ink);border-radius:8px;padding:4px 10px;margin-bottom:10px}
+.tag small{font-weight:400;opacity:.8;margin-left:6px}
+.chat{background:var(--bg);border-radius:16px;padding:22px 26px;width:780px;box-shadow:0 2px 10px rgba(20,30,50,.06)}
+.q{font-size:14px;color:var(--muted);margin-bottom:10px}
+.ans p{margin:0 0 6px;font-size:var(--fs);line-height:1.6}
+/* 공통: 첫 칸 고정 + 드래그 */
+.scroll{overflow-x:auto;cursor:grab;scrollbar-width:none;user-select:none}
+.scroll::-webkit-scrollbar{display:none}
+.scroll.drag{cursor:grabbing}
+table{border-collapse:separate;border-spacing:0;font-size:var(--fs-s);min-width:1180px;width:100%}
+th,td{padding:9px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--bg)}
+th{background:var(--surface);font-weight:600;color:var(--ink-2)}
+tr:last-child td{border-bottom:0}
+th:first-child,td:first-child{position:sticky;left:0;z-index:2;font-weight:600}
+th:first-child{background:var(--surface)}
+.stuck th:first-child,.stuck td:first-child{box-shadow:6px 0 8px -6px rgba(20,30,50,.25)}
+
+/* A: 양옆 흐림 + 화살표 버튼 */
+.A{position:relative;margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.A .fade{position:absolute;top:0;bottom:0;width:56px;pointer-events:none;z-index:3}
+.A .fade.r{right:0;background:linear-gradient(90deg,rgba(255,255,255,0),#fff 85%)}
+.A .arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;box-shadow:0 2px 8px rgba(20,30,50,.15);z-index:4;display:grid;place-items:center;font-size:16px;color:var(--ink-2);cursor:pointer}
+.A .arrow.r{right:10px}
+.A .exp{position:absolute;top:6px;right:8px;z-index:5;border:0;background:rgba(255,255,255,.95);border-radius:8px;padding:4px 8px;font-size:12px;color:var(--ink-2);box-shadow:0 1px 4px rgba(20,30,50,.12);cursor:pointer}
+.A .hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:5;background:rgba(27,36,48,.86);color:#fff;font-size:12px;border-radius:999px;padding:6px 12px;display:flex;gap:6px;align-items:center}
+
+/* B: 위 막대(제목·위치·버튼) + 아래 진행 막대 */
+.B{margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.B .bar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
+.B .bar b{color:var(--ink);font-size:13px}
+.B .pos{margin-left:auto;color:var(--muted)}
+.B .btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;color:var(--ink-2);cursor:pointer}
+.B .track{height:4px;background:var(--surface);position:relative}
+.B .thumb{position:absolute;left:0;top:0;bottom:0;width:52%;background:var(--accent);border-radius:4px}
+.wrapB .hand{position:absolute;z-index:6;right:70px;top:150px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:12.5px;box-shadow:0 4px 14px rgba(20,30,50,.18);display:flex;gap:8px;align-items:center}
+.wrapB .hand .ico{font-size:18px}
+.wrapB{position:relative}
+
+/* C: 접힌 카드 + 전체 화면 */
+.C{margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}
+.C .scroll{max-height:none}
+.C .foot{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--line);background:var(--surface);font-size:12px;color:var(--muted)}
+.C .foot .kbd{display:inline-block;border:1px solid #cfd6df;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:11px;color:var(--ink-2);background:#fff;margin:0 2px}
+.C .open{border:0;background:var(--accent);color:#fff;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer}
+.modal{margin-top:18px;border-radius:16px;background:rgba(20,28,40,.55);padding:16px}
+.modal .box{background:#fff;border-radius:14px;overflow:hidden}
+.modal .head{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.modal .head b{font-size:15px}
+.modal .head .x{margin-left:auto;border:0;background:var(--surface);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
+.modal table{min-width:0;font-size:13px}.modal th,.modal td{padding:9px 11px}
+.cap{font-size:12px;color:var(--muted);margin:8px 0 0}
+</style></head><body><div class="page">
+
+<template id="tbl"><table><thead><tr><th>시설 구분</th><th>1만㎥ 미만</th><th>1만~2만㎥</th><th>2만~3만㎥</th><th>3만~4만㎥</th><th>4만~5만㎥</th><th>5만㎥ 초과</th><th>비고</th></tr></thead><tbody>
+<tr><td>제1종 보호시설</td><td>17m 이상</td><td>21m 이상</td><td>24m 이상</td><td>27m 이상</td><td>30m 이상</td><td>별도 산식 적용</td><td>학교·병원 등</td></tr>
+<tr><td>제2종 보호시설</td><td>12m 이상</td><td>14m 이상</td><td>16m 이상</td><td>18m 이상</td><td>20m 이상</td><td>별도 산식 적용</td><td>주택 등</td></tr>
+<tr><td>화기 취급 장소</td><td>8m 이상</td><td>8m 이상</td><td>8m 이상</td><td>8m 이상</td><td>8m 이상</td><td>8m 이상</td><td>우회거리 기준</td></tr>
+<tr><td>사업소 경계</td><td>5m 이상</td><td>5m 이상</td><td>5m 이상</td><td>5m 이상</td><td>5m 이상</td><td>5m 이상</td><td>방호벽 시 완화</td></tr>
+</tbody></table></template>
+
+<!-- A -->
+<div class="tag">A안 <small>양옆 흐림 + 화살표 · 떠 있는 안내</small></div>
+<div class="chat"><div class="q">나: 저장능력별 이격거리 표로 보여줘</div><div class="ans">
+<p>저장능력 구간별 이격거리는 아래와 같습니다. (시안용 예시 값)</p>
+<div class="A" data-t>
+  <button class="exp">⤢ 크게 보기</button>
+  <div class="scroll"></div>
+  <div class="fade r"></div><div class="arrow r">›</div>
+  <div class="hint">↔ 마우스로 잡아 끌면 옆 칸이 보여요</div>
+</div></div></div>
+<p class="cap">표 오른쪽이 흐려져 더 있다는 걸 보여 주고, › 버튼이나 끌기로 넘깁니다. 안내는 한 번 끌면 사라집니다.</p>
+
+<!-- B -->
+<div class="tag" style="margin-top:26px">B안 <small>위 막대(칸 위치) + 진행 막대 · 손 모양 안내</small></div>
+<div class="chat wrapB"><div class="q">나: 저장능력별 이격거리 표로 보여줘</div><div class="ans">
+<p>저장능력 구간별 이격거리는 아래와 같습니다. (시안용 예시 값)</p>
+<div class="B" data-t>
+  <div class="bar"><b>이격거리 표</b><span>4줄 · 8칸</span><span class="pos">1~4칸 보는 중</span><button class="btn">‹</button><button class="btn">›</button><button class="btn">⤢ 크게</button></div>
+  <div class="scroll"></div>
+  <div class="track"><div class="thumb"></div></div>
+</div>
+<div class="hand"><span class="ico">✋</span>표를 잡고 좌우로 끌어 보세요</div>
+</div></div>
+<p class="cap">표 위에 "몇 번째 칸을 보는 중"인지 적고, 아래 파란 막대로 위치를 보여 줍니다. 처음 한 번 손 모양 말풍선이 뜹니다.</p>
+
+<!-- C -->
+<div class="tag" style="margin-top:26px">C안 <small>아래 안내줄 + 전체 화면으로 펼치기</small></div>
+<div class="chat"><div class="q">나: 저장능력별 이격거리 표로 보여줘</div><div class="ans">
+<p>저장능력 구간별 이격거리는 아래와 같습니다. (시안용 예시 값)</p>
+<div class="C" data-t>
+  <div class="scroll"></div>
+  <div class="foot"><span>↔ 끌거나 <span class="kbd">Shift</span>+휠로 옆 칸 보기 · 8칸 중 4칸 보임</span><button class="open">⤢ 전체 화면</button></div>
+</div></div></div>
+<div class="modal"><div class="box"><div class="head"><b>이격거리 표</b><span style="margin-left:10px;font-size:12px;color:var(--muted)">전체 화면 · 모든 칸이 한눈에</span><button class="x">닫기 ✕</button></div><div class="scroll" data-full></div></div></div>
+<p class="cap">평소엔 아래 회색 줄에 조작법을 적어 두고, 칸이 많으면 [전체 화면]으로 펼쳐 한눈에 봅니다. (아래 어두운 부분이 펼친 모습)</p>
+
+</div>
+<script>
+const T=document.getElementById('tbl');
+document.querySelectorAll('[data-t] .scroll,[data-full]').forEach(s=>{
+  s.appendChild(T.content.cloneNode(true));
+  let down=false,x0=0,s0=0;
+  s.addEventListener('pointerdown',e=>{down=true;x0=e.clientX;s0=s.scrollLeft;s.classList.add('drag');s.setPointerCapture(e.pointerId)});
+  s.addEventListener('pointermove',e=>{if(down)s.scrollLeft=s0-(e.clientX-x0)});
+  s.addEventListener('pointerup',()=>{down=false;s.classList.remove('drag')});
+  s.addEventListener('scroll',()=>{s.classList.toggle('stuck',s.scrollLeft>0);const h=s.closest('[data-t]')?.querySelector('.hint,.hand');if(h&&!window.SHOT)h.style.display='none'});
+});
+// 정적 캡처용: A·B·C 는 조금 끌어 둔 상태로 보여 준다
+if(location.hash==='#shot'&&(window.SHOT=1))document.querySelectorAll('[data-t] .scroll').forEach(s=>{s.scrollLeft=160;s.classList.add('stuck')});
+</script>
+</body></html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>수소문 에이전트 시안</title>
+<style>
+:root{--acc:#2a78d6;--acc2:#e8f1fc;--ink:#0f172a;--ink2:#475569;--mute:#94a3b8;--line:#e2e8f0;--bg:#f6f7f9;--ok:#15803d;--okb:#e8f6ee;--bad:#c2410c;--badb:#fdeee6;--warn:#a16207;--warnb:#fdf6e3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink);width:1400px;height:860px;overflow:hidden}
+.top{height:58px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px;gap:28px}
+.logo{font-weight:800;font-size:20px;color:var(--acc)}
+.logo small{font-size:12px;color:var(--ink2);font-weight:600;margin-left:6px}
+.tabs{display:flex;gap:6px}
+.tab{padding:8px 14px;border-radius:8px;font-size:14px;color:var(--ink2)}
+.tab.on{background:var(--acc2);color:var(--acc);font-weight:700}
+.badge{margin-left:auto;font-size:12px;background:#0f172a;color:#fff;padding:5px 10px;border-radius:20px}
+.wrap{display:grid;gap:18px;padding:20px 28px;height:802px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;overflow:hidden}
+h2{font-size:17px;margin-bottom:4px}
+.sub{font-size:12.5px;color:var(--ink2);margin-bottom:14px}
+label{display:block;font-size:12px;color:var(--ink2);margin:12px 0 5px;font-weight:600}
+.in{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;background:#fbfcfd}
+.btn{margin-top:16px;background:var(--acc);color:#fff;text-align:center;padding:12px;border-radius:9px;font-weight:700;font-size:14.5px}
+.steps{margin-top:18px;border-top:1px dashed var(--line);padding-top:14px}
+.step{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink2);margin-bottom:9px}
+.dot{width:18px;height:18px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none;font-weight:700}
+.verdict{border-radius:12px;padding:16px 18px;margin-bottom:12px}
+.v-bad{background:var(--badb);border:1px solid #f6c9b3}
+.v-bad b{color:var(--bad)}
+.big{font-size:22px;font-weight:800;margin:2px 0 6px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.row:last-child{border-bottom:0}
+.pill{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px}
+.p-ok{background:var(--okb);color:var(--ok)}.p-bad{background:var(--badb);color:var(--bad)}.p-warn{background:var(--warnb);color:var(--warn)}
+.src{font-size:11px;color:var(--mute);margin-top:2px}
+.tip{background:var(--acc2);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#1e3a5f;line-height:1.55;margin-top:12px}
+.sec{display:none}
+.ttl{font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.5px;margin-bottom:6px}
+.paper{background:#fffdf8;border:1px solid #e9e3d3;border-radius:6px;padding:26px 28px;transform:rotate(-1.2deg);box-shadow:0 6px 18px rgba(15,23,42,.10);font-family:"Batang","Malgun Gothic",serif;font-size:13px;line-height:1.75;color:#2b2b2b;height:620px}
+.paper h3{text-align:center;font-size:19px;letter-spacing:6px;margin-bottom:14px}
+.hl{background:rgba(250,204,21,.38);padding:0 2px}
+.draft{background:#fbfcfd;border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:12.5px;line-height:1.7;color:var(--ink)}
+.item{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.item .h{display:flex;gap:8px;align-items:center;font-weight:700;font-size:13.5px;margin-bottom:5px}
+.item p{font-size:12.5px;color:var(--ink2);line-height:1.55}
+.n{background:var(--ink);color:#fff;border-radius:6px;font-size:11px;padding:2px 7px}
+</style></head><body>
+<div class="top"><div class="logo">수소문<small>수소시설 인허가 AI</small></div>
+<div class="tabs"><div class="tab">질문하기</div><div class="tab" id="t1">부지 검토</div><div class="tab" id="t2">도면 검토</div><div class="tab" id="t3">보완 요구 대응</div><div class="tab">신청서</div></div>
+<div class="badge">시안 · AI 에이전트</div></div>
+
+<!-- 1. 부지 검토 -->
+<div class="sec" id="s1"><div class="wrap" style="grid-template-columns:330px 1fr 360px">
+<div class="card">
+ <div class="ttl">1. 입력</div><h2>이 땅에 충전소 세울 수 있을까?</h2><div class="sub">주소만 넣으면 AI가 지도에서 주변을 직접 재요.</div>
+ <label>주소</label><div class="in">OO시 OO구 수소로 123</div>
+ <label>시설 종류</label><div class="in">수소충전소 (제조식)</div>
+ <label>처리능력</label><div class="in">15,000 ㎥/일</div>
+ <div class="btn">AI로 부지 검토하기</div>
+ <div class="steps"><div class="ttl">AI가 한 일</div>
+  <div class="step"><div class="dot">1</div>주소로 위치 찾기, 용도지역 확인 (일반공업지역)</div>
+  <div class="step"><div class="dot">2</div>반경 100m 안 건물 23곳 조회, 학교·주택 등 보호시설 분류</div>
+  <div class="step"><div class="dot">3</div>법령 표에서 기준 거리 찾기 (제1종 21m, 제2종 14m)</div>
+  <div class="step"><div class="dot">4</div>건물마다 실제 거리 재서 판정</div>
+ </div>
+</div>
+<div class="card" style="padding:0;position:relative">
+<svg viewBox="0 0 640 760" width="100%" height="100%" style="display:block">
+ <rect width="640" height="760" fill="#eef1f4"/>
+ <g fill="#fff"><rect x="0" y="330" width="640" height="46"/><rect x="250" y="0" width="40" height="760"/><rect x="520" y="0" width="30" height="760"/></g>
+ <g stroke="#d6dbe1" stroke-dasharray="10 8" stroke-width="2"><line x1="0" y1="353" x2="640" y2="353"/><line x1="270" y1="0" x2="270" y2="760"/></g>
+ <g fill="#dfe4ea"><rect x="30" y="40" width="90" height="70" rx="4"/><rect x="140" y="50" width="80" height="110" rx="4"/><rect x="310" y="30" width="80" height="60" rx="4"/><rect x="420" y="40" width="80" height="90" rx="4"/><rect x="30" y="420" width="120" height="80" rx="4"/><rect x="40" y="560" width="90" height="120" rx="4"/><rect x="170" y="600" width="60" height="90" rx="4"/><rect x="570" y="420" width="60" height="120" rx="4"/><rect x="570" y="600" width="60" height="100" rx="4"/><rect x="310" y="640" width="180" height="90" rx="4"/></g>
+ <!-- 부지 -->
+ <rect x="330" y="420" width="150" height="110" rx="6" fill="#dbeafe" stroke="#2a78d6" stroke-width="2"/>
+ <text x="405" y="548" text-anchor="middle" font-size="12" fill="#2a78d6" font-weight="700">우리 부지</text>
+ <circle cx="405" cy="475" r="240" fill="rgba(194,65,12,.06)" stroke="#c2410c" stroke-width="2" stroke-dasharray="6 5"/>
+ <circle cx="405" cy="475" r="160" fill="rgba(161,98,7,.05)" stroke="#a16207" stroke-width="1.6" stroke-dasharray="4 4"/>
+ <text x="590" y="290" text-anchor="middle" font-size="11.5" fill="#c2410c" font-weight="700">제1종 기준 21m</text>
+ <text x="470" y="625" font-size="11" fill="#a16207" font-weight="700">제2종 14m</text>
+ <rect x="392" y="462" width="26" height="26" rx="5" fill="#2a78d6"/><text x="405" y="480" text-anchor="middle" font-size="11" fill="#fff" font-weight="800">H₂</text>
+ <!-- 학교 -->
+ <rect x="300" y="175" width="140" height="95" rx="5" fill="#fde2d4" stroke="#c2410c" stroke-width="2"/>
+ <text x="370" y="220" text-anchor="middle" font-size="13" font-weight="800" fill="#9a3412">OO초등학교</text>
+ <text x="370" y="238" text-anchor="middle" font-size="11" fill="#9a3412">제1종 보호시설</text>
+ <line x1="405" y1="462" x2="395" y2="270" stroke="#c2410c" stroke-width="2.5"/>
+ <rect x="350" y="290" width="58" height="22" rx="11" fill="#c2410c"/><text x="379" y="305" text-anchor="middle" font-size="12" fill="#fff" font-weight="800">18m</text>
+ <!-- 주택 -->
+ <rect x="80" y="400" width="80" height="60" rx="4" fill="#fef3c7" stroke="#a16207" stroke-width="1.6"/>
+ <text x="120" y="434" text-anchor="middle" font-size="11.5" font-weight="700" fill="#854d0e">단독주택</text>
+ <line x1="392" y1="475" x2="160" y2="438" stroke="#15803d" stroke-width="2"/>
+ <rect x="240" y="440" width="52" height="20" rx="10" fill="#15803d"/><text x="266" y="454" text-anchor="middle" font-size="11.5" fill="#fff" font-weight="800">20m</text>
+ <!-- 범례 -->
+ <g transform="translate(16,690)"><rect width="250" height="56" rx="8" fill="#fff" stroke="#e2e8f0"/>
+ <circle cx="18" cy="18" r="6" fill="#c2410c"/><text x="30" y="22" font-size="11.5" fill="#334155">기준보다 가까움 (부적합)</text>
+ <circle cx="18" cy="40" r="6" fill="#15803d"/><text x="30" y="44" font-size="11.5" fill="#334155">기준 충족</text></g>
+ <text x="624" y="745" text-anchor="end" font-size="10" fill="#94a3b8">지도 그림은 예시</text>
+</svg></div>
+<div class="card">
+ <div class="ttl">2. 결과</div>
+ <div class="verdict v-bad"><b style="font-size:13px">판정</b><div class="big" style="color:var(--bad)">지금 그대로는 어려움</div><div style="font-size:13px;color:#7c2d12;line-height:1.55">OO초등학교까지 18m. 기준 21m보다 <b>3m 가까워요.</b></div></div>
+ <div class="row"><div>OO초등학교 (제1종)<div class="src">기준 21m · 실제 18m</div></div><span class="pill p-bad">3m 부족</span></div>
+ <div class="row"><div>단독주택 (제2종)<div class="src">기준 14m · 실제 20m</div></div><span class="pill p-ok">충족</span></div>
+ <div class="row"><div>사업소 경계<div class="src">기준 확인 필요 · 도면 필요</div></div><span class="pill p-warn">확인</span></div>
+ <div class="row"><div>용도지역<div class="src">일반공업지역 · 설치 가능</div></div><span class="pill p-ok">가능</span></div>
+ <div class="tip"><b>AI 제안</b><br>설비를 부지 남쪽으로 4m 옮기면 학교까지 22m가 돼 기준을 넘어요. 저장설비를 지하에 두면 기준이 절반(10.5m)으로 줄어요.</div>
+ <div class="src" style="margin-top:10px">근거: 고압가스 안전관리법 시행규칙 별표 5, KGS FP216 2.1.1.1</div>
+</div></div></div>
+
+<!-- 2. 도면 검토 -->
+<div class="sec" id="s2"><div class="wrap" style="grid-template-columns:1fr 470px">
+<div class="card" style="position:relative">
+ <div class="ttl">올린 도면</div><h2>배치도_수소충전소_v3.pdf</h2><div class="sub">AI가 도면의 치수·설비 이름을 읽어 점검표에 넣어요.</div>
+ <svg viewBox="0 0 820 640" width="100%" height="650" style="background:#fbfcfd;border:1px solid var(--line);border-radius:10px">
+  <defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#eef1f4"/></pattern></defs>
+  <rect width="820" height="640" fill="url(#g)"/>
+  <rect x="60" y="50" width="700" height="520" fill="none" stroke="#334155" stroke-width="2.5"/>
+  <text x="70" y="42" font-size="12" fill="#334155">사업소 경계</text>
+  <g stroke="#334155" stroke-width="1.6" fill="#fff">
+   <rect x="110" y="100" width="190" height="120"/><rect x="360" y="100" width="150" height="90"/><rect x="560" y="110" width="150" height="160"/>
+   <rect x="120" y="330" width="230" height="80"/><circle cx="470" cy="380" r="34"/><circle cx="560" cy="380" r="34"/><rect x="600" y="470" width="120" height="60"/></g>
+  <g font-size="12.5" fill="#0f172a" text-anchor="middle" font-weight="700">
+   <text x="205" y="165">압축기실</text><text x="435" y="150">축압기</text><text x="635" y="195">튜브트레일러</text><text x="235" y="375">관리동</text><text x="470" y="385">충전기1</text><text x="560" y="385">충전기2</text><text x="660" y="505">냉각설비</text></g>
+  <!-- AI 표시 -->
+  <rect x="352" y="92" width="166" height="106" fill="none" stroke="#15803d" stroke-width="3" rx="4"/>
+  <rect x="552" y="102" width="166" height="176" fill="none" stroke="#c2410c" stroke-width="3" rx="4"/>
+  <line x1="510" y1="145" x2="560" y2="145" stroke="#c2410c" stroke-width="2"/><text x="535" y="138" text-anchor="middle" font-size="12" fill="#c2410c" font-weight="800">3.2m</text>
+  <rect x="104" y="324" width="252" height="92" fill="none" stroke="#a16207" stroke-width="3" stroke-dasharray="7 5" rx="4"/>
+  <g font-size="11.5" font-weight="800"><rect x="356" y="62" width="30" height="22" rx="11" fill="#15803d"/><text x="371" y="77" fill="#fff" text-anchor="middle">1</text>
+  <rect x="690" y="74" width="30" height="22" rx="11" fill="#c2410c"/><text x="705" y="89" fill="#fff" text-anchor="middle">2</text>
+  <rect x="108" y="296" width="30" height="22" rx="11" fill="#a16207"/><text x="123" y="311" fill="#fff" text-anchor="middle">3</text></g>
+  <text x="760" y="600" text-anchor="end" font-size="11" fill="#94a3b8">도면은 예시</text>
+ </svg>
+</div>
+<div class="card">
+ <div class="ttl">AI 검토 결과</div><h2>점검표 38항목 중 31항목 자동 입력</h2><div class="sub">사람이 확인할 것만 남겼어요.</div>
+ <div style="display:flex;gap:8px;margin-bottom:14px"><span class="pill p-ok">적합 26</span><span class="pill p-bad">부적합 2</span><span class="pill p-warn">확인 필요 3</span><span class="pill" style="background:#f1f5f9;color:#475569">도면에 없음 7</span></div>
+ <div class="item"><div class="h"><span class="n" style="background:#15803d">1</span>축압기 방호벽 <span class="pill p-ok" style="margin-left:auto">적합</span></div><p>도면에 철근콘크리트 방호벽 높이 2.0m 표시. 기준 충족.</p></div>
+ <div class="item" style="border-color:#f6c9b3;background:#fffaf7"><div class="h"><span class="n" style="background:#c2410c">2</span>설비 사이 거리 <span class="pill p-bad" style="margin-left:auto">부적합</span></div><p>축압기와 튜브트레일러 간격 3.2m. 기준보다 가까워요. 간격을 넓히거나 방호벽을 추가하세요.</p><div class="src">근거: KGS FP216 해당 항목</div></div>
+ <div class="item"><div class="h"><span class="n" style="background:#a16207">3</span>관리동 위치 <span class="pill p-warn" style="margin-left:auto">확인 필요</span></div><p>관리동 창문 방향이 도면에 없어요. 설계사에게 확인하세요.</p></div>
+ <div class="item"><div class="h"><span class="n">!</span>도면에 없는 정보 7개</div><p>가스누출 경보기 위치, 긴급차단장치, 정전기 제거 설비 등. 다음 도면에 넣으면 자동으로 채워요.</p></div>
+ <div class="btn">점검표 한글 파일로 받기</div>
+</div></div></div>
+
+<!-- 3. 보완 요구 대응 -->
+<div class="sec" id="s3"><div class="wrap" style="grid-template-columns:470px 1fr">
+<div class="card" style="background:#f1f3f6">
+ <div class="ttl">찍어 올린 공문</div><h2 style="margin-bottom:16px">보완요구_공문.jpg</h2>
+ <div class="paper"><h3>보완 요구서</h3>
+ <div>수신: (주)OO수소 대표</div><div>제목: 고압가스 제조허가 신청서 보완 요청</div><br>
+ 귀사에서 신청한 수소충전소 제조허가 건에 대하여 아래 사항의 보완을 요청하오니 기한 내 제출하여 주시기 바랍니다.<br><br>
+ 1. <span class="hl">안전관리규정 중 비상조치 계획 미흡</span><br>
+ 2. <span class="hl">저장능력 산정 근거 자료 누락</span><br>
+ 3. <span class="hl">배치도상 보호시설 이격거리 표기 불명확</span><br><br>
+ 보완 기한: <span class="hl">2026. 12. 5.</span><br><br>
+ <div style="text-align:right;margin-top:40px">OO시 OO구청장</div></div>
+</div>
+<div class="card">
+ <div class="ttl">AI 정리</div>
+ <div style="display:flex;align-items:baseline;gap:12px"><h2>고칠 것 3개 · 마감까지 12일</h2><span class="pill p-bad">D-12</span></div><div class="sub">수소문에 있는 서류로 바로 고칠 수 있어요.</div>
+ <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+  <div class="item"><div class="h"><span class="n">1</span>비상조치 계획</div><p>별표 15 기준으로 비상연락망·대피 절차 장이 빠져 있어요.</p><div class="btn" style="padding:8px;font-size:12.5px;margin-top:10px">규정 초안에 추가</div></div>
+  <div class="item"><div class="h"><span class="n">2</span>저장능력 근거</div><p>별표 1 계산식으로 계산서를 만들면 돼요. 튜브트레일러 902㎥.</p><div class="btn" style="padding:8px;font-size:12.5px;margin-top:10px">계산서 만들기</div></div>
+  <div class="item"><div class="h"><span class="n">3</span>이격거리 표기</div><p>부지 검토 결과의 거리 표를 배치도에 붙이세요.</p><div class="btn" style="padding:8px;font-size:12.5px;margin-top:10px">거리 표 받기</div></div>
+ </div>
+ <div class="ttl" style="margin-top:16px">답변서 초안</div>
+ <div class="draft"><b>제목: 고압가스 제조허가 신청서 보완 제출</b><br><br>
+ 귀 청의 보완 요구에 따라 아래와 같이 보완 서류를 제출합니다.<br>
+ 1. 안전관리규정 제5장(비상조치 계획)을 신설하였습니다. (고압가스 안전관리법 시행규칙 별표 15)<br>
+ 2. 저장능력 산정서를 첨부합니다. 산정 결과 902㎥입니다. (같은 규칙 별표 1)<br>
+ 3. 배치도에 보호시설별 이격거리 표를 추가하였습니다. (같은 규칙 별표 5)<br><br>
+ 붙임: 안전관리규정(수정본) 1부, 저장능력 산정서 1부, 배치도(수정본) 1부.</div>
+ <div style="display:flex;gap:10px"><div class="btn" style="flex:1">답변서·붙임 서류 한 번에 받기 (zip)</div><div class="btn" style="flex:1;background:#fff;color:var(--acc);border:1px solid var(--acc)">마감 알림 설정</div></div>
+</div></div></div>
+
+<script>
+const s=(new URLSearchParams(location.search).get('s'))||'1';
+document.getElementById('s'+s).style.display='block';document.getElementById('t'+s).classList.add('on');
+</script>
+</body></html>

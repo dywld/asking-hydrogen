@@ -1,0 +1,114 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>내 사업장 PC 시안</title><style>
+:root{--bg:#fff;--surface:#f4f6fa;--line:#e8ebf0;--ink:#191f28;--ink-2:#4e5968;--muted:#8b95a1;--accent:#3182f6;--accent-soft:#e8f3ff;--ok:#1c7c4a;--ok-soft:#e6f5ec;--warn:#c26b00;--warn-soft:#fff4e0}
+*{box-sizing:border-box}
+body{margin:0;background:#dfe3e8;font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif;color:var(--ink)}
+.wrap{display:flex;gap:28px;padding:28px;align-items:flex-start}
+.col{width:440px}
+.tag{display:inline-block;font-weight:700;font-size:14px;color:#fff;background:var(--ink);border-radius:8px;padding:4px 10px;margin-bottom:10px}
+.tag small{font-weight:400;opacity:.8;margin-left:6px}
+.dr{background:var(--bg);border-radius:16px;box-shadow:0 6px 24px rgba(20,30,50,.12);overflow:hidden;min-height:760px;display:flex;flex-direction:column}
+.hd{display:flex;align-items:center;padding:18px 20px 6px}
+.hd h2{margin:0;font-size:19px;font-weight:700}
+.hd .sp{flex:1}
+.ib{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink-2);font-size:18px}
+.bd{padding:6px 20px 20px;flex:1}
+.cap{font-size:12.5px;color:var(--muted);margin:10px 2px 0;line-height:1.5}
+/* 공통 조각 */
+.name{font-size:22px;font-weight:800;margin:6px 0 4px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:5px 11px}
+.chip.gray{color:var(--ink-2);background:var(--surface)}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;background:var(--accent);color:#fff;text-align:center}
+.btn.sub{background:var(--surface);color:var(--ink)}
+.row{display:flex;align-items:center;gap:12px;padding:15px 2px;border-bottom:1px solid var(--line);font-size:15px}
+.row:last-child{border-bottom:0}
+.row .ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--surface);font-size:17px}
+.row .t{flex:1}
+.row .t small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.row .v{color:var(--muted);font-size:14px}
+.row .go{color:#b0b8c1;font-size:18px}
+.sec{font-size:13px;font-weight:700;color:var(--muted);margin:22px 2px 4px}
+.next{background:var(--surface);border-radius:14px;padding:16px;margin:16px 0}
+.next .l{font-size:12.5px;color:var(--muted);font-weight:600}
+.next .m{font-size:16.5px;font-weight:700;margin:4px 0 12px}
+/* B 탭 */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:10px -20px 0;padding:0 20px}
+.tabs span{padding:11px 10px;font-size:14.5px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent}
+.tabs span.on{color:var(--ink);border-color:var(--ink)}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:30px 10px 18px;line-height:1.6}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.input{border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14.5px;color:var(--muted);background:#fff}
+/* C 숫자 타일 */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.tile{background:var(--surface);border-radius:14px;padding:14px 12px}
+.tile .n{font-size:24px;font-weight:800}
+.tile .k{font-size:12.5px;color:var(--muted);margin-top:2px}
+.steps{margin:6px 0 0;padding:0;list-style:none}
+.steps li{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.steps .dot{width:22px;height:22px;border-radius:50%;border:2px solid #d1d6db;flex:none;margin-top:1px;display:grid;place-items:center;font-size:12px;color:#fff}
+.steps .dot.done{background:var(--accent);border-color:var(--accent)}
+.steps .dot.now{border-color:var(--accent)}
+.steps b{font-size:15px}
+.steps small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.menu{position:absolute;right:16px;top:52px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(20,30,50,.18);padding:6px;font-size:14px;width:170px}
+.menu div{padding:9px 12px;border-radius:8px}
+.menu div.red{color:#e5303f}
+.rel{position:relative}
+
+body{background:#fff}
+.win{width:1600px;height:940px;display:flex;position:relative;overflow:hidden;background:#fff}
+.side{width:280px;background:#f7f8fa;border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:4px;font-size:15px;color:var(--ink)}
+.side .logo{font-size:20px;font-weight:800;margin:0 8px 20px;display:flex;gap:8px;align-items:center}
+.side .logo i{width:30px;height:30px;border-radius:50%;background:var(--accent);display:inline-block}
+.side .it{padding:11px 10px;border-radius:10px;display:flex;gap:10px;align-items:center}
+.side .it.on{background:#eaf2ff;color:var(--accent);font-weight:700}
+.side .h{font-size:12.5px;color:var(--muted);margin:18px 10px 4px}
+.side .old{padding:9px 10px;color:var(--ink-2);font-size:14px}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--ink-2)}
+.main h1{font-size:28px;color:var(--ink);margin:0}
+.main .box{width:620px;border:1px solid var(--line);border-radius:18px;padding:18px 20px;color:var(--muted);font-size:15px}
+.dim{position:absolute;inset:0 0 0 280px;background:rgba(20,28,40,.28)}
+.pnl{position:absolute;top:0;right:0;bottom:0;width:600px;background:#fff;box-shadow:-8px 0 30px rgba(20,30,50,.15);display:flex;flex-direction:column}
+.pnl .dr{box-shadow:none;border-radius:0;min-height:0;height:100%}
+.pnl .hd{padding:26px 32px 8px}.pnl .bd{padding:8px 32px 28px}
+.pnl .menu{right:28px;top:62px}
+.lbl{position:absolute;left:300px;top:18px;z-index:9;font-weight:700;font-size:15px;color:#fff;background:var(--ink);border-radius:8px;padding:6px 12px}
+.lbl small{font-weight:400;opacity:.85;margin-left:6px}
+.win .tabs{margin:12px -32px 0;padding:0 32px}
+</style></head><body><div class="win" id="w0"><div class="side"><div class="logo"><i></i>수소문</div><div class="it">＋ 새 대화</div><div class="it">▦ 안전거리 계산기</div><div class="it on">▢ 강원 수소충전소</div><div class="it">☑ 서류 검토</div><div class="h">지난 대화</div><div class="old">수전해로 수소를 …</div><div class="old">안녕하세요</div><div class="old">수소충전소 완성…</div><div class="old">제조식 수소충전…</div></div>
+<div class="main"><h1>한빛수소 님, 무엇이든 물어보세요</h1><div>서울 강동구 수소충전소 기준으로 법령을 찾아 답합니다</div><div class="box">수소 인허가, 무엇이든 물어보세요</div></div><div class="dim"></div><div class="lbl">A안 <small>다음 할 일 하나 + 목록</small></div><div class="pnl"><div class="dr"><div class="hd"><h2>내 사업장</h2><span class="sp"></span><span class="ib">⋯</span><span class="ib">✕</span></div>
+<div class="bd">
+  <div class="name">강원 수소충전소</div>
+  <span class="chip">수소충전소 · 서울 강동구</span>
+  <div class="next"><div class="l">다음 할 일</div><div class="m">허가 종류부터 골라 주세요</div><div class="btn">허가 종류 고르기</div></div>
+  <div class="row"><span class="ico">📅</span><div class="t">일정<small>마감 7일 전에 알려 드려요</small></div><span class="v">없음</span><span class="go">›</span></div>
+  <div class="row"><span class="ico">📄</span><div class="t">서류<small>신청서·첨부 서류</small></div><span class="v">0개</span><span class="go">›</span></div>
+  <div class="row"><span class="ico">💬</span><div class="t">저장한 대화</div><span class="v">1개</span><span class="go">›</span></div>
+  <div class="row"><span class="ico">📝</span><div class="t">메모</div><span class="v">비어 있음</span><span class="go">›</span></div>
+</div></div>
+</div></div><div class="win" id="w1"><div class="side"><div class="logo"><i></i>수소문</div><div class="it">＋ 새 대화</div><div class="it">▦ 안전거리 계산기</div><div class="it on">▢ 강원 수소충전소</div><div class="it">☑ 서류 검토</div><div class="h">지난 대화</div><div class="old">수전해로 수소를 …</div><div class="old">안녕하세요</div><div class="old">수소충전소 완성…</div><div class="old">제조식 수소충전…</div></div>
+<div class="main"><h1>한빛수소 님, 무엇이든 물어보세요</h1><div>서울 강동구 수소충전소 기준으로 법령을 찾아 답합니다</div><div class="box">수소 인허가, 무엇이든 물어보세요</div></div><div class="dim"></div><div class="lbl">B안 <small>탭으로 나누기</small></div><div class="pnl"><div class="dr"><div class="hd"><h2>내 사업장</h2><span class="sp"></span><span class="ib">⋯</span><span class="ib">✕</span></div>
+<div class="bd">
+  <div class="name">강원 수소충전소</div>
+  <span class="chip gray">허가 종류 미정 ▾</span>
+  <div class="tabs"><span class="on">일정</span><span>서류 0</span><span>대화 1</span><span>메모</span></div>
+  <div class="empty"><b>아직 일정이 없어요</b>마감일을 넣어 두면<br>7일 전부터 알려 드려요</div>
+  <div class="input" style="margin-bottom:8px">예: 보완 서류 제출 마감</div>
+  <div style="display:flex;gap:8px"><div class="input" style="flex:1">날짜 고르기</div><div class="btn" style="width:auto;padding:13px 22px">추가</div></div>
+</div></div>
+</div></div><div class="win" id="w2"><div class="side"><div class="logo"><i></i>수소문</div><div class="it">＋ 새 대화</div><div class="it">▦ 안전거리 계산기</div><div class="it on">▢ 강원 수소충전소</div><div class="it">☑ 서류 검토</div><div class="h">지난 대화</div><div class="old">수전해로 수소를 …</div><div class="old">안녕하세요</div><div class="old">수소충전소 완성…</div><div class="old">제조식 수소충전…</div></div>
+<div class="main"><h1>한빛수소 님, 무엇이든 물어보세요</h1><div>서울 강동구 수소충전소 기준으로 법령을 찾아 답합니다</div><div class="box">수소 인허가, 무엇이든 물어보세요</div></div><div class="dim"></div><div class="lbl">C안 <small>숫자 요약 + 진행 단계</small></div><div class="pnl"><div class="dr rel"><div class="hd"><h2>내 사업장</h2><span class="sp"></span><span class="ib">⋯</span><span class="ib">✕</span></div>
+<div class="menu"><div>폴더 열기</div><div>이름 바꾸기</div><div class="red">사업장 지우기</div></div>
+<div class="bd">
+  <div class="name">강원 수소충전소</div>
+  <span class="chip">수소충전소 · 서울 강동구</span>
+  <div class="tiles"><div class="tile"><div class="n">0</div><div class="k">남은 일정</div></div><div class="tile"><div class="n">0</div><div class="k">서류</div></div><div class="tile"><div class="n">1</div><div class="k">저장한 대화</div></div></div>
+  <div class="sec">진행 단계</div>
+  <ul class="steps">
+    <li><span class="dot done">✓</span><div><b>사업장 만들기</b><small>11월 24일</small></div></li>
+    <li><span class="dot now"></span><div><b>허가 종류 고르기</b><small>고르면 필요 서류가 나와요</small></div></li>
+    <li><span class="dot"></span><div><b>서류 모으기</b></div></li>
+    <li><span class="dot"></span><div><b>AI 검토 후 제출</b></div></li>
+  </ul>
+  <div class="btn" style="margin-top:14px">허가 종류 고르기</div>
+</div></div>
+</div></div></body></html>

@@ -3,6 +3,8 @@
 //   GET  /api/app/notices?since=…    법령 개정 소식 + 최신 버전 (앱이 켜질 때 묻는다)
 //   POST /api/app/laws               법령 개정 소식 넣기 (고정 IP 서버의 law_watch.py 가 보낸다, APP_PUSH_KEY)
 //   POST /api/app/review             서류 폴더 검토: 파일 여러 개를 Gemini 한 번에 보내 서류 대조·내용 검토
+//   POST /api/app/extract            처음 설정(온보딩): 사업자등록증 등에서 회사 정보 칸을 뽑는다. 파일·결과를 저장하지 않는다
+import { llmFetch, llmName, llmAll } from './llm.js';            // OPENAI_API_KEY 가 있으면 ChatGPT 로
 import DATA from './data.json';
 
 // 새 설치 파일을 낼 때 이 값을 올리고 배포하면, 옛 앱이 켜질 때 "새 버전" 알림을 띄운다.
@@ -64,7 +66,7 @@ async function gemini(env, parts) {
   let last = '';
   for (const model of CHAIN) {
     try {
-      const r = await fetch(`${API}/${model}:generateContent?key=${env.GEMINI_API_KEY}`, {
+      const r = await llmFetch(`${API}/${model}:generateContent?key=${env.GEMINI_API_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: AbortSignal.timeout(90000) });
       if (!r.ok) { last = `${model} ${r.status}${r.status === 400 ? ' ' + ((await r.text().catch(() => '')).match(/"message":\s*"([^"]{0,100})/)?.[1] || '') : ''}`; continue; }
       const d = await r.json();
@@ -123,8 +125,60 @@ async function review(req, env) {
     files: res,
     missing: docs.filter(d => !have.has(d)),
     summary: String(out.summary || '').slice(0, 200),
-    model: g.model,
+    model: llmAll() ? llmName() : g.model,
   });
+}
+
+// ── 처음 설정(온보딩): 서류에서 회사 정보 뽑기 ──
+// 사업자등록증·법인등기부·허가증 등을 읽어 신청서 공통 칸(formMemo)을 채운다.
+// 파일과 결과는 어디에도 저장하지 않고 답만 돌려준다(저장은 손님 컴퓨터의 localStorage).
+const EXTRACT_PROMPT = `아래는 한 회사가 가진 서류 파일들이다(사업자등록증, 법인 등기사항증명서, 기존 허가증, 회사 소개서 등).
+서류에 실제로 적힌 값만 옮겨라. 추측하거나 만들어 내지 마라. 없으면 빈 문자열.
+- company: 상호(법인명)
+- ceo: 대표자 성명
+- bizno: 사업자등록번호 (000-00-00000)
+- office: 사업장(본점) 소재지 주소
+- tel: 회사 전화번호
+- email: 회사 이메일
+- site: 수소 시설(충전소·제조소 등)이 따로 적혀 있으면 그 주소
+- mgr_name, mgr_qual, mgr_no: 안전관리자 자격증이 있으면 성명, 자격 종목(예: 가스산업기사), 자격증 번호
+- permit_no, permit_date: 기존 허가증이 있으면 허가번호, 허가 일자
+각 파일이 무슨 서류인지도 15자 이내로 적어라(예: 사업자등록증, 법인 등기사항증명서, 고압가스 제조허가증, 기타).
+JSON 만 출력:
+{"fields":{"company":"","ceo":"","bizno":"","office":"","tel":"","email":"","site":"","mgr_name":"","mgr_qual":"","mgr_no":"","permit_no":"","permit_date":""},"docs":[{"name":"파일 이름 그대로","type":"사업자등록증"}]}`;
+const FIELD_KEYS = ['company', 'ceo', 'bizno', 'office', 'tel', 'email', 'site', 'mgr_name', 'mgr_qual', 'mgr_no', 'permit_no', 'permit_date'];
+
+async function extract(req, env) {
+  if (!env.GEMINI_API_KEY) return json({ error: '서버에 API 키가 없습니다' }, 500);
+  const body = await req.json().catch(() => ({}));
+  const files = (Array.isArray(body.files) ? body.files : []).slice(0, MAX_FILES)
+    .filter(f => f && typeof f.name === 'string' && (f.text || f.b64));
+  if (!files.length) return json({ error: '읽을 수 있는 파일이 없습니다' }, 400);
+  if (files.reduce((n, f) => n + (f.b64 ? String(f.b64).length : 0), 0) > MAX_B64) return json({ error: '파일이 너무 큽니다. 한 번에 18MB 안으로 골라 주세요' }, 413);
+  const parts = [{ text: EXTRACT_PROMPT }];
+  for (const f of files) {
+    parts.push({ text: `\n=== 파일: ${f.name.slice(0, 120)} ===` });
+    if (f.b64 && /^(application\/pdf|image\/(png|jpeg|webp))$/.test(f.mime || '')) parts.push({ inline_data: { mime_type: f.mime, data: String(f.b64) } });
+    else parts.push({ text: String(f.text || '').slice(0, 6000) });
+  }
+  const g = await gemini(env, parts);
+  if (g.error) return json({ error: `AI 가 서류를 읽지 못했습니다 (${g.error}). 직접 입력하거나 잠시 뒤 다시 해 주세요.` }, 502);
+  let out;
+  try { const t = g.text; out = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch (e) { return json({ error: 'AI 답을 읽지 못했습니다. 다시 해 주세요.' }, 502); }
+  const fields = {};
+  for (const k of FIELD_KEYS) {
+    const v = String(out.fields?.[k] ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if (v && !/^(없음|모름|null|undefined|-)$/i.test(v)) fields[k] = v;
+  }
+  if (fields.bizno) {                                  // 숫자 10자리가 아니면 버린다
+    const d = fields.bizno.replace(/\D/g, '');
+    if (d.length === 10) fields.bizno = `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`; else delete fields.bizno;
+  }
+  if (fields.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fields.email)) delete fields.email;
+  const names = new Set(files.map(f => f.name));
+  const docs = (Array.isArray(out.docs) ? out.docs : []).filter(d => d && names.has(d.name))
+    .map(d => ({ name: d.name, type: String(d.type || '기타').slice(0, 20) }));
+  return json({ fields, docs, model: llmAll() ? llmName() : g.model });
 }
 
 export async function handleApp(req, env, url) {
@@ -135,5 +189,6 @@ export async function handleApp(req, env, url) {
   if (p === '/api/app/notices') return notices(env, url).catch(() => json({ version: APP_LATEST, laws: [], now: new Date().toISOString() }));
   if (p === '/api/app/laws' && req.method === 'POST') return pushLaws(req, env);
   if (p === '/api/app/review' && req.method === 'POST') return review(req, env);
+  if (p === '/api/app/extract' && req.method === 'POST') return extract(req, env);
   return json({ error: '없는 주소' }, 404);
 }

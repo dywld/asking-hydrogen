@@ -1,0 +1,2277 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>부지·배치 3D 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--blue:#3182f6;--red:#f04452;--grn:#03b26c;--ink:#191f28;--sub:#4e5968;--mute:#8b95a1;--line:#f2f4f6}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{font-family:Pretendard,"Malgun Gothic",sans-serif;color:var(--ink);overflow:hidden;-webkit-font-smoothing:antialiased;font-size:14px;
+  background:radial-gradient(120% 90% at 50% 30%,#fff 0%,#f3f4f6 60%,#e9ebee 100%)}
+button{font-family:inherit;border:0;cursor:pointer;background:none;color:inherit}
+input,select{width:100%;padding:11px 12px;border:1px solid #e5e8eb;border-radius:12px;font:inherit;background:#fff}
+#view{position:fixed;inset:0}
+#view canvas{display:block}
+.busy{position:absolute;inset:0;background:rgba(244,245,247,.72);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-size:16px;font-weight:600;color:var(--sub);z-index:2}
+.busy.on{display:flex}
+.spin{width:30px;height:30px;border:3px solid #d5dae0;border-top-color:var(--blue);border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+/* 왼쪽 위: 주소 + 보기 */
+.tl{position:fixed;left:24px;top:24px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;z-index:4}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:9px 15px;font-size:14px;color:var(--sub);font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.07);text-decoration:none;max-width:420px}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip i{font-style:normal;color:var(--blue)}
+.seg{background:#fff;border-radius:14px;padding:4px;display:flex;box-shadow:0 4px 20px rgba(0,0,0,.07)}
+.seg button{padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600;color:var(--mute)}
+.seg button.on{background:var(--ink);color:#fff}
+.seg .mv.on{background:var(--blue)}
+.pop{background:#fff;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:18px;width:340px;display:flex;flex-direction:column;gap:8px}
+.pop label{font-size:13px;color:var(--mute);font-weight:600;margin-top:4px}
+.pop .row2{display:flex;gap:8px}.pop .row2>*{flex:1;min-width:0}
+/* 오른쪽 카드 */
+.card{position:fixed;right:24px;top:24px;width:340px;background:#fff;border-radius:28px;box-shadow:0 8px 40px rgba(0,0,0,.08);padding:26px 24px 20px;z-index:3;max-height:calc(100vh - 290px);overflow:auto}
+/* 결과 카드: 탭 3개(결과 | 근거 | 설계도). 탭 줄은 그대로 두고 아래 칸만 스크롤 */
+#card{width:360px;padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:22px;max-height:calc(100vh - 290px)}
+@media (min-width:901px) and (max-height:759px){#card{top:16px;right:16px;max-height:calc(100vh - 32px)}.inset{display:none!important}}
+.ctabs{display:flex;gap:4px;padding:10px 10px 0;flex:none}
+.ctabs button{flex:1;padding:9px 0;border-radius:11px;font-size:14.5px;font-weight:700;color:var(--mute)}
+.ctabs button.on{background:#f2f4f6;color:var(--ink)}
+.ctabs button:not(.on):hover{color:var(--sub)}
+.cpane{padding:12px 20px 16px;overflow:auto;min-height:0}
+#card .sm{font-size:13px}
+#card h1{font-size:23px}
+#card .lead{font-size:14px}
+#card .btn{height:50px;font-size:16px;margin-top:14px}
+.sumc{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+.sumc div{background:#f2f4f6;border-radius:11px;padding:8px 10px;font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;overflow:hidden}
+.sumc b{display:block;font-size:14.5px;font-weight:800;color:var(--ink);margin-top:1px;overflow:hidden;text-overflow:ellipsis}
+.sumc b.ok{color:var(--grn)}.sumc b.chk{color:#d97706}.sumc b.bad{color:var(--red)}
+.cnote{font-size:12.5px;color:var(--mute);margin-top:10px;line-height:1.45}
+.cnote a{color:var(--blue);font-weight:700;cursor:pointer}
+#tWhy #items .row{border-top:1px solid #f2f4f6}#tWhy #items .row:first-child{border-top:0}
+.pvw{position:relative;border:1px solid #e5e8eb;border-radius:12px;overflow:hidden;background:#fafbfc;cursor:pointer}
+.pvw canvas{display:block;width:100%;height:auto}
+.pvw span{position:absolute;left:8px;top:8px;background:rgba(255,255,255,.92);border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:700;color:var(--sub)}
+.pvb{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.pvb button{height:44px;border:1px solid #e5e8eb;border-radius:12px;font-size:14px;font-weight:700;color:var(--ink);background:#fff}
+.pvb button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pvb button:hover{border-color:#c9d0d8}
+.pvb button.on{border-color:var(--blue);color:var(--blue)}
+#tPlan .links{justify-content:flex-start;margin-top:8px}
+.card .sm{font-size:15px;color:var(--sub);font-weight:600}
+.card h1{font-size:26px;font-weight:700;line-height:1.36;letter-spacing:-.6px;margin-top:2px}
+.card h1 em{font-style:normal;color:var(--red)}.card h1 em.ok{color:var(--blue)}.card h1 em.wait{color:var(--mute)}
+.card .lead{margin-top:6px;font-size:15px;color:var(--sub)}
+.btn{display:block;width:100%;background:var(--blue);color:#fff;border-radius:16px;height:54px;font-size:17px;font-weight:700;margin-top:20px}
+.btn.dark{background:var(--ink)}.btn:disabled{background:#e8f3ff;color:var(--blue);cursor:default}
+.pop .btn{margin-top:8px;height:48px;font-size:16px}
+.links{display:flex;justify-content:center;gap:4px;margin-top:10px;flex-wrap:wrap}
+.links button{font-size:13.5px;color:var(--sub);font-weight:600;padding:7px 9px;border-radius:9px}
+.links button:hover{background:var(--line)}
+.more{display:block;width:100%;text-align:left;margin-top:8px;padding:12px 2px 2px;border-top:1px solid var(--line);font-size:14px;color:var(--mute);font-weight:600}
+#more{margin-top:8px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;font-size:14px;font-weight:600;color:var(--sub)}
+.row small{display:block;font-weight:500;color:var(--mute);font-size:12.5px;margin-top:2px}
+.row b{flex:none;font-size:13px}.row b.ok{color:var(--grn)}.row b.bad{color:var(--red)}.row b.chk{color:#d97706}
+.log{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.log div{display:flex;gap:8px;font-size:12.5px;color:var(--sub);margin-bottom:6px;line-height:1.45}
+.log i{font-style:normal;flex:none;width:16px;height:16px;border-radius:50%;background:var(--grn);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.log i.w{background:#c7ccd3}.log i.e{background:var(--red)}
+.saved{font-size:12.5px;color:var(--sub);margin-top:8px;line-height:1.5}.saved a{color:var(--blue);text-decoration:none}
+.thumb{margin-top:8px;border:1px solid #e5e8eb;border-radius:10px;max-width:100%;display:none}
+.src{font-size:11.5px;color:var(--mute);margin-top:10px;line-height:1.5}
+/* 확대 창 */
+.inset{position:fixed;right:24px;bottom:30px;width:340px;height:220px;border-radius:24px;overflow:hidden;background:#eceef1;box-shadow:0 10px 40px rgba(0,0,0,.14);z-index:3;border:4px solid #fff}
+.inset canvas{display:block}
+.inset .cap{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.92);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--sub)}
+.inset .pl{position:absolute;right:10px;bottom:10px}
+.attr{position:fixed;left:24px;bottom:10px;font-size:11px;color:var(--mute);z-index:3}
+/* 지도 위 표시 */
+.lab{font-family:Pretendard,"Malgun Gothic",sans-serif;font-size:13.5px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;background:#fff;color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,.14);pointer-events:none}
+.lab.r{background:var(--red);color:#fff}.lab.b{background:var(--blue);color:#fff}.lab.g{background:var(--grn);color:#fff}
+.lab.s{font-size:12.5px;padding:5px 10px}
+.lab.n{background:none;box-shadow:none;font-size:12px;color:var(--sub);padding:0;font-weight:600;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff}
+.lab.jb{background:none;box-shadow:none;font-size:11px;color:#98a1ad;padding:0;font-weight:600;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff}
+.lab.jb.me{color:var(--blue);font-size:12px}
+.lab.pin{position:relative;transform:translateY(-14px)}
+.lab.pin:after{content:'';position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fff}
+.lab.pin.b:after{border-top-color:var(--blue)}.lab.pin.r:after{border-top-color:var(--red)}
+.far .lab.near{display:none}
+#view:not(.far) .lab.farl{display:none}
+/* 좁은 화면(신청서 안에 넣었을 때 포함): 카드는 아래 한 줄, 확대 창 숨김 */
+@media (max-width:900px){
+  .tl{left:14px;top:14px}.chip{max-width:260px}.pop{width:calc(100vw - 28px)}
+  .card{left:14px;right:14px;top:auto;bottom:14px;width:auto;padding:18px 18px 12px;border-radius:22px;max-height:60vh}
+  #card{width:auto;max-height:60vh;padding:0}
+  .card h1{font-size:21px}.card h1 br{display:none}.card h1 em{margin-left:6px}
+  .btn{height:50px;margin-top:14px;font-size:16px}
+  .inset{display:none}.attr{left:auto;right:14px;top:14px;bottom:auto}
+  .card>.links{display:none}.card .sm{display:none}.more{margin-top:6px;padding-top:8px}
+}
+/* 처음 화면: 주소 찾기 -> 가운데 핀 -> 확인 연출 */
+body.pick #card,body.pick #inset,body.pick #segv,body.pick #addrChip,body.pick #pop,body.m-rv #card,body.m-rv #inset,body.m-rv #segv,body.m-rv #addrChip,body.m-rv #pop{display:none!important}
+#pk{position:fixed;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(70% 65% at 50% 45%,rgba(255,255,255,.92) 0%,rgba(255,255,255,.66) 55%,rgba(255,255,255,.25) 100%)}
+.pk-box{width:min(560px,100%);text-align:center;animation:up .5s ease both}
+.pk-k{display:inline-block;font-size:13px;font-weight:700;color:var(--blue);background:#e8f3ff;border-radius:999px;padding:6px 12px}
+.pk-box h2{font-size:34px;line-height:1.3;letter-spacing:-1px;margin-top:14px;font-weight:800}
+.pk-box p{color:var(--sub);font-size:16px;margin-top:10px}
+.pk-w{position:relative;margin-top:26px;text-align:left}
+.pk-in{display:flex;gap:8px;background:#fff;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:8px}
+.pk-in input{border:0;font-size:17px;padding:12px;outline:none;min-width:0}
+.pk-in button{flex:none;background:var(--blue);color:#fff;border-radius:12px;padding:0 22px;font-size:16px;font-weight:700}
+.pk-sug{position:absolute;left:0;right:0;top:calc(100% + 8px);background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.14);padding:6px;z-index:2;max-height:min(360px,50vh);overflow:auto}
+.pk-sug button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:12px}
+.pk-sug button.on,.pk-sug button:hover{background:#f2f4f6}
+.pk-sug span{display:flex;flex-direction:column;min-width:0}
+.pk-sug b{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-sug small{color:var(--mute);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-sug u{text-decoration:none;color:var(--blue)}
+.pk-sug i.k-district{color:#03804f;background:#e6f6ee}.pk-sug i.k-place{color:#6b4fd8;background:#efebfd}
+.pk-note{padding:14px 12px;font-size:14px;color:var(--sub);display:flex;align-items:center;gap:8px}
+.spin.s{width:16px;height:16px;border-width:2px}
+.pk-sug i{margin-left:auto;flex:none;font-style:normal;font-size:11.5px;color:var(--mute);background:#f2f4f6;border-radius:6px;padding:2px 7px}
+.pk-err{color:var(--red);font-size:14px;margin-top:12px;font-weight:600}
+.pk-ex{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+.pk-ex span{font-size:13px;color:var(--mute);font-weight:600;margin-right:2px}
+.pk-ex button{background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:var(--sub);box-shadow:0 4px 16px rgba(0,0,0,.07);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-ex button:hover{color:var(--blue)}
+.pk-st{margin-top:34px;display:flex;justify-content:center;align-items:center;gap:8px;font-size:13px;color:var(--mute);font-weight:600;flex-wrap:wrap}
+.pk-st b{width:20px;height:20px;border-radius:50%;background:#e5e8eb;color:var(--sub);font-size:11.5px;display:inline-flex;align-items:center;justify-content:center;margin-right:4px}
+.pk-st i{width:18px;height:1px;background:#d5dae0}
+#cpin{position:fixed;left:50%;top:50%;z-index:4;pointer-events:none;transform:translate(-50%,-100%);width:40px;height:52px}
+#cpin svg{display:block;transition:transform .18s ease;filter:drop-shadow(0 4px 6px rgba(0,0,0,.18))}
+#cpin.up svg{transform:translateY(-14px)}
+#cpin .sh{position:absolute;left:50%;bottom:-3px;width:14px;height:6px;margin-left:-7px;border-radius:50%;background:rgba(0,0,0,.28);transition:.18s}
+#cpin.up .sh{transform:scale(.55);opacity:.45}
+#cpin.drop svg{animation:drop .32s ease}
+@keyframes drop{0%{transform:translateY(-14px)}60%{transform:translateY(2px)}100%{transform:none}}
+.pin-tip{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);white-space:nowrap;background:var(--ink);color:#fff;font-size:13.5px;font-weight:600;padding:8px 13px;border-radius:12px}
+.pin-tip:after{content:'';position:absolute;left:50%;bottom:-5px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:var(--ink)}
+#psheet{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(440px,calc(100vw - 28px));background:#fff;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,.14);padding:20px 20px 12px;z-index:5}
+.ps-k{font-size:13px;color:var(--mute);font-weight:600}
+.ps-t{font-size:19px;font-weight:700;margin-top:4px;letter-spacing:-.3px;line-height:1.4}
+.ps-z{font-size:14.5px;color:var(--sub);margin-top:4px;font-weight:600;line-height:1.5}
+.ps-z b{font-weight:700}.ps-z b.ok{color:var(--blue)}.ps-z b.bad{color:var(--red)}.ps-z b.chk{color:#d97706}
+#psheet .btn{margin-top:14px}
+.ps-back{display:block;margin:6px auto 0;font-size:13.5px;color:var(--sub);font-weight:600;padding:6px 10px}
+.rvl{margin-top:14px;display:flex;flex-direction:column}
+.rvr{display:flex;gap:12px;align-items:flex-start;padding:8px 0;font-size:15px;font-weight:600;color:#b0b8c1;transition:color .3s}
+.rvr i{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #e5e8eb;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:800;color:#fff}
+.rvr small{display:block;font-size:13px;font-weight:500;color:var(--mute);margin-top:2px}
+.rvr.on,.rvr.ok,.rvr.bad,.rvr.chk{color:var(--ink)}
+.rvr.on i{border-color:#d5e6ff;border-top-color:var(--blue);animation:s .8s linear infinite}
+.rvr.ok i,.rvr.bad i,.rvr.chk i{animation:pop .3s ease}
+.rvr.ok i{background:var(--grn);border-color:var(--grn)}.rvr.ok i:after{content:'✓'}
+.rvr.bad i{background:var(--red);border-color:var(--red)}.rvr.bad i:after{content:'!'}
+.rvr.chk i{background:#f59e0b;border-color:#f59e0b}.rvr.chk i:after{content:'!'}
+.rvr.skip i:after{content:'–';color:#b0b8c1}
+.rvbar{height:4px;border-radius:2px;background:#f2f4f6;margin-top:14px;overflow:hidden}
+.rvbar i{display:block;height:100%;width:0;background:var(--blue);border-radius:2px;transition:width .6s ease}
+.rvskip{display:block;margin:8px auto 0;font-size:13.5px;color:var(--mute);font-weight:600;padding:6px 10px}
+#view.rvh .lab.near:not(.jb),#view.rvh .lab.pin.s{visibility:hidden}
+#card.enter{animation:up .45s ease both}
+#psheet:not([hidden]){animation:sheet .35s ease both}
+@keyframes sheet{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+/* 평면 지도(위치·필지 고르기) */
+#fmap{position:fixed;inset:0;z-index:1;background:#eef0f3;font-family:inherit}
+#fmap .leaflet-tile-pane{filter:grayscale(1) brightness(1.06) contrast(.86)}
+#fmap.out{opacity:0;transform:perspective(1100px) rotateX(26deg) scale(1.08);transition:opacity .9s ease .15s,transform 1.5s cubic-bezier(.4,0,.2,1);pointer-events:none}
+#fmap .leaflet-control-attribution{font-size:10.5px;background:rgba(255,255,255,.82);border-radius:0 0 0 8px}
+#fmap .leaflet-control-zoom{border:0!important;box-shadow:0 4px 16px rgba(0,0,0,.1);border-radius:12px;overflow:hidden;margin-top:12px;margin-right:16px}
+#fmap .leaflet-control-zoom a{width:38px;height:38px;line-height:38px;font-size:19px;color:var(--sub);border-color:#f2f4f6}
+body[data-pick=map] .attr{display:none}
+.ps-t .spin{display:inline-block;vertical-align:-2px;margin-right:6px}
+.ps-prog{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.pp-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13.5px;font-weight:700}
+.pp-h span{font-size:13px;color:var(--blue);font-weight:700;white-space:nowrap}
+.ps-prog .rvbar{margin-top:8px}
+.pp-st{display:flex;gap:14px;margin-top:9px;font-size:12.5px;font-weight:600;color:var(--mute);flex-wrap:wrap}
+.pp-st span{display:inline-flex;align-items:center;gap:5px}
+.pp-st i{width:14px;height:14px;border-radius:50%;border:2px solid #d5e6ff;border-top-color:var(--blue);animation:s .8s linear infinite;font-style:normal;font-size:8.5px;font-weight:800;color:#fff;display:inline-flex;align-items:center;justify-content:center}
+.pp-st small{font-size:11.5px;color:var(--mute);font-weight:500}
+.pp-st .ok{color:var(--ink)}.pp-st .ok i{animation:none;background:var(--grn);border-color:var(--grn)}.pp-st .ok i:after{content:'✓'}
+.pp-st .fail{color:var(--red)}.pp-st .fail i{animation:none;background:var(--red);border-color:var(--red)}.pp-st .fail i:after{content:'!'}
+.ps-prog.done .pp-h span{color:var(--grn)}.ps-prog.done .rvbar i{background:var(--grn)}.ps-prog.fail .rvbar i{background:#f9b4bb}
+.pp-re{color:var(--blue);font-weight:700;font-size:13px;text-decoration:underline}
+#psM,#psHd,#psMb,#pkTop{display:none}
+body[data-pick="map"] #psHd{display:block;width:36px;height:4px;border-radius:2px;background:#e5e8eb;margin:-8px auto 10px;cursor:pointer}
+body[data-pick="map"] #psheet{cursor:pointer;overflow:hidden}
+body[data-pick="map"] #psheet .btn,body[data-pick="map"] #psheet .ps-back,body[data-pick="map"] #psheet button{cursor:pointer}
+body[data-pick="map"] #psheet:not(.open){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center;padding:14px 14px 12px!important}
+body[data-pick="map"] #psheet:not(.open) #psHd{grid-column:1/3;margin:-6px auto 8px}
+body[data-pick="map"] #psheet:not(.open) :is(#psK,#psZ,#psP,#pkBack){display:none!important}
+body[data-pick="map"] #pkBack{display:none!important}
+body[data-pick="map"] #psheet:not(.open) #psT{grid-column:1;font-size:16px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-pick="map"] #psheet:not(.open) #psM{display:block;grid-column:1;font-size:13px;font-weight:600;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-pick="map"] #psheet:not(.open) #pkGo{grid-column:2;grid-row:2/4;margin:0;width:auto;max-width:46vw;padding:0 18px;height:52px;font-size:15.5px;border-radius:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-pick="map"] #psheet:not(.open) #psMb{display:block;position:absolute;left:0;top:0;height:3px;background:var(--blue);transition:width .25s}
+body[data-pick="map"] #psheet:not(.open) #psMb.done{background:var(--grn)}body[data-pick="map"] #psheet:not(.open) #psMb.fail{background:#f9b4bb}
+#psM b{font-weight:700}#psM b.ok{color:var(--blue)}#psM b.bad{color:var(--red)}#psM b.chk{color:#d97706}
+#psM .okc{color:var(--grn);font-weight:700}#psM .bad{color:var(--red);font-weight:700}#psM .spin{display:inline-block;vertical-align:-3px;margin-right:5px}
+body[data-pick="map"] #pkTop{display:block;position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:6;background:#fff;border:0;border-radius:999px;padding:10px 16px 10px 14px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;cursor:pointer}
+body[data-pick="map"] #pkTop:disabled{opacity:.5}
+body[data-pick="map"] #pkTop i{font-style:normal;color:var(--mute);margin-right:6px}
+.btn.wait{background:#e8f3ff;color:var(--blue)}.btn .spin{display:inline-block;vertical-align:-3px;margin-right:8px;border-color:#cfe2ff;border-top-color:var(--blue)}
+@media (max-width:900px),(max-height:600px){#fmap .leaflet-control-zoom{display:none}#psheet{padding:16px 16px 8px}.ps-t{font-size:17px}}
+@media (max-width:900px),(max-height:600px){.attr{top:auto!important;bottom:2px;left:0!important;right:0!important;text-align:center;font-size:9.5px;z-index:2}.pk-box h2{font-size:27px}.pk-box p{font-size:15px}#psheet{bottom:14px}.pk-st{display:none}}
+
+/* 확인 연출 중 진행 표시: 오른쪽 위 작은 카드(3D 만드는 과정을 가리지 않게) */
+#rv{left:auto!important;right:16px!important;top:16px!important;bottom:auto!important;width:262px!important;padding:14px 16px 8px!important;border-radius:18px!important;max-height:none!important;background:rgba(255,255,255,.94);backdrop-filter:blur(8px)}
+#rv .sm{display:none}
+#rv h1{font-size:15.5px!important;margin:0}
+#rv .lead{font-size:12.5px;margin-top:1px}
+#rv .rvbar{margin-top:9px;height:3px}
+#rv .rvl{margin-top:6px}
+#rv .rvr{font-size:13px;padding:4px 0;gap:8px}
+#rv .rvr i{width:16px;height:16px;font-size:9px;margin-top:1px}
+#rv .rvr small{font-size:11.5px;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+#rv .rvr:not(.on) small{display:none}
+#rv .rvskip{font-size:12px;margin:2px 0 0 auto;padding:4px 2px}
+@media (max-width:600px){#rv{width:214px!important;right:12px!important;top:12px!important}#rv .rvr small{max-width:160px}}
+</style>
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script type="importmap">{"imports":{"three":"/vendor/three/three.module.min.js"}}</script>
+</head>
+<body>
+<div id="fmap" hidden></div>
+<div id="view"><div class="busy" id="busy"><div class="spin"></div><div id="busyT">불러오는 중</div></div></div>
+<div class="tl">
+ <div class="chips"><a class="chip" id="home" href="/" target="_top">‹ 챗봇</a><button class="chip" id="addrChip"><span id="addrTxt">주소</span><i>바꾸기</i></button></div>
+ <div class="pop" id="pop" hidden>
+  <label>시설 주소</label><input id="addr">
+  <div class="row2"><div><label>시설 종류</label><select id="fac"><option value="저장식">충전소 (저장식)</option><option value="제조식">충전소 (제조식)</option></select></div>
+   <div><label>저장능력 (㎥)</label><input id="cap" type="number" value="3000"></div></div>
+  <label>부지 크기 (가로 × 세로 m)</label><div class="row2"><input id="sw" type="number" min="15" max="200" value="50"><input id="sd" type="number" min="15" max="200" value="40"></div>
+  <label>용도지역 (지적도에서 자동, 직접 바꿀 수 있음)</label><select id="zone"></select>
+  <button class="btn" id="load">이 주소로 보기</button>
+ </div>
+ <div class="seg" id="segv"><button id="vAll" class="on">전체</button><button id="vSite">부지</button><button id="vTop">위에서</button></div>
+</div>
+<div class="card" id="card">
+ <div class="ctabs" id="ctabs"><button data-t="tRes" class="on">결과</button><button data-t="tWhy">근거</button><button data-t="tPlan">설계도</button></div>
+ <div class="cpane" id="tRes">
+  <div id="verdict"><div class="sm">자동 검토</div><h1><em class="wait">주변을 살펴보는 중</em></h1></div>
+  <div class="sumc" id="sumc" hidden></div>
+  <div id="act"></div>
+  <div class="cnote" id="cnote" hidden>판정 이유는 <a data-go="tWhy">근거</a>, 배치도 받기는 <a data-go="tPlan">설계도</a> 탭에 있어요</div>
+ </div>
+ <div class="cpane" id="tWhy" hidden>
+  <div id="items"></div>
+  <div id="saved"></div>
+  <div class="log" id="log"></div>
+  <div class="src">거리 판정: 고압가스 안전관리법 시행규칙 별표 5와 KGS Code 거리표(자체점검표와 같은 코드). 보호시설 구분: 같은 규칙 별표 2. 건폐율: 국토계획법 시행령 제84조(조례가 더 낮을 수 있음). 주변 건물·도로는 국토교통부 브이월드(GIS건물통합정보·도로명주소·도시계획시설) 기준이고, 못 받으면 OpenStreetMap 으로 대신해요. 빠지거나 바뀐 건물이 있을 수 있어요. 작성 보조용이며 법적 효력이 없습니다.</div>
+ </div>
+ <div class="cpane" id="tPlan" hidden>
+  <div class="pvw" id="pvw" title="배치도 PDF 받기"><canvas id="pv" width="640" height="460"></canvas><span>AI 배치 초안</span></div>
+  <img class="thumb" id="thumb" alt="">
+  <div class="pvb"><button class="pri" id="dl">배치도 PDF</button><button id="dxf">CAD 파일 DXF</button><button id="auto">AI 다시 배치</button><button id="upbtn">배치도 올리기</button></div>
+  <input type="file" id="up" accept=".pdf,image/png,image/jpeg" hidden>
+  <div class="links"><button id="find2">기준 지키는 자리 찾기</button><button id="addPar">옆 필지 합치기</button><button id="moveSite">부지 옮겨 보기</button><button id="sample">예시 배치도 읽기</button></div>
+  <div class="cnote">AI가 그린 초안이에요. 실제 설치 전에 설계자가 확인해야 해요. PDF 는 신청서 첨부용 A3 한 장, DXF 는 설계사무소용 CAD 파일이에요.</div>
+ </div>
+</div>
+<div class="inset" id="inset"><div class="cap">우리 부지 확대</div><div class="pl" id="insetPill"></div></div>
+<div class="attr" id="attr"></div>
+<div id="pk" hidden><div class="pk-box">
+ <div class="pk-k">부지 3D 자동 검토</div>
+ <h2>내 땅에 수소충전소,<br>지을 수 있을까?</h2>
+ <p>주소만 넣으면 AI가 용도지역과 안전거리를 바로 확인해요</p>
+ <div class="pk-w"><div class="pk-in"><input id="pq" placeholder="주소 (예: 화곡동 1000)" autocomplete="off" spellcheck="false"><button id="pqGo">찾기</button></div><div class="pk-sug" id="pkSug" hidden></div></div>
+ <div class="pk-err" id="pkErr" hidden></div>
+ <div class="pk-ex" id="pkEx"></div>
+ <div class="pk-st"><span><b>1</b>주소 찾기</span><i></i><span><b>2</b>지도에서 땅 고르기</span><i></i><span><b>3</b>AI가 바로 확인</span></div>
+</div></div>
+<div id="cpin" hidden><div class="pin-tip" id="pinTip">지도를 끌어 핀을 내 땅에 맞추세요</div><svg viewBox="0 0 40 52" width="40" height="52"><path d="M20 50C20 50 4 31 4 19a16 16 0 0 1 32 0c0 12-16 31-16 31z" fill="#3182f6" stroke="#fff" stroke-width="3"/><circle cx="20" cy="19" r="6" fill="#fff"/></svg><i class="sh"></i></div>
+<button id="pkTop"><i>‹</i><span>주소 다시 찾기</span></button>
+<div id="psheet" hidden>
+ <i id="psMb"></i><div id="psHd" title="펼치기·접기"></div>
+ <div class="ps-k" id="psK">핀이 가리키는 땅</div>
+ <div class="ps-t" id="psT">땅을 고르는 중</div>
+ <div class="ps-z" id="psZ"></div>
+ <div id="psM"></div>
+ <div class="ps-prog" id="psP" hidden><div class="pp-h"><b id="ppT">3D 모형 준비 중</b><span id="ppS"></span></div><div class="rvbar"><i id="ppBar"></i></div><div class="pp-st" id="ppSt"></div></div>
+ <button class="btn" id="pkGo">이 땅으로 확인</button>
+ <button class="ps-back" id="pkBack">주소 다시 찾기</button>
+</div>
+<div class="card" id="rv" hidden>
+ <div class="sm">AI가 확인하는 중</div><h1 id="rvT" style="font-size:23px"></h1><div class="lead" id="rvL"></div>
+ <div class="rvbar"><i id="rvBar"></i></div>
+ <div class="rvl" id="rvList">
+  <div class="rvr"><i></i><div>주변 건물 살펴보기<small></small></div></div>
+  <div class="rvr"><i></i><div>용도지역 확인<small></small></div></div>
+  <div class="rvr"><i></i><div>AI 설비 배치<small></small></div></div>
+  <div class="rvr"><i></i><div>보호시설 안전거리<small></small></div></div>
+  <div class="rvr"><i></i><div>경계·도로 거리<small></small></div></div>
+ </div>
+ <button class="rvskip" id="rvSkip">건너뛰기 ›</button>
+</div>
+
+<script src="/vendor/polygon-clipping/polygon-clipping.umd.min.js"></script>
+<script src="/site-plan.js"></script>
+<script src="/zone-rules.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from '/vendor/three/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from '/vendor/three/CSS2DRenderer.js';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ls = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const qs = new URLSearchParams(location.search);
+if (qs.get('embed')) document.body.classList.add('embed');
+const DEMO = {file: '/site/gangdong.json', addr: '서울 강동구 천호대로 (H강동수소충전소 자리)'};
+// 국토의 계획 및 이용에 관한 법률 시행령 제84조 제1항: 용도지역별 건폐율 최대한도(%)
+const ZONES = [['', '모름'], ['제1종전용주거지역', 50], ['제2종전용주거지역', 50], ['제1종일반주거지역', 60], ['제2종일반주거지역', 60], ['제3종일반주거지역', 50],
+  ['준주거지역', 70], ['중심상업지역', 90], ['일반상업지역', 80], ['근린상업지역', 70], ['유통상업지역', 80], ['전용공업지역', 70], ['일반공업지역', 70], ['준공업지역', 70],
+  ['보전녹지지역', 20], ['생산녹지지역', 20], ['자연녹지지역', 20], ['보전관리지역', 20], ['생산관리지역', 20], ['계획관리지역', 40], ['농림지역', 20], ['자연환경보전지역', 20]];
+$('#zone').innerHTML = ZONES.map(([n, v]) => `<option value="${n}">${n ? `${n} (건폐율 ${v}% 이하)` : '자동 (지적도 용도지역)'}</option>`).join('');
+// 용도지역별 수소충전소 허용 여부(국토계획법 시행령 별표 2~22)는 /zone-rules.js 에 있다(채팅 주소 카드와 같이 씀)
+const {HY, HY_TXT, HY_SHORT} = window.ZONE_RULES;
+const HY_V = {ok: '적합', okc: '적합', ord: '확인', no: '부적합'}, HY_RANK = {ok: 0, okc: 1, ord: 2, no: 3};
+const TYPE = {process: {c: 0xfcd34d, h: 3, n: '처리설비'}, compressed: {c: 0xfb923c, h: 3.5, n: '압축가스설비'}, storage: {c: 0x60a5fa, h: 3.2, n: '저장설비'},
+  charger: {c: 0x4ade80, h: 2.4, n: '충전설비'}, building: {c: 0xf8fafc, h: 4.5, n: '건축물'}, other: {c: 0xcbd5e1, h: 2, n: '기타'}};
+const DANGER = ['process', 'compressed', 'storage'];       // 보호시설 거리 기준이 걸리는 설비(별표 5: 처리설비 및 저장설비)
+
+// ---------------------------------------------------------------- 2D 기하(미터, x 동쪽 y 북쪽)
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+function ptSeg(p, a, b) {
+  const ab = sub(b, a), t = Math.max(0, Math.min(1, ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]) / ((ab[0] ** 2 + ab[1] ** 2) || 1)));
+  const q = [a[0] + ab[0] * t, a[1] + ab[1] * t]; return [Math.hypot(p[0] - q[0], p[1] - q[1]), q];
+}
+function cross(a, b, c, d) {
+  const o = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+  return o(a, b, c) !== o(a, b, d) && o(c, d, a) !== o(c, d, b);
+}
+function inside(p, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+const edges = (pts, closed) => pts.map((p, i) => [p, pts[(i + 1) % pts.length]]).slice(0, closed ? pts.length : pts.length - 1);
+// 두 도형 사이 최단거리와 그 두 점. 겹치면 0.
+function dist(A, B, closedA = true, closedB = true) {
+  if ((closedB && A.some(p => inside(p, B))) || (closedA && B.some(p => inside(p, A)))) return {d: 0, a: A[0], b: A[0]};
+  const eA = edges(A, closedA), eB = edges(B, closedB);
+  for (const [a, b] of eA) for (const [c, d] of eB) if (cross(a, b, c, d)) return {d: 0, a, b: a};
+  let best = {d: Infinity};
+  for (const p of A) for (const [c, d] of eB) { const [x, q] = ptSeg(p, c, d); if (x < best.d) best = {d: x, a: p, b: q}; }
+  for (const p of B) for (const [c, d] of eA) { const [x, q] = ptSeg(p, c, d); if (x < best.d) best = {d: x, a: q, b: p}; }
+  return best;
+}
+const area = pts => Math.abs(pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+
+// ---------------------------------------------------------------- 상태
+let S = null;            // 부지 자료(브이월드 또는 OSM 가공본)
+let site = {cx: 0, cy: 0, ang: 0, w: 50, d: 40};   // 부지 중심(세계 좌표)·방향(도)·크기
+let L = null;            // 배치 {items:[{name,type,cx,cy,w,d}], walls:[{x1,y1,x2,y2}], src}
+const local2w = (x, y) => { const a = site.ang * Math.PI / 180; return [site.cx + x * Math.cos(a) - y * Math.sin(a), site.cy + x * Math.sin(a) + y * Math.cos(a)]; };
+const w2local = (X, Y) => { const a = site.ang * Math.PI / 180, dx = X - site.cx, dy = Y - site.cy; return [dx * Math.cos(a) + dy * Math.sin(a), -dx * Math.sin(a) + dy * Math.cos(a)]; };
+const rectW = it => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => local2w(it.cx + sx * it.w / 2, it.cy + sy * it.d / 2));
+const sitePoly = () => site.poly ? site.poly.map(p => local2w(...p)) : [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => local2w(sx * site.w / 2, sy * site.d / 2));
+const BLD = () => S.buildings.filter(b => !b.inSite);   // 부지 안 기존 건물(철거 전제)은 거리 검사에서 뺀다
+
+function log(t, k = '') { $('#log').insertAdjacentHTML('beforeend', `<div><i class="${k}">${k === 'e' ? '!' : k === 'w' ? '…' : '✓'}</i><span>${t}</span></div>`); }
+let REVEAL = false;      // 처음 확인 연출 중이면 가운데 '불러오는 중' 막을 띄우지 않는다(연출 카드가 대신 보여 준다)
+function busy(t) { if (REVEAL && t) return; $('#busy').classList.toggle('on', !!t); if (t) $('#busyT').textContent = t; }
+
+// ---------------------------------------------------------------- 주소 -> 주변 자료
+// 건물·도로는 브이월드(국토교통부)를 먼저 쓰고, 못 받으면 Overpass(OpenStreetMap)로 대신한다. 시연 주소는 미리 받아 둔 자료를 쓴다.
+const FIRST_AM = new Set(['school', 'kindergarten', 'childcare', 'hospital', 'clinic', 'library', 'marketplace', 'place_of_worship', 'theatre', 'community_centre', 'public_bath', 'social_facility', 'university', 'college']);
+const FIRST_BD = new Set(['school', 'kindergarten', 'hospital', 'church', 'hotel', 'university', 'college']);
+const HOUSE = new Set(['house', 'detached', 'residential', 'semidetached_house', 'terrace', 'bungalow']);
+const ROAD_W = {motorway: 24, trunk: 22, primary: 20, secondary: 14, tertiary: 10, unclassified: 6, residential: 6, primary_link: 7, secondary_link: 7, tertiary_link: 6, service: 4};
+const LBL = {social_facility: '사회복지시설', school: '학교', kindergarten: '유치원', childcare: '어린이집', hospital: '병원', clinic: '의원', library: '도서관', university: '대학', college: '대학', apartments: '공동주택', house: '주택', commercial: '상업시설', retail: '상가', office: '업무시설', industrial: '공장'};
+function prep(raw, la, lo) {      // site3d/prep_site.py 와 같은 규칙
+  const kx = 111320 * Math.cos(la * Math.PI / 180), ky = 111320, xy = p => [(p.lon - lo) * kx, (p.lat - la) * ky];
+  const out = {center: [la, lo], buildings: [], zones: [], roads: [], rails: [], src: 'osm', attribution: '지도 자료 © OpenStreetMap contributors (ODbL)'};
+  for (const e of raw) {
+    const t = e.tags || {}; let pts = (e.geometry || []).map(xy);
+    if (pts.length > 2 && pts[0][0] === pts.at(-1)[0] && pts[0][1] === pts.at(-1)[1]) pts = pts.slice(0, -1);
+    if (t.highway && pts.length >= 2) { const ln = parseFloat(t.lanes); out.roads.push({pts, kind: t.highway, name: t.name || '', w: ln ? ln * 3.25 : (ROAD_W[t.highway] || 2.5), road_law: t.highway in ROAD_W && t.highway !== 'service'}); continue; }
+    if (t.railway && pts.length >= 2) { out.rails.push({pts, kind: t.railway, name: t.name || ''}); continue; }
+    if (pts.length < 3) continue;
+    const am = t.amenity || '', bd = t.building || '';
+    if (t.building) {
+      const a = area(pts); let h = parseFloat(t.height) || null; let lv = parseInt(t['building:levels']) || (h ? Math.max(1, Math.round(h / 3.3)) : null);
+      const est = !lv; lv = lv || (bd === 'shelter' || bd === 'roof' ? 1 : 2); h = h || lv * 3.3; const fl = a * lv;
+      let cls = 0, why = `연면적 약 ${Math.round(fl).toLocaleString()}㎡ < 100㎡`;
+      if (FIRST_AM.has(am) || FIRST_BD.has(bd)) { cls = 1; why = `${LBL[bd] || LBL[am] || '시설'}(별표 2 제1호가목)`; }
+      else if (['shelter', 'roof', 'garage', 'carport'].includes(bd)) { cls = 0; why = '사람을 수용하지 않는 구조물'; }
+      else if (fl >= 1000) { cls = 1; why = `연면적 약 ${Math.round(fl).toLocaleString()}㎡ ≥ 1천㎡(별표 2 제1호나목)`; }
+      else if (HOUSE.has(bd)) { cls = 2; why = '주택(별표 2 제2호가목)'; }
+      else if (fl >= 100) { cls = 2; why = `연면적 약 ${Math.round(fl).toLocaleString()}㎡, 100~1천㎡(별표 2 제2호나목)`; }
+      out.buildings.push({id: e.id, pts, h, levels: lv, est, name: t.name || '', use: LBL[bd] || LBL[am] || '용도 미상', cls, why, floor: Math.round(fl)});
+    } else if (FIRST_AM.has(am)) out.zones.push({id: e.id, pts, kind: am, name: t.name || '', cls: 1, why: `${LBL[am] || am} 부지(별표 2 제1호가목, 부지 경계로 재서 보수적)`});
+    else if (t.leisure || t.landuse || t.natural) out.zones.push({id: e.id, pts, kind: t.leisure || t.landuse || t.natural, name: t.name || '', cls: 0, why: ''});
+  }
+  return out;
+}
+// 브이월드 자료 가공. 건물 용도는 건축물대장 주용도 코드(건축법 시행령 별표 1 순서), 연면적·층수도 대장 값을 쓴다
+const USE = {'01000': '단독주택', '02000': '공동주택', '03000': '제1종근린생활시설', '04000': '제2종근린생활시설', '05000': '문화·집회시설', '06000': '종교시설', '07000': '판매시설', '08000': '운수시설', '09000': '의료시설', '10000': '교육연구시설', '11000': '노유자시설', '12000': '수련시설', '13000': '운동시설', '14000': '업무시설', '15000': '숙박시설', '16000': '위락시설', '17000': '공장', '18000': '창고시설', '19000': '위험물 저장·처리시설', '20000': '자동차 관련 시설', '21000': '동물·식물 관련 시설', '22000': '자원순환 관련 시설', '23000': '교정시설', '24000': '국방·군사시설', '25000': '방송통신시설', '26000': '발전시설', '27000': '묘지 관련 시설', '28000': '관광 휴게시설', '29000': '장례시설'};
+// 별표 2 제1호가목(학교·병원·도서관·어린이집·경로당·청소년수련시설·교회·호텔·극장·공회당 등)에 드는 주용도. 장례식장은 다목
+const FIRST_USE = {'05000': '가', '06000': '가', '09000': '가', '10000': '가', '11000': '가', '12000': '가', '15000': '가', '29000': '다'};
+const AREA_K = {학교: ['school', 1], 사회복지시설: ['social_facility', 1], 도서관: ['library', 1], 청소년수련시설: ['youth', 1], 공원: ['park', 0], 녹지: ['park', 0], 유원지: ['park', 0], 공공공지: ['park', 0], 체육시설: ['pitch', 0], 광장: ['plaza', 0], 문화시설: ['culture', 0]};
+function prepVW(v, la, lo) {
+  // 서버는 가운데 v.o(경위도)에서 잰 0.1m 정수 좌표를 준다. 내 가운데(la, lo)와의 차이만큼 옮긴다
+  const kx = 111320 * Math.cos(la * Math.PI / 180), ky = 111320, u = v.unit || 0.1, ox = (v.o[0] - lo) * kx, oy = (v.o[1] - la) * ky, xy = ([x, y]) => [x * u + ox, y * u + oy];
+  const ring = r => { let pts = r.map(xy); if (pts.length > 3 && pts[0][0] === pts.at(-1)[0] && pts[0][1] === pts.at(-1)[1]) pts = pts.slice(0, -1); return pts; };
+  const out = {center: [la, lo], buildings: [], zones: [], roads: [], rails: [], src: 'vw', subway: v.subway || 0, attribution: '건물·도로 © 국토교통부(브이월드)'};
+  (v.bld || []).forEach((b, i) => {
+    const pts = ring(b.ring); if (pts.length < 3) return;
+    const a = area(pts), est = !(b.fl > 0) && !(b.h > 0);
+    const lv = b.fl > 0 ? b.fl : b.h > 0 ? Math.max(1, Math.round(b.h / 3.3)) : 2, h = b.h > 0 ? b.h : lv * 3.3;
+    const fl = b.ta > 0 ? b.ta : a * lv, F = Math.round(fl).toLocaleString(), use = USE[b.use] || '용도 미상';
+    let cls = 0, why = `연면적 ${b.ta > 0 ? '' : '약 '}${F}㎡ < 100㎡`;
+    if (FIRST_USE[b.use]) { cls = 1; why = `${use}(별표 2 제1호${FIRST_USE[b.use]}목)`; }
+    else if (fl >= 1000) { cls = 1; why = `연면적 ${b.ta > 0 ? '' : '약 '}${F}㎡ ≥ 1천㎡(별표 2 제1호나목)`; }
+    else if (b.use === '01000' || b.use === '02000') { cls = 2; why = `${use}(별표 2 제2호가목)`; }
+    else if (fl >= 100) { cls = 2; why = `연면적 ${b.ta > 0 ? '' : '약 '}${F}㎡, 100~1천㎡(별표 2 제2호나목)`; }
+    out.buildings.push({id: 'v' + i, pts, h, levels: lv, est, name: b.nm || '', use, cls, why, floor: Math.round(fl)});
+  });
+  for (const r of v.roads || []) {
+    const pts = r.line.map(xy); if (pts.length < 2) continue;
+    const kind = r.grade === '고속도로' ? 'motorway' : r.w >= 25 ? 'primary' : r.w >= 15 ? 'secondary' : r.w >= 10 ? 'tertiary' : 'residential';
+    out.roads.push({pts, kind, name: r.name || '', w: r.w, grade: r.grade || '', road_law: true});
+  }
+  for (const r of v.rails || []) { const pts = ring(r.ring); if (pts.length >= 3) out.rails.push({pts: [...pts, pts[0]], kind: 'rail', name: r.name || '철도'}); }
+  for (const z of v.areas || []) {
+    const pts = ring(z.ring), [kind, cls] = AREA_K[z.kind] || ['other', 0]; if (pts.length < 3) continue;
+    out.zones.push({id: 'a' + out.zones.length, pts, kind, name: z.name || z.kind, cls, why: cls ? `${z.kind} 부지(별표 2 제1호가목, 부지 경계로 재서 보수적)` : ''});
+  }
+  return out;
+}
+// 주변 건물·도로: 브이월드(워커 -> AZZAS3D 서버, 1초 안팎). 안 되면 OpenStreetMap 으로 대신한다
+async function fetchNear(la, lo) {
+  const lat = (+la).toFixed(6), lon = (+lo).toFixed(6);
+  try {
+    const r = await fetch(`/api/site/parcel/site?lat=${lat}&lon=${lon}&r=600`, {signal: AbortSignal.timeout(15000)});
+    if (!r.ok) throw new Error(r.status);
+    const v = await r.json(), S = prepVW(v, +lat, +lon);
+    if (S.buildings.length || S.roads.length) return {...S, angle: null, r: 600, hit: false};
+  } catch (e) { console.warn('브이월드 건물 못 받음, OpenStreetMap 으로', e); }
+  return fetchOSM(la, lo);
+}
+// 주소 -> 좌표(브이월드, 안 되면 Nominatim). 시연 주소는 미리 받아 둔 자료의 가운데
+async function geocode(addr) {
+  if (isDemo(addr)) { const s = await fetch(DEMO.file).then(r => r.json()); return {lat: s.center[0], lon: s.center[1], text: s.address, demo: s}; }
+  try { const v = await fetch(`/api/site/parcel/geocode?q=${encodeURIComponent(addr)}`, {signal: AbortSignal.timeout(20000)}).then(r => r.ok ? r.json() : null); if (v && v.lat) return {lat: v.lat, lon: v.lon, text: v.text, src: '브이월드 주소'}; } catch (e) {}
+  const g = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=kr&limit=1&accept-language=ko&q=${encodeURIComponent(addr)}`).then(r => r.json()).catch(() => []);
+  if (!g.length) throw new Error('주소를 찾지 못했어요');
+  return {lat: +g[0].lat, lon: +g[0].lon, text: g[0].display_name.split(',').slice(0, 3).join(','), src: 'OpenStreetMap'};
+}
+// 주변 건물·도로: 워커가 공개 서버 여러 곳에 함께 묻고 7일 캐시(같은 자리 다시 열면 바로). 워커가 4초 안에 못 주면 브라우저도 직접 함께 묻는다
+const OSM_Q = (R, la, lo) => `[out:json][timeout:60];(way["building"](around:${R},${la},${lo});nwr["amenity"~"^(school|kindergarten|hospital|childcare|university|college|clinic|library|social_facility)$"](around:${R + 30},${la},${lo});way["highway"](around:${R},${la},${lo});way["railway"](around:${R + 100},${la},${lo});way["landuse"](around:${R},${la},${lo});way["leisure"~"park|pitch|playground|garden"](around:${R},${la},${lo});way["natural"~"wood|water|scrub|grassland"](around:${R},${la},${lo}););out geom tags;`;
+const OSM_EPS = ['https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass-api.de/api/interpreter'];
+async function fetchOSM(la, lo) {
+  const lat = (+la).toFixed(6), lon = (+lo).toFixed(6);
+  for (const R of [600, 380]) {
+    const ac = new AbortController();
+    const viaW = fetch(`/api/site/osm?lat=${lat}&lon=${lon}&r=${R}`).then(async r => { if (!r.ok) throw new Error(r.status); return {d: await r.json(), hit: r.headers.get('X-Osm-Cache') === 'hit'}; });
+    const direct = ep => new Promise(r => setTimeout(r, 4000)).then(async () => {
+      if (ac.signal.aborted) throw new Error('끝남');
+      const r = await fetch(ep, {method: 'POST', body: 'data=' + encodeURIComponent(OSM_Q(R, lat, lon)), signal: ac.signal});
+      if (!r.ok) throw new Error(r.status);
+      const d = await r.json(); if (d.remark && /error|timed out/i.test(d.remark)) throw new Error('불완전'); return {d, hit: false};
+    });
+    try { const {d, hit} = await Promise.any([viaW, ...OSM_EPS.map(direct)]); ac.abort(); return {...prep(d.elements, +lat, +lon), angle: null, r: R, hit}; }
+    catch (e) { ac.abort(); }
+  }
+  throw new Error('공개 지도 서버가 바빠요. 잠시 뒤 다시 해 주세요');
+}
+// 부지 놓기: 도로법 도로 한 변에 맞추고 도로 경계에서 3m 안쪽. 기존 건물·학교 부지·다른 도로와 겹치면
+// 주소에서 가까운 순서로 도로를 따라 빈 자리를 찾는다(AI 부지 탐색).
+const SZ = () => ({w: Math.max(15, Math.min(200, +$('#sw').value || 50)), d: Math.max(15, Math.min(200, +$('#sd').value || 40))});   // 부지 크기(m)
+function siteAt(q, ang, w) {
+  const z = SZ(), uy = [-Math.sin(ang), Math.cos(ang)], off = w / 2 + 3 + z.d / 2;
+  return {cx: q[0] + uy[0] * off, cy: q[1] + uy[1] * off, ang: ang * 180 / Math.PI, ...z};
+}
+function blocked(cand, self) {
+  const keep = site; site = cand; const sp = sitePoly(); site = keep;
+  const R = 40, near = f => f.pts.some(p => Math.hypot(p[0] - cand.cx, p[1] - cand.cy) < 80);
+  if (S.buildings.some(b => near(b) && dist(sp, b.pts).d === 0)) return 'building';
+  if (S.zones.some(z => z.cls === 1 && near(z) && dist(sp, z.pts).d === 0)) return 'zone';
+  if (S.zones.some(z => /^(park|water|wood|forest|cemetery|playground|pitch|riverbank)$/.test(z.kind) && near(z) && dist(sp, z.pts).d === 0)) return 'park';     // 공원·물·숲에는 놓지 않는다
+  if (S.roads.some(r => r !== self && r.road_law && near(r) && dist(sp, r.pts, true, false).d < r.w / 2)) return 'road';
+  return '';
+}
+function placeSite() {
+  site = {cx: 0, cy: 0, ang: 0, ...SZ()};
+  const segs = [];
+  for (const r of S.roads) {
+    if (!r.road_law) continue;
+    const major = ['primary', 'secondary', 'trunk', 'tertiary'].includes(r.kind);
+    for (const [a, b] of edges(r.pts, false)) { const [d, q] = ptSeg([0, 0], a, b); segs.push({d, q, a, b, r, major}); }
+  }
+  if (!segs.length) { log('가까운 도로를 찾지 못해 주소 위치에 부지를 놓았어요', 'w'); return; }
+  const face = (q, a, b) => { let ang = Math.atan2(b[1] - a[1], b[0] - a[0]); const ny = [-Math.sin(ang), Math.cos(ang)]; if (q[0] * ny[0] + q[1] * ny[1] > 0) ang += Math.PI; return ang; };
+  // 1) 주소에서 가장 가까운 간선도로(없으면 아무 도로법 도로) 옆
+  const first = segs.filter(x => x.major).sort((x, y) => x.d - y.d)[0] || segs.sort((x, y) => x.d - y.d)[0];
+  let cand = siteAt(first.q, face(first.q, first.a, first.b), first.r.w), why = blocked(cand, first.r), moved = 0; const whyFirst = why;
+  // 2) 겹치면 도로를 따라 8m 간격으로 빈 자리를 찾는다(주소에서 가까운 순)
+  if (why) {
+    const tries = [];
+    for (const x of segs) {
+      if (x.d > 220) continue;
+      const L = Math.hypot(x.b[0] - x.a[0], x.b[1] - x.a[1]), n = Math.max(1, Math.floor(L / 8));
+      for (let k = 0; k <= n; k++) {
+        const q = [x.a[0] + (x.b[0] - x.a[0]) * k / n, x.a[1] + (x.b[1] - x.a[1]) * k / n];
+        const ang = Math.atan2(x.b[1] - x.a[1], x.b[0] - x.a[0]);
+        for (const s of [ang, ang + Math.PI]) { const c = siteAt(q, s, x.r.w); tries.push({c, r: x.r, d: Math.hypot(c.cx, c.cy)}); }
+      }
+    }
+    tries.sort((a, b) => a.d - b.d);
+    const ok = tries.slice(0, 1500).find(t => !blocked(t.c, t.r));
+    if (ok) { cand = ok.c; moved = ok.d; first.r = ok.r; why = ''; }
+  }
+  site = cand;
+  if (moved) log(`주소 자리에 ${whyFirst === 'park' ? '공원·녹지가' : whyFirst === 'zone' ? '학교 등 부지가' : '기존 건물이'} 있어, 도로 옆 빈 자리를 찾아 부지를 놓았어요 (주소에서 약 ${Math.round(moved)}m, ${esc(first.r.name || '도로')} 옆)`);
+  else if (why) log(`주변에 빈 자리가 없어 주소 자리에 놓았어요. 기존 ${why === 'building' ? '건물' : why === 'zone' ? '학교 부지' : why === 'park' ? '공원·녹지' : '도로'}와 겹치니 실제 부지로 확인하세요`, 'e');
+  else log(`부지 방향을 ${esc(first.r.name || '가까운 도로')}에 맞춤 (도로 경계에서 3m 안쪽, 부지 ${site.w}×${site.d}m)`);
+}
+// ---------------------------------------------------------------- 지적도(실제 필지): AZZAS3D 서버가 브이월드 연속지적도를 받아 준다
+let PAR = [], addMode = false, mergeTried = false;        // 필지 목록(세계 좌표). addMode: 누르는 필지를 지금 부지에 합친다
+const JIMOK = {대: '대지', 전: '밭', 답: '논', 과: '과수원', 목: '목장용지', 임: '임야', 광: '광천지', 염: '염전', 장: '공장용지', 학: '학교용지', 차: '주차장', 주: '주유소용지', 창: '창고용지', 도: '도로', 철: '철도용지', 제: '제방', 천: '하천', 구: '구거', 유: '유지', 양: '양어장', 수: '수도용지', 공: '공원', 체: '체육용지', 원: '유원지', 종: '종교용지', 사: '사적지', 묘: '묘지', 잡: '잡종지'};
+const NOT_SITE = /^(도|철|제|천|구|유|공|묘|학)$/;    // 도로·하천·공원·학교용지 등은 부지로 고르지 않는다
+async function fetchParcels(la, lo) {
+  const kx = 111320 * Math.cos(la * Math.PI / 180), ky = 111320, out = [];
+  const r = await fetch(`/api/site/parcel/around?lat=${(+la).toFixed(6)}&lon=${(+lo).toFixed(6)}&r=250`, {signal: AbortSignal.timeout(45000)});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || r.status);
+  for (const q of d.parcels || []) for (const ring of q.rings || []) {
+    let pts = ring.map(([x, y]) => [(x - lo) * kx, (y - la) * ky]), ll = ring.map(([x, y]) => [y, x]);
+    if (pts.length > 3 && pts[0][0] === pts.at(-1)[0] && pts[0][1] === pts.at(-1)[1]) { pts = pts.slice(0, -1); ll = ll.slice(0, -1); }
+    if (pts.length >= 3) out.push({pnu: q.pnu, jibun: q.jibun, jimok: q.jimok, addr: q.addr, pts, ll, a: area(pts)});
+  }
+  return out;
+}
+let ZN = [], zoneManual = false, zoneKey = '', ZI = null, zoneLog = '';   // 용도지역 면(세계 좌표, 구멍 포함)
+async function fetchZones(la, lo) {
+  const kx = 111320 * Math.cos(la * Math.PI / 180), ky = 111320, out = [];
+  const r = await fetch(`/api/site/parcel/zone?lat=${(+la).toFixed(6)}&lon=${(+lo).toFixed(6)}&r=200`, {signal: AbortSignal.timeout(45000)});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || r.status);
+  for (const z of d.zones || []) {
+    const polys = (z.polys || []).map(poly => poly.map(ring => ring.map(([x, y]) => [(x - lo) * kx, (y - la) * ky]))).filter(poly => poly[0] && poly[0].length >= 4);
+    if (polys.length && (z.name || z.layer === 'UD801')) out.push({name: z.layer === 'UD801' ? '개발제한구역' : z.name, gb: z.layer === 'UD801', polys});
+  }
+  return out;
+}
+const inPolyH = (p, poly) => inside(p, poly[0]) && !poly.slice(1).some(h => inside(p, h));
+const zoneAt = p => { const z = ZN.find(z => !z.gb && HY[z.name] && z.polys.some(poly => inPolyH(p, poly))); return z ? z.name : ''; };
+// 부지가 어느 용도지역에 몇 ㎡씩 걸치는지(격자 표본). 국토계획법 제84조·시행령 제94조(330㎡)로 적용 기준을 정한다
+function zoneCalc(sp) {                // 다각형(세계 좌표)이 어느 용도지역에 몇 ㎡씩 걸치는지와 적용 기준
+  const A = area(sp), xs = sp.map(p => p[0]), ys = sp.map(p => p[1]), h = Math.max(0.5, Math.sqrt(A / 900));
+  const cnt = {}; let n = 0, gb = 0;
+  for (let x = Math.min(...xs) + h / 2; x < Math.max(...xs); x += h) for (let y = Math.min(...ys) + h / 2; y < Math.max(...ys); y += h) {
+    const p = [x, y]; if (!inside(p, sp)) continue; n++;
+    const z = ZN.find(z => !z.gb && HY[z.name] && z.polys.some(poly => inPolyH(p, poly)));
+    const k = z ? z.name : ''; cnt[k] = (cnt[k] || 0) + 1;
+    if (ZN.some(z => z.gb && z.polys.some(poly => inPolyH(p, poly)))) gb++;
+  }
+  if (!n) return null;
+  // 지적도와 용도지역도는 1m 안팎 어긋난다: 3% 미만이면서 30㎡ 미만인 조각은 버린다
+  const parts = Object.entries(cnt).filter(([k]) => k).map(([name, c]) => ({name, a: A * c / n, pct: 100 * c / n})).filter(o => o.pct >= 3 || o.a >= 30).sort((a, b) => b.a - a.a);
+  if (!parts.length) return null;
+  const lim = nm => (ZONES.find(z => z[0] === nm) || [])[1];
+  let main = parts[0].name, bcr = lim(main), hy = HY[main][0], law = HY[main][1], rule = '';
+  if (parts.length > 1) {
+    // 국토계획법 제84조: 가장 작은 부분이 330㎡(시행령 제94조) 이하면 건축 제한은 가장 넓은 용도지역, 건폐율은 가중평균.
+    // 그보다 크거나, 녹지지역이 끼어 있으면(가장 작은 부분이 330㎡ 이하 녹지인 경우는 빼고, 제3항) 부분마다 따로 적용
+    const small = parts.at(-1), green = parts.some(o => /녹지/.test(o.name)), sep = small.a > 330 || (green && !/녹지/.test(small.name));
+    if (!sep) { bcr = Math.round(parts.reduce((t, o) => t + o.a * lim(o.name), 0) / parts.reduce((t, o) => t + o.a, 0) * 10) / 10; rule = `가장 작은 부분이 330㎡ 이하라 건축 제한은 가장 넓은 ${main} 기준, 건폐율은 가중평균 ${bcr}% (국토계획법 제84조제1항)`; }
+    else {
+      const worst = parts.slice().sort((a, b) => HY_RANK[HY[b.name][0]] - HY_RANK[HY[a.name][0]])[0];
+      bcr = Math.min(...parts.map(o => lim(o.name))); hy = HY[worst.name][0]; law = HY[worst.name][1];
+      rule = `부분마다 그 용도지역 기준을 따로 적용해요 (국토계획법 제84조). 가장 엄한 ${worst.name} 기준으로 판정`;
+    }
+  }
+  return {main, parts, bcr, hy, law, rule, gb: 100 * gb / n};
+}
+function zoneInfo() {
+  if (!S || !ZN.length) return null;
+  const sp = sitePoly(), key = sp.map(p => p.map(v => v.toFixed(1)).join(',')).join(';');
+  const pin = () => { if (ZI && !zoneManual && $('#zone').value !== ZI.main) $('#zone').value = ZI.main; return ZI; };
+  if (key === zoneKey) return pin();
+  zoneKey = key; ZI = zoneCalc(sp);
+  if (!ZI) return null;
+  const {parts, hy, main, rule} = ZI, pt = parts.map(o => parts.length > 1 ? `${o.name} ${Math.round(o.pct)}%` : o.name).join(' · ');
+  if (pt + hy === zoneLog) return pin();          // 같은 결과는 다시 적지 않는다
+  zoneLog = pt + hy;
+  log(`용도지역: ${esc(pt)} (국토교통부 용도지역도) → 수소충전소 ${esc(HY_TXT[hy])}${parts.length > 1 ? '' : ` (국토계획법 시행령 ${HY[main][1]})`}`, hy === 'no' ? 'e' : hy === 'ord' ? 'w' : '');
+  if (rule) log(esc(rule), 'w');
+  if (ZI.gb >= 3) log(`부지 ${Math.round(ZI.gb)}%가 개발제한구역이에요. 개발제한구역 안은 용도지역 표 대신 개발제한구역법으로 판단하니(국토계획법 제80조), 허가 대상인지 따로 확인해야 해요`, 'w');
+  return pin();
+}
+// 이 부지에 수소충전소를 못 짓는 용도지역인가(필지 찾기·합치기에서 거른다). 개발제한구역이 대부분이면 여기서 판단하지 않는다
+const zoneBlocks = st => { if (!ZN.length) return false; const keep = site; site = st; const z = zoneCalc(sitePoly()); site = keep; return !!z && z.hy === 'no' && z.gb < 50; };
+function simplify(pts, tol = 0.15) {  // 거의 일직선인 점·겹친 점을 뺀다
+  const out = pts.slice();
+  for (let changed = true; changed && out.length > 3;) {
+    changed = false;
+    for (let i = 0; i < out.length && out.length > 3; i++) {
+      const a = out[(i - 1 + out.length) % out.length], b = out[i], c = out[(i + 1) % out.length];
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.2 || ptSeg(b, a, c)[0] < tol) { out.splice(i, 1); changed = true; i--; }
+    }
+  }
+  return out;
+}
+function insetPoly(P, q) {            // 다각형을 q 만큼 안쪽으로(음수면 바깥으로). 너무 뾰족한 모서리는 잘라 낸다
+  const n = P.length, sg = Math.sign(P.reduce((t, p, i) => { const r = P[(i + 1) % n]; return t + p[0] * r[1] - r[0] * p[1]; }, 0)) || 1, Ls = [];
+  for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n], ex = b[0] - a[0], ey = b[1] - a[1], l = Math.hypot(ex, ey) || 1, nx = -ey / l * sg * q, ny = ex / l * sg * q; Ls.push([[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny]]); }
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const [p1, p2] = Ls[(i - 1 + n) % n], [p3, p4] = Ls[i], d = (p2[0] - p1[0]) * (p4[1] - p3[1]) - (p2[1] - p1[1]) * (p4[0] - p3[0]);
+    if (Math.abs(d) < 1e-9) { out.push(p3); continue; }
+    const t = ((p3[0] - p1[0]) * (p4[1] - p3[1]) - (p3[1] - p1[1]) * (p4[0] - p3[0])) / d, x = [p1[0] + (p2[0] - p1[0]) * t, p1[1] + (p2[1] - p1[1]) * t];
+    if (Math.hypot(x[0] - P[i][0], x[1] - P[i][1]) > Math.abs(q) * 4) out.push(p2, p3); else out.push(x);
+  }
+  return out;
+}
+function dp(pts, tol) {               // 점 줄이기(Douglas-Peucker, 열린 선)
+  if (pts.length < 3) return pts;
+  let k = 0, m = 0; for (let i = 1; i < pts.length - 1; i++) { const d = ptSeg(pts[i], pts[0], pts.at(-1))[0]; if (d > m) { m = d; k = i; } }
+  return m <= tol ? [pts[0], pts.at(-1)] : [...dp(pts.slice(0, k + 1), tol).slice(0, -1), ...dp(pts.slice(k), tol)];
+}
+function insetLoops(P, q, h = 0.25) { // 다각형 안쪽 q 만큼 들어간 선(닫힌 고리 여러 개일 수 있음)
+  const xs = P.map(p => p[0]), ys = P.map(p => p[1]), x0 = Math.min(...xs) - h, y0 = Math.min(...ys) - h;
+  const nx = Math.ceil((Math.max(...xs) - x0) / h) + 2, ny = Math.ceil((Math.max(...ys) - y0) / h) + 2, f = new Float32Array(nx * ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const p = [x0 + i * h, y0 + j * h]; let d = Infinity; for (const [a, b] of edges(P, true)) d = Math.min(d, ptSeg(p, a, b)[0]); f[j * nx + i] = (inside(p, P) ? d : -d) - q; }
+  const v = (i, j) => f[j * nx + i], at = id => { const [t, i, j] = id.split(':').map(Number); const a = v(i, j), b = t ? v(i, j + 1) : v(i + 1, j), r = a / (a - b); return t ? [x0 + i * h, y0 + (j + r) * h] : [x0 + (i + r) * h, y0 + j * h]; };
+  const nb = new Map(), link = (a, b) => { (nb.get(a) || nb.set(a, []).get(a)).push(b); (nb.get(b) || nb.set(b, []).get(b)).push(a); };
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const c = (v(i, j) > 0) | (v(i + 1, j) > 0) << 1 | (v(i + 1, j + 1) > 0) << 2 | (v(i, j + 1) > 0) << 3; if (c === 0 || c === 15) continue;
+    const B = `0:${i}:${j}`, R = `1:${i + 1}:${j}`, T = `0:${i}:${j + 1}`, Lf = `1:${i}:${j}`, mid = (v(i, j) + v(i + 1, j) + v(i + 1, j + 1) + v(i, j + 1)) / 4 > 0;
+    const S = {1: [[Lf, B]], 2: [[B, R]], 3: [[Lf, R]], 4: [[R, T]], 5: mid ? [[Lf, T], [B, R]] : [[Lf, B], [R, T]], 6: [[B, T]], 7: [[Lf, T]], 8: [[T, Lf]], 9: [[T, B]], 10: mid ? [[B, Lf], [T, R]] : [[B, R], [T, Lf]], 11: [[T, R]], 12: [[R, Lf]], 13: [[R, B]], 14: [[B, Lf]]}[c];
+    for (const [a, b] of S) link(a, b);
+  }
+  const seen = new Set(), loops = [];
+  for (const st of nb.keys()) {
+    if (seen.has(st)) continue;
+    const ids = [st]; seen.add(st); let prev = null, cur = st;
+    for (;;) { const nx2 = (nb.get(cur) || []).find(x => x !== prev && !seen.has(x)); if (!nx2) break; seen.add(nx2); ids.push(nx2); prev = cur; cur = nx2; }
+    if (ids.length < 6) continue;
+    const pts = ids.map(at), ring = dp([...pts, pts[0]], 0.08).slice(0, -1);
+    if (ring.length >= 3 && area(ring) > 4) loops.push(ring);
+  }
+  return loops.sort((a, b) => area(b) - area(a));
+}
+const parAt = p => PAR.filter(q => inside(p, q.pts)).sort((a, b) => a.a - b.a)[0] || null;
+function unionPts(list) {             // 맞닿은 필지 합치기: 틈(수 cm)을 메우려고 0.2m 키워 합친 뒤 다시 줄인다
+  if (list.length === 1) return list[0].pts;
+  const ring = pts => { const r = insetPoly(pts, -0.2); return [...r, r[0]]; };
+  const mp = polygonClipping.union(...list.map(q => [ring(q.pts)]));
+  const outer = mp.map(poly => poly[0].slice(0, -1)).sort((a, b) => area(b) - area(a))[0];
+  return insetPoly(simplify(outer, 0.05), 0.2);
+}
+const dongOf = addr => { const t = String(addr || '').split(' ').filter(Boolean); let i = t.length - 2; if (t[i] === '산') i--; return i >= 0 ? t[i] : ''; };   // '… 효자동 산 21-75' 도 동 이름으로
+const jibunText = list => `${dongOf(list[0].addr)} ${list[0].jibun.replace(/[^\d-]+$/, '')}${list.length > 1 ? ` 외 ${list.length - 1}필지` : ''}`.trim();
+function markInSite() { const sp = sitePoly(); for (const b of S.buildings) b.inSite = !!site.poly && inside(cen(b.pts), sp); }
+function setSitePoly(ptsW, meta) {
+  const P = simplify(ptsW), roads = S.roads.filter(r => r.road_law), c0 = cen(P);
+  let best = null;                    // 앞(도로 쪽) 변: 도로법 도로에 가장 가까운 변, 길면 조금 더 쳐 준다
+  for (const [a, b] of edges(P, true)) {
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]); if (len < 3) continue;
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; let d = Infinity;
+    for (const r of roads) for (const [u, v] of edges(r.pts, false)) d = Math.min(d, ptSeg(m, u, v)[0] - r.w / 2);
+    const sc = Math.max(0, d) - Math.min(len, 30) * 0.15;
+    if (!best || sc < best.s) best = {s: sc, a, b};
+  }
+  let ang = 0;
+  if (best) {
+    const ex = best.b[0] - best.a[0], ey = best.b[1] - best.a[1], l = Math.hypot(ex, ey), m = [(best.a[0] + best.b[0]) / 2, (best.a[1] + best.b[1]) / 2];
+    let n = [ey / l, -ex / l]; if ((m[0] - c0[0]) * n[0] + (m[1] - c0[1]) * n[1] < 0) n = [-n[0], -n[1]];   // 바깥쪽(도로 쪽)
+    ang = Math.atan2(n[0], -n[1]) * 180 / Math.PI;                                                         // 부지 좌표 -y 가 도로 쪽
+  }
+  site = {cx: c0[0], cy: c0[1], ang, w: 1, d: 1};
+  const loc = P.map(p => w2local(...p)), xs = loc.map(p => p[0]), ys = loc.map(p => p[1]);
+  const bx = (Math.min(...xs) + Math.max(...xs)) / 2, by = (Math.min(...ys) + Math.max(...ys)) / 2, c = local2w(bx, by);
+  site = {cx: c[0], cy: c[1], ang, w: Math.max(...xs) - Math.min(...xs), d: Math.max(...ys) - Math.min(...ys), poly: loc.map(p => [p[0] - bx, p[1] - by]), parcel: meta};
+  markInSite();
+}
+function useParcels(list, quiet = false) {
+  const pts = unionPts(list), a = area(pts);
+  setSitePoly(pts, {list, text: jibunText(list), area: a, jimok: [...new Set(list.map(q => JIMOK[q.jimok] || q.jimok))].join('·'), pnu: list.map(q => q.pnu)});
+  if (quiet) return;
+  log(`부지: ${esc(site.parcel.text)} (${esc(site.parcel.jimok)}, ${Math.round(a).toLocaleString()}㎡, 지적도 경계)`);
+  const n = S.buildings.filter(b => b.inSite).length;
+  if (n) log(`부지 안 기존 건물 ${n}동은 철거한다고 보고 거리 검사에서 뺐어요`, 'w');
+}
+function pickParcelSite(p = [0, 0]) { // 주소 자리 필지를 부지로. 도로·하천 등이면 가장 가까운 쓸 수 있는 필지
+  if (!PAR.length) return false;
+  let q = parAt(p);
+  if (q && (NOT_SITE.test(q.jimok) || q.a < 150)) { const nm = JIMOK[q.jimok] || '', ira = /[가-힣]$/.test(nm) && (nm.charCodeAt(nm.length - 1) - 0xac00) % 28 ? '이라' : '라'; log(`주소 자리 필지(${esc(q.jibun.replace(/[^\d-]+$/, ''))}번)는 ${NOT_SITE.test(q.jimok) ? `${esc(nm)}${ira}` : `${Math.round(q.a)}㎡로 작아`}, 가장 가까운 필지를 부지로 골랐어요`, 'w'); q = null; }
+  if (!q) q = PAR.filter(x => !NOT_SITE.test(x.jimok) && x.a >= 300).map(x => ({x, d: dist([p], x.pts, false, true).d})).sort((a, b) => a.d - b.d)[0]?.x;
+  if (!q) return false;
+  useParcels([q]); return true;
+}
+async function pickParcel(q, add) {   // 지도에서 필지 누르기: 바꾸기, 또는 합치기(addMode·Shift)
+  const cur = site.parcel?.list || [];
+  if (cur.includes(q)) { if (!(add && cur.length > 1)) return; useParcels(cur.filter(x => x !== q)); }
+  else if (NOT_SITE.test(q.jimok)) { log(`${esc(q.jibun)}은(는) ${esc(JIMOK[q.jimok])}라 부지로 고를 수 없어요`, 'w'); return; }
+  else if (add && cur.length) { if (dist(sitePoly(), q.pts).d > 0.6) { log('지금 부지와 맞닿은 필지만 합칠 수 있어요', 'w'); return; } useParcels([...cur, q]); }
+  else useParcels([q]);
+  L = null; fixTried = false; mergeTried = false; buildWorld(); await design();
+}
+// 근처 다른 필지 찾기: 기존 건물이 없는 쓸 수 있는 필지를 가까운 순으로, 기준을 모두 지키는 첫 필지
+async function findParcel() {
+  if (!site.poly) return findSite();
+  busy('AI가 근처에서 기준을 지키는 필지를 찾는 중'); await new Promise(r => setTimeout(r, 30));
+  const keep = site;
+  try {
+    const R = await needs(), P1 = [...BLD().filter(b => b.cls === 1), ...S.zones.filter(z => z.cls === 1)], P2 = BLD().filter(b => b.cls === 2);
+    const hasB = q => S.buildings.some(b => inside(cen(b.pts), q.pts)), mine = keep.parcel?.list || [];
+    const cands = PAR.filter(q => !NOT_SITE.test(q.jimok) && q.a >= 500 && q.a <= 8000 && !mine.includes(q) && !hasB(q))
+      .map(q => { const c = cen(q.pts); return {q, c, d: Math.hypot(c[0] - keep.cx, c[1] - keep.cy)}; }).filter(o => o.d < 230 && inBoard(o.c, 40) && !(ZN.length && HY[zoneAt(o.c)]?.[0] === 'no')).sort((a, b) => a.d - b.d);
+    let found = null, looked = 0, designed = 0, zs = 0;
+    for (const o of cands) {
+      looked++;
+      if (looked % 6 === 0) { $('#busyT').textContent = `기준을 지키는 필지를 찾는 중 (빈 필지 ${looked}곳 검토)`; await new Promise(r => setTimeout(r, 0)); }
+      useParcels([o.q], true); const st = site; site = keep;
+      if (zoneBlocks(st)) { zs++; continue; }
+      if (!quickOK(st, R, P1, P2)) continue;
+      designed++;
+      const b = designOn(distField(st, R), R, st, 2);
+      if (b && b.t.short < 0.01 && b.t.hard < 0.01) { found = {o, st, b}; break; }
+      if (designed >= 14) break;
+    }
+    if (!found) { site = keep; markInSite(); log(cands.length ? `근처 빈 필지 ${looked}곳을 살펴봤지만 기준을 모두 지키는 곳을 못 찾았어요${zs ? ` (그중 ${zs}곳은 수소충전소를 못 짓는 용도지역)` : ''}. 저장능력을 줄이거나 다른 주소로 해 보세요` : '근처에 기존 건물이 없는 쓸 만한 필지가 없어요. 다른 주소로 해 보세요', 'e'); busy(''); return; }
+    site = found.st; markInSite(); L = toLayout(found.b.P, 'AI 자동 배치 (필지 찾기)'); fixTried = false; mergeTried = false;
+    log(`기준을 지키는 필지를 찾았어요: ${esc(site.parcel.text)} (${esc(site.parcel.jimok)}, ${Math.round(site.parcel.area).toLocaleString()}㎡), 지금 부지에서 ${dirW(site.cx - keep.cx, site.cy - keep.cy)}쪽 약 ${Math.round(found.o.d)}m (빈 필지 ${looked}곳 검토)`);
+    buildWorld(); drawLayout(true); await check();
+  } catch (e) { site = keep; markInSite(); log('필지를 찾지 못했어요: ' + esc(e.message), 'e'); }
+  busy('');
+}
+// 옆 필지 제안: 맞닿은 필지를 하나씩(그다음 둘씩) 합쳐 보며 기준을 모두 지키는 가장 작은 합치기를 찾는다
+async function suggestMerge() {
+  if (!site.poly || !site.parcel) return findSite();
+  busy('AI가 옆 필지를 합쳐 보는 중'); await new Promise(r => setTimeout(r, 30));
+  const keep = site;
+  try {
+    const R = await needs(), cur = site.parcel.list, sp = sitePoly();
+    const hasB = q => S.buildings.filter(b => inside(cen(b.pts), q.pts)).length;      // 기존 건물이 있는 필지는 뒤로(빈 땅부터)
+    const nb = PAR.filter(q => !cur.includes(q) && !NOT_SITE.test(q.jimok) && q.a >= 30 && dist(sp, q.pts).d < 0.6).sort((a, b) => (hasB(a) > 0) - (hasB(b) > 0) || a.a - b.a).slice(0, 10);
+    const tries = nb.map(q => [q]);
+    for (let i = 0; i < Math.min(nb.length, 6); i++) for (let j = i + 1; j < Math.min(nb.length, 6); j++) tries.push([nb[i], nb[j]]);
+    tries.sort((a, b) => a.reduce((t, q) => t + hasB(q), 0) - b.reduce((t, q) => t + hasB(q), 0) || a.length - b.length || a.reduce((t, q) => t + q.a, 0) - b.reduce((t, q) => t + q.a, 0));
+    let found = null, n = 0;
+    for (const add of tries) {
+      useParcels([...cur, ...add], true); const st = site; site = keep;
+      if (zoneBlocks(st)) continue;
+      n++; $('#busyT').textContent = `옆 필지를 합쳐 보는 중 (${n}가지)`; await new Promise(r => setTimeout(r, 0));
+      const b = designOn(distField(st, R), R, st, 2);
+      if (b && b.t.short < 0.01 && b.t.hard < 0.01) { found = {add, st, b}; break; }
+      if (n >= 16) break;
+    }
+    if (!found) {
+      site = keep; markInSite(); mergeTried = true;
+      log(nb.length ? `맞닿은 필지를 ${n}가지로 합쳐 봐도 기준을 다 못 지켜요. '근처 다른 필지 찾기'를 눌러 보세요` : "합칠 수 있는 맞닿은 필지가 없어요. '근처 다른 필지 찾기'를 눌러 보세요", 'e');
+      if (L) await check(); else setCard('자동 검토', '<em>이 필지로는 <br>어려워요</em>', `${esc(site.parcel.text)} · ${Math.round(site.parcel.area).toLocaleString()}㎡`, '<button class="btn" id="find">근처 다른 필지 찾기</button>'); busy(''); return;
+    }
+    site = found.st; markInSite(); L = toLayout(found.b.P, 'AI 자동 배치 (옆 필지 합침)'); fixTried = false; mergeTried = false;
+    log(`옆 필지 ${found.add.map(q => esc(q.jibun.replace(/[^\d-]+$/, ''))).join(', ')}번을 합치면 기준을 모두 지켜요. 합친 부지: ${esc(site.parcel.text)}, ${Math.round(site.parcel.area).toLocaleString()}㎡`);
+    const nIn = found.add.reduce((t, q) => t + hasB(q), 0);
+    if (nIn) log(`합친 필지에 기존 건물 ${nIn}동이 있어요. 철거한다고 보고 검토했으니, 실제로 쓸 수 있는 땅인지 확인해 주세요`, 'w');
+    buildWorld(); drawLayout(true); await check();
+  } catch (e) { site = keep; markInSite(); log('옆 필지를 합쳐 보지 못했어요: ' + esc(e.message), 'e'); }
+  busy('');
+}
+let lastAddr = null;
+const isDemo = addr => addr === DEMO.addr || /천호대로|H강동|상일동/.test(addr);
+// 좌표 하나로 주변 건물(osm)·지적도(par)·용도지역(zone)을 동시에 받기 시작한다. 단계마다 걸린 시간을 재서 다음 '남은 시간' 어림에 쓴다
+const ETA0 = {par: 2500, zone: 2000, osm: 2500}, etaT = ls('site3dEta2', {});
+const eta = k => etaT[k] || ETA0[k];
+const etaSave = (k, ms) => { etaT[k] = Math.round(etaT[k] ? etaT[k] * 0.6 + ms * 0.4 : ms); lsSet('site3dEta2', etaT); };
+let D = null, dSeq = 0;
+function startLoad(g) {
+  const d = {la: +g.lat, lon: +g.lon, g, seq: ++dSeq, t0: performance.now(), st: {par: 'wait', zone: 'wait', osm: 'wait'}, T: {}, err: {}};
+  D = d;
+  const fin = (k, ok, e) => { d.st[k] = ok ? 'ok' : 'fail'; d.T[k] = performance.now() - d.t0; if (e) d.err[k] = e.message || String(e); if (ok && !(k === 'osm' && d.S?.hit)) etaSave(k, d.T[k]); onLoadStep(d, k); };
+  d.osm = (g.demo ? Promise.resolve({...g.demo}) : fetchNear(d.la, d.lon)).then(s => { d.S = s; fin('osm', true); return s; }, e => { fin('osm', false, e); throw e; });
+  d.osm.catch(() => {});
+  d.par = fetchParcels(d.la, d.lon).then(l => { d.PAR = l; fin('par', true); }, e => { d.PAR = []; fin('par', false, e); });
+  d.zone = fetchZones(d.la, d.lon).then(l => { d.ZN = l; fin('zone', true); }, e => { d.ZN = []; fin('zone', false, e); });
+  return d;
+}
+function retryOsm(d) {
+  d.st.osm = 'wait'; d.t0o = performance.now(); onLoadStep(d, 'osm');
+  d.osm = fetchNear(d.la, d.lon).then(s => { d.S = s; d.st.osm = 'ok'; onLoadStep(d, 'osm'); return s; }, e => { d.st.osm = 'fail'; d.err.osm = e.message; onLoadStep(d, 'osm'); throw e; });
+  d.osm.catch(() => {});
+}
+let onLoadStep = () => {};             // 처음 화면(평면 지도)이 진행 표시를 바꿀 때 덮어쓴다
+function setAddr(addr) {
+  $('#addr').value = addr; $('#addrTxt').textContent = addr.replace(/\s*\(.*\)$/, '');
+  if (addr !== lastAddr) zoneManual = false;          // 새 주소면 직접 고른 용도지역을 풀고 지적도 값으로 다시
+  lastAddr = addr; if (!zoneManual) $('#zone').value = '';
+}
+// 받은 자료를 화면 상태에 넣고 기록을 남긴다(다 받은 뒤)
+function applyData(d) {
+  S = d.S; PAR = d.PAR || []; ZN = d.ZN || []; mergeTried = false;
+  $('#log').innerHTML = '';
+  const g = d.g;
+  log(g.demo ? `위치 찾음: ${esc(S.address)}` : `위치 찾음: ${esc(g.text || lastAddr)} (${g.src || '브이월드 주소 검색'})`);
+  const c = [0, 0, 0]; S.buildings.forEach(b => c[b.cls]++);
+  const z1 = S.zones.filter(z => z.cls === 1);
+  if (S.src === 'vw') log('주변 건물·도로: 국토교통부 브이월드(GIS건물통합정보의 용도·층수·연면적, 도로명 중심선과 도시계획 도로 폭, 도시계획시설의 학교·공원·철도)');
+  else if (!g.demo) log('브이월드 건물 자료를 못 받아 OpenStreetMap 으로 대신했어요', 'w');
+  log(`주변 건물 ${S.buildings.length}동 조회, 보호시설 분류: 제1종 ${c[1]}동 · 제2종 ${c[2]}동 · 해당 없음 ${c[0]}동 (별표 2)`);
+  if (z1.length) log(`학교·병원 등 부지 ${z1.length}곳: ${esc(z1.map(z => z.name || LBL[z.kind] || z.kind).join(', '))}`);
+  const est = S.buildings.filter(b => b.est).length;
+  if (est) log(`층수 정보가 없는 건물 ${est}동은 2층으로 추정 (${S.src === 'vw' ? '건축물대장 연결 없음' : '공개 지도 한계'})`, 'w');
+  log(`도로 ${S.roads.length}개, 철도 ${S.rails.length ? S.rails.length + '곳' : '근처에 없음'}`);
+  if (S.subway) log(`도시철도(지하철)·역사·환기구 ${S.subway}곳은 대부분 지하라 철도 거리 검사에서 뺐어요. 지상 구간이면 따로 확인하세요`, 'w');
+  if (d.st.par === 'ok') log(`지적도 필지 ${PAR.length}개 받음 (국토교통부 연속지적도, 브이월드)`); else log('지적도를 못 받아 예시 부지(네모)로 검토해요: ' + esc(d.err.par || ''), 'w');
+  if (d.st.zone !== 'ok') log('용도지역을 못 받아 직접 고르게 둘게요: ' + esc(d.err.zone || ''), 'w');
+  const T = d.T, sec = ms => (ms / 1000).toFixed(1);
+  log(`불러온 시간: 주변 건물 ${sec(T.osm || 0)}초${S.hit ? '(캐시)' : ''} · 지적도 ${sec(T.par || 0)}초 · 용도지역 ${sec(T.zone || 0)}초 (동시에 받음)`);
+  const vwk = [S.src === 'vw' ? '건물·도로' : '', PAR.length ? '지적도' : '', ZN.length ? '용도지역' : ''].filter(Boolean);
+  $('#attr').textContent = [S.src === 'vw' ? '' : S.attribution, vwk.length ? `${vwk.join('·')} © 국토교통부(브이월드)` : ''].filter(Boolean).join(' · ');
+}
+// 주소 -> 주변 건물·도로(S), 지적도 필지(PAR), 용도지역(ZN). 실패하면 던진다
+async function loadData(addr, ll) {
+  setAddr(addr);
+  const g = ll ? {lat: +ll.lat, lon: +ll.lon, text: addr} : await geocode(addr);
+  const d = startLoad(g);
+  await d.osm; await Promise.all([d.par, d.zone]);
+  applyData(d);
+}
+function loadFail(e) {
+  log(esc(e.message), 'e');
+  S = null; L = null; W.clear(); LAY.clear(); MEAS.clear(); $('#items').innerHTML = ''; $('#saved').innerHTML = '';
+  setCard('자동 검토', '<em class="wait">주변 자료를 못 받았어요</em>', '잠시 뒤 주소 [바꾸기]에서 다시 불러 주세요.', '');
+}
+async function loadSite() {           // 바로 보기(?view=·?run=·신청서 안에 넣었을 때): 주소 자리 필지로 바로 검토
+  const addr = $('#addr').value.trim() || DEMO.addr;
+  busy('AI가 주변을 살펴보는 중');
+  try {
+    await loadData(addr);
+    if (!pickParcelSite()) { placeSite(); markInSite(); }
+    buildWorld();
+    if (!L) await design(); else { drawLayout(); await check(); }
+  } catch (e) { loadFail(e); }
+  busy('');
+}
+function setCard(sm, head, lead, act) {
+  $('#verdict').innerHTML = `<div class="sm">${sm}</div><h1>${head}</h1>${lead ? `<div class="lead">${lead}</div>` : ''}`;
+  $('#act').innerHTML = act;
+}
+
+// ---------------------------------------------------------------- 3D: 하얀 건축 모형 + 네모 판(AZZAS3D 설계 모형 느낌)
+const view = $('#view');
+const renderer = new THREE.WebGLRenderer({antialias: true, alpha: true, preserveDrawingBuffer: true});
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.localClippingEnabled = true;
+view.prepend(renderer.domElement);
+const lab = new CSS2DRenderer(); lab.domElement.style.cssText = 'position:absolute;inset:0;pointer-events:none'; view.appendChild(lab.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(24, 1, 5, 9000);
+const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 25;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xe6eaef, 2.45));
+const sun = new THREE.DirectionalLight(0xfff6ea, 1.25); sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6;
+scene.add(sun, sun.target);
+const W = new THREE.Group(), LAY = new THREE.Group(), MEAS = new THREE.Group(); scene.add(W, LAY, MEAS);
+const V = (x, y, h = 0) => new THREE.Vector3(x, h, -y);         // 세계(x 동, y 북) -> three(x, 높이, -y)
+// 판(네모 모형) 범위: 판 밖 도로·녹지는 잘라 낸다
+const clip = [new THREE.Plane(), new THREE.Plane(), new THREE.Plane(), new THREE.Plane()];
+let BC = [0, 0], BH = 420;
+function setBoard(cx, cy, h) {
+  BC = [cx, cy]; BH = h;
+  clip[0].set(new THREE.Vector3(1, 0, 0), -(cx - h)); clip[1].set(new THREE.Vector3(-1, 0, 0), cx + h);
+  clip[2].set(new THREE.Vector3(0, 0, -1), -(cy - h)); clip[3].set(new THREE.Vector3(0, 0, 1), cy + h);      // three z = -y
+}
+const inBoard = (p, m = 0) => Math.abs(p[0] - BC[0]) <= BH - m && Math.abs(p[1] - BC[1]) <= BH - m;
+function label(text, cls, x, y, h) { const d = document.createElement('div'); d.className = 'lab ' + cls; d.innerHTML = text; const o = new CSS2DObject(d); o.position.copy(V(x, y, h)); return o; }
+function shape(pts) { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); return s; }
+const cen = pts => pts.reduce((s, p) => [s[0] + p[0] / pts.length, s[1] + p[1] / pts.length], [0, 0]);
+const mat = (color, cl, o = {}) => new THREE.MeshLambertMaterial({color, ...(cl ? {clippingPlanes: clip} : {}), ...o});
+function flat(pts, color, h, cl = true) { const g = new THREE.ShapeGeometry(shape(pts)); g.rotateX(-Math.PI / 2); const m = new THREE.Mesh(g, mat(color, cl)); m.position.y = h; m.receiveShadow = true; return m; }
+function ribbon(pts, w, color, h, round = false, cl = true) {
+  const pos = [], push = q => pos.push(...q[0], ...q[1], ...q[2], ...q[0], ...q[2], ...q[3]);
+  for (const [a, b] of edges(pts, false)) { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l * w / 2, ny = dx / l * w / 2;
+    push([[a[0] + nx, a[1] + ny], [a[0] - nx, a[1] - ny], [b[0] - nx, b[1] - ny], [b[0] + nx, b[1] + ny]].map(([x, y]) => [x, h, -y])); }
+  if (round) for (const p of pts) for (let k = 0; k < 14; k++) { const t0 = k / 14 * Math.PI * 2, t1 = (k + 1) / 14 * Math.PI * 2, r = w / 2;   // 이음매를 둥글게
+    pos.push(p[0], h, -p[1], p[0] + Math.cos(t0) * r, h, -(p[1] + Math.sin(t0) * r), p[0] + Math.cos(t1) * r, h, -(p[1] + Math.sin(t1) * r)); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, mat(color, cl, {side: THREE.DoubleSide})); m.receiveShadow = true; return m;
+}
+function solid(pts, h, color, edge, eo = .45) {
+  const g = new THREE.ExtrudeGeometry(shape(pts), {depth: h, bevelEnabled: false}); g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color})); m.castShadow = m.receiveShadow = true;
+  const grp = new THREE.Group(); grp.add(m);
+  grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(g, 25), new THREE.LineBasicMaterial({color: edge, transparent: true, opacity: eo})));
+  return grp;
+}
+const GREEN = 0xdde8d6, WATER = 0xd3e3f2;
+function buildWorld() {
+  W.clear(); tinted = null;
+  // 판 자리: 건물이 몰린 쪽으로 조금 옮기되 부지는 판 안쪽 90m 이상
+  BH = Math.min(420, (S.r || 600) - 150);
+  let sx = 0, sy = 0, sw = 0;
+  for (const b of S.buildings) { const c = cen(b.pts), k = area(b.pts) * b.h; sx += c[0] * k; sy += c[1] * k; sw += k; }
+  const lim = BH - 90, cl = (v, c) => Math.max(c - lim, Math.min(c + lim, v));
+  setBoard(sw ? cl(sx / sw, site.cx) : site.cx, sw ? cl(sy / sw, site.cy) : site.cy, BH);
+  const BS = BH * 2, TH = 17;
+  { const g = new THREE.BoxGeometry(BS, TH, BS), side = new THREE.MeshLambertMaterial({color: 0xdadfe5}), top = new THREE.MeshLambertMaterial({color: 0xeceef1});
+    const slab = new THREE.Mesh(g, [side, side, top, side, side, side]); slab.position.copy(V(BC[0], BC[1], -TH / 2)); slab.receiveShadow = true; W.add(slab);
+    const eg = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({color: 0xc3c9d1})); eg.position.copy(slab.position); W.add(eg);
+    const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+    const gr = x.createRadialGradient(128, 128, 40, 128, 128, 128); gr.addColorStop(0, 'rgba(30,40,60,.22)'); gr.addColorStop(1, 'rgba(30,40,60,0)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256);
+    const sh = new THREE.Mesh(new THREE.PlaneGeometry(BS * 1.5, BS * 1.5), new THREE.MeshBasicMaterial({map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false}));
+    sh.rotation.x = -Math.PI / 2; sh.position.copy(V(BC[0] + 30, BC[1] + 30, -TH - 0.5)); W.add(sh); }
+  S.zones.forEach((z, i) => {
+    const col = z.cls === 1 ? 0xfbe6e6 : /water|riverbank/.test(z.kind) ? WATER : /park|pitch|grass|garden|wood|forest|playground|recreation|meadow|scrub|orchard|cemetery/.test(z.kind) ? GREEN : null;
+    if (col) W.add(flat(z.pts, col, 0.04 + i * 0.003));
+  });
+  for (const r of S.roads) { if (/foot|cycle|path|steps|pedestrian|track|bridleway|corridor/.test(r.kind)) continue; W.add(ribbon(r.pts, r.w, r.road_law ? 0xfdfdfe : 0xf8f9fa, r.road_law ? 0.12 : 0.1, true)); }
+  for (const r of S.rails) W.add(ribbon(r.pts, 3, 0xb0b8c1, 0.13));
+  for (const q of PAR) if (q.pts.some(p => inBoard(p))) W.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(q.pts.map(p => V(p[0], p[1], 0.19))), new THREE.LineBasicMaterial({color: NOT_SITE.test(q.jimok) ? 0xd5dae0 : 0xb3bbc6, clippingPlanes: clip})));
+  for (const b of S.buildings) { b._g = null; if (!b.pts.every(p => inBoard(p, 2))) continue; if (b.inSite) { W.add(ribbon([...b.pts, b.pts[0]], 0.3, 0xc3cad3, 0.17)); continue; } b._g = solid(b.pts, b.h, 0xffffff, 0xaab3be); W.add(b._g); }
+  { const g = new THREE.PlaneGeometry(BS, BS); g.rotateX(-Math.PI / 2);       // 해 그림자만 따로 한 겹(밝은 조명에서도 또렷하게)
+    const m = new THREE.Mesh(g, new THREE.ShadowMaterial({color: 0x1b2a44, opacity: .24, clippingPlanes: clip, depthWrite: false})); m.position.copy(V(BC[0], BC[1], 0.3)); m.receiveShadow = true; m.renderOrder = 2; W.add(m); }
+  sun.target.position.copy(V(BC[0], BC[1], 0)); sun.position.copy(V(BC[0] + 340, BC[1] - 250, 300));
+  Object.assign(sun.shadow.camera, {left: -BH * 1.45, right: BH * 1.45, top: BH * 1.45, bottom: -BH * 1.45, near: 10, far: 1800}); sun.shadow.camera.updateProjectionMatrix();
+  frame(curView);
+}
+let curView = ['all', 'site', 'top'].includes(qs.get('view')) ? qs.get('view') : qs.get('embed') ? 'site' : 'all';
+const az = (deg, d, elev, tx, ty) => { const a = deg * Math.PI / 180, e = elev * Math.PI / 180; return V(tx + Math.sin(a) * Math.cos(e) * d, ty - Math.cos(a) * Math.cos(e) * d, Math.sin(e) * d); };
+const siteK = () => Math.max(1, Math.max(site.w, site.d * 1.3) / 52);     // 큰 필지면 카메라를 그만큼 멀리
+function frame(k) {
+  curView = k;
+  view.classList.toggle('far', k === 'all'); view.classList.toggle('close', k === 'site'); $('#inset').hidden = k === 'site';
+  ['vSite', 'vAll', 'vTop'].forEach(i => $('#' + i).classList.toggle('on', i === {site: 'vSite', all: 'vAll', top: 'vTop'}[k]));
+  if (k === 'all') { controls.target.copy(V(BC[0], BC[1], 0)); camera.position.copy(az(-38, BH * 5.6, 34, BC[0], BC[1])); }
+  else if (k === 'site') { controls.target.copy(V(site.cx, site.cy, 0)); camera.position.copy(az(site.ang - 20, 205 * siteK(), 40, site.cx, site.cy)); }      // 도로 쪽(부지 앞)에서, 배치도와 같은 방향
+  else { const f = local2w(0, -0.05); controls.target.copy(V(site.cx, site.cy, 0)); camera.position.copy(V(f[0], f[1], 430 * siteK())); }
+  controls.maxDistance = BH * 8; controls.update();
+}
+$('#vSite').onclick = () => frame('site'); $('#vAll').onclick = () => frame('all'); $('#vTop').onclick = () => frame('top');
+
+const EC = {process: 0xffd43b, compressed: 0xff922b, storage: 0x4dabf7, charger: 0x51cf66, building: 0xffffff, other: 0xced4da};
+const EH = {process: 3, compressed: 3.5, storage: 3.2, charger: 2.4, building: 6, other: 2};
+let eqMeshes = [], pinSite = null; const EQX = [];
+// 우리 충전소 설비 모형(실제 설비처럼: 흰·회색 몸체 + 기능색 띠, 지붕 환기구, 누운 저장 용기, 충전기 지붕). 긴 쪽을 x 로 두고 그린다
+function eqModel(it) {
+  const g = new THREE.Group(), gi = new THREE.Group(), c = cen(rectW(it)); let w = it.w, d = it.d; g.add(gi); if (d > w * 1.15 && it.type !== 'canopy') { [w, d] = [d, w]; gi.rotation.y = Math.PI / 2; }
+  g.position.copy(V(c[0], c[1], 0)); g.rotation.y = site.ang * Math.PI / 180;
+  const M = (col, o = {}) => new THREE.MeshLambertMaterial({color: col, ...o});
+  const add = (geo, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; gi.add(o); return o; };
+  const ln = (o, op = .16) => { o.add(new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 25), new THREE.LineBasicMaterial({color: 0x1b2b3d, transparent: true, opacity: op}))); return o; };
+  const box = (bw, bh, bd, m, x = 0, y = 0, z = 0) => add(new THREE.BoxGeometry(bw, bh, bd), m, x, y + bh / 2, z);
+  const rbox = (bw, bh, bd, m, r, x = 0, y = 0, z = 0) => {     // 모서리 둥근 상자
+    r = Math.min(r, bw / 2 - .05, bd / 2 - .05, bh / 2 - .05); const b = Math.min(r * .6, bh / 4), sw = bw - 2 * b, sd = bd - 2 * b, rr = Math.max(.01, r - b);
+    const sh = new THREE.Shape(), x0 = -sw / 2, z0 = -sd / 2;
+    sh.moveTo(x0 + rr, z0); sh.lineTo(-x0 - rr, z0); sh.quadraticCurveTo(-x0, z0, -x0, z0 + rr); sh.lineTo(-x0, -z0 - rr); sh.quadraticCurveTo(-x0, -z0, -x0 - rr, -z0);
+    sh.lineTo(x0 + rr, -z0); sh.quadraticCurveTo(x0, -z0, x0, -z0 - rr); sh.lineTo(x0, z0 + rr); sh.quadraticCurveTo(x0, z0, x0 + rr, z0);
+    const geo = new THREE.ExtrudeGeometry(sh, {depth: bh - 2 * b, bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 4, curveSegments: 6});
+    geo.rotateX(-Math.PI / 2); return add(geo, m, x, y + b, z);
+  };
+  const cylX = (r, len, m, x, y, z, seg = 24) => { const o = add(new THREE.CylinderGeometry(r, r, len, seg), m, x, y, z); o.rotation.z = Math.PI / 2; return o; };
+  const cylY = (r, h, m, x, y, z, seg = 24) => add(new THREE.CylinderGeometry(r, r, h, seg), m, x, y + h / 2, z);
+  const pad = col => box(w, .16, d, M(col));
+  const T = it.type;
+  {
+    pad(0xd5dae0);
+    const ac = {process: 0xf5c518, compressed: 0xf08c2e, storage: 0x3d8bfd, charger: 0x2fb36b}[T] || 0x9aa4b0;
+    if (T === 'process' || T === 'compressed' || T === 'other') {
+      const bw = w * .9, bd = d * .86, h = T === 'other' ? 2.4 : 3;
+      ln(box(bw, h, bd, M(0xf4f6f8), 0, .16)); box(bw + .04, .34, bd + .04, M(ac), 0, .16 + h * .72);
+      for (let k = 0; k < 4; k++) box(bw * .7, .08, .12, M(0x59636e), 0, .16 + h, -bd * .3 + k * bd * .2);
+      for (const sx of [-1, 1]) box(.9, h * .55, .03, M(0x7b8794), sx * bw * .22, .16, bd / 2 + .02);
+      cylX(.16, w * .96, M(0xadb5bd), 0, .7, -bd / 2 - .12, 12);
+    } else if (T === 'storage') {
+      const n = Math.max(2, Math.min(6, Math.floor(d / 1.5))), r = Math.min(.75, d / n * .42), len = w * .86;
+      for (const sx of [-1, 1]) box(.35, .5, d * .9, M(0x6b7684), sx * len * .38, .16);
+      for (let k = 0; k < n; k++) { const z = -d * .4 + (k + .5) * d * .8 / n;
+        for (let row = 0; row < 2; row++) { const y = .66 + r + row * r * 2.05; cylX(r, len, M(0xf8f9fa), 0, y, z); for (const sx of [-1, 1]) cylX(r * .8, .18, M(ac), sx * len / 2, y, z, 18); } }
+      box(.5, 1.1, d * .5, M(0xadb5bd), -w * .47, .16); cylX(.08, .6, M(0xf03e3e), -w * .47 - .2, 1.0, 0, 8);
+    } else if (T === 'charger') {
+      box(w + .6, .22, d + .5, M(0xe9ecef), 0, 0);
+      ln(box(w * .9, 2.05, d * .62, M(0xffffff), 0, .22)); box(w * .92, .38, d * .64, M(ac), 0, 1.9); box(w * .5, .42, d * .64 + .02, M(0x1f2a36), 0, 1.25);
+      box(.14, .55, .14, M(0x343a40), w * .5, .9, 0); box(w * .95, .08, d * .66, M(0xced4da), 0, .22);
+    } else if (T === 'canopy') {
+      for (const sx of [-1, 1]) { box(.4, 5.2, .4, M(0xe9ecef), sx * (w / 2 - 1.4), 0); }
+      ln(box(w, .45, d, M(0xffffff), 0, 5.2)); box(w + .04, .22, d + .04, M(0x2fb36b), 0, 5.26);
+    } else if (T === 'building') {
+      const bw = w * .94, bd = d * .94;
+      ln(box(bw, 6, bd, M(0xf8f9fa), 0, .16)); box(bw + .06, 1.05, bd + .06, M(0x4a6b8a), 0, 1.15); box(bw + .06, 1.05, bd + .06, M(0x4a6b8a), 0, 4.0);
+      box(bw + .3, .3, bd + .3, M(0xdee2e6), 0, 6.16); box(1.4, 2.1, .06, M(0x3d4a57), bw * .25, .16, bd / 2 + .03);
+      box(2.2, .7, .08, M(0x3182f6), -bw * .2, 6.5, bd / 2 - .2);
+    }
+  }
+  return g;
+}
+
+function drawLayout(grow = false) {
+  LAY.clear(); eqMeshes = [];
+  const sp = sitePoly();
+  LAY.add(flat(sp, 0xe3efff, 0.16, false)); LAY.add(ribbon([...sp, sp[0]], 0.6, 0x3182f6, 0.2, true, false));
+  pinSite = label('우리 부지', 'pin b farl', site.cx, site.cy, 8); LAY.add(pinSite);
+  if (PAR.length) {                   // 부지 둘레 필지 지번(가까운 14개)
+    const mine = site.parcel?.list || [];
+    PAR.filter(q => !NOT_SITE.test(q.jimok) || mine.includes(q)).map(q => ({q, c: q.pts.length > 3 ? cen(q.pts) : q.pts[0]})).map(o => ({...o, d: Math.hypot(o.c[0] - site.cx, o.c[1] - site.cy)}))
+      .filter(o => o.d < 70 && (o.q.a > 60 || mine.includes(o.q)) && inside(o.c, o.q.pts)).sort((a, b) => a.d - b.d).slice(0, 14)
+      .forEach(o => {
+        let c = o.c;
+        if (mine.includes(o.q) && L) {      // 설비 위에 겹치지 않는 자리(꼭짓점에서 안쪽으로 조금 들어간 곳 중)
+          const free = p => inside(p, o.q.pts) && L.items.every(it => dist([p], rectW({...it, w: it.w + 4, d: it.d + 4}), false, true).d > 0);
+          c = [o.c, ...o.q.pts.map(p => [p[0] + (o.c[0] - p[0]) * 0.3, p[1] + (o.c[1] - p[1]) * 0.3])].find(free) || o.c;
+        }
+        LAY.add(label(esc(o.q.jibun), 'jb near' + (mine.includes(o.q) ? ' me' : ''), c[0], c[1], 0.3));
+      });
+  }
+  placeCam2();
+  if (!L) return;
+  L.items.forEach((it, i) => {
+    const h = EH[it.type] || 2, g = eqModel(it);
+    g.userData.i = i; if (grow) { g.scale.y = 0.001; g.userData.t0 = performance.now() + i * 260; }
+    LAY.add(g); eqMeshes.push(g);
+  });
+  EQX.length = 0;
+  { const ch = L.items.filter(i => i.type === 'charger');
+    if (ch.length) { const x0 = Math.min(...ch.map(i => i.cx - i.w / 2)), x1 = Math.max(...ch.map(i => i.cx + i.w / 2)), y0 = Math.min(...ch.map(i => i.cy - i.d / 2)), y1 = Math.max(...ch.map(i => i.cy + i.d / 2));
+      const cw = Math.max(x1 - x0 + 5, 9), cd = Math.max(y1 - y0 + 4, 7), cv = eqModel({type: 'canopy', cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: cw, d: cd});
+      if (grow) { cv.scale.y = 0.001; cv.userData.t0 = performance.now() + L.items.length * 260 + 150; } LAY.add(cv); EQX.push(cv); } }
+  for (const w of L.walls || []) {
+    const a = local2w(w.x1, w.y1), b = local2w(w.x2, w.y2);
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]), box = new THREE.Mesh(new THREE.BoxGeometry(len, 2, 0.3), new THREE.MeshLambertMaterial({color: 0x8b95a1}));
+    box.position.copy(V((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 1)); box.rotation.y = Math.atan2(b[1] - a[1], b[0] - a[0]); box.castShadow = true; LAY.add(box);
+  }
+}
+
+// ---------------------------------------------------------------- 측정 -> 점검표 코드로 판정
+function measure() {
+  const it = L.items.map(x => ({...x, poly: rectW(x)}));
+  const pick = t => it.filter(x => t.includes(x.type));
+  const near = (A, feats, closed = true) => { let b = {d: Infinity}; for (const a of A) for (const f of feats) { const r = dist(a.poly, f.pts, true, closed); if (r.d < b.d) b = {...r, f, it: a}; } return b; };
+  const danger = pick(DANGER);
+  const p1 = near(danger, [...BLD().filter(b => b.cls === 1), ...S.zones.filter(z => z.cls === 1)]);
+  const p2 = near(danger, BLD().filter(b => b.cls === 2));
+  const proc = pick(['process', 'compressed']);
+  const people = [...BLD().filter(b => b.cls > 0), ...it.filter(x => x.type === 'building').map(x => ({pts: x.poly, name: x.name}))];
+  const b30 = near(proc, people);
+  const sp = sitePoly();
+  let bd = {d: Infinity};
+  for (const x of pick(['process', 'compressed', 'storage', 'charger'])) for (const p of x.poly) for (const [a, b] of edges(sp, true)) { const [d, q] = ptSeg(p, a, b); if (d < bd.d) bd = {d, a: p, b: q, it: x}; }
+  let rd = {d: Infinity};
+  for (const x of pick(['charger'])) for (const r of S.roads.filter(r => r.road_law)) { const o = dist(x.poly, r.pts, true, false); const d = Math.max(0, o.d - r.w / 2); if (d < rd.d) rd = {...o, d, f: r, it: x}; }
+  let rl = {d: Infinity};
+  for (const x of pick(['process', 'compressed', 'storage', 'charger'])) for (const r of S.rails) { const o = dist(x.poly, r.pts, true, false); if (o.d < rl.d) rl = {...o, f: r}; }
+  const sc = near(pick(['storage']), pick(['charger']).map(x => ({pts: x.poly, name: x.name})));
+  const wallsW = (L.walls || []).map(w => [local2w(w.x1, w.y1), local2w(w.x2, w.y2)]);
+  const scWall = isFinite(sc.d) && wallsW.some(([a, b]) => cross(a, b, sc.a, sc.b));
+  const roadWall = isFinite(rd.d) && wallsW.some(([a, b]) => cross(a, b, rd.a, rd.b));
+  const r1 = v => isFinite(v) ? Math.round(v * 10) / 10 : '';
+  const inputs = {capacity: +$('#cap').value || '', underground: false, d_prot1: r1(p1.d), d_prot2: r1(p2.d), bld_30m: isFinite(b30.d) && b30.d <= 30,
+    wall: wallsW.length > 0, d_boundary: r1(bd.d), d_road: r1(rd.d), road_wall: roadWall, d_rail: S.rails.length ? r1(rl.d) : '',
+    d_store_charger: r1(sc.d), store_charger_wall: scWall, store_count: pick(['storage']).length, first_install: true};
+  // 건폐율: 건축면적 = 건축물 + 설비(지붕·캐노피가 없는 노출 설비는 실제로는 빠질 수 있음)
+  const bArea = it.filter(x => x.type === 'building').reduce((s, x) => s + x.w * x.d, 0);
+  return {inputs, lines: {p1, p2, b30, bd, rd, sc}, bcr: bArea / area(sp) * 100, bArea};
+}
+function drawLine(r, ok, text) {      // 바닥에 붙은 거리 띠 + 양 끝 점 + 숫자
+  if (!r || !isFinite(r.d) || !r.a) return;
+  const col = ok ? 0x3182f6 : 0xf04452;
+  MEAS.add(ribbon([r.a, r.b], 0.7, col, 0.26, true, false));
+  for (const p of [r.a, r.b]) { const d = new THREE.Mesh(new THREE.CircleGeometry(0.7, 24), new THREE.MeshBasicMaterial({color: col})); d.rotation.x = -Math.PI / 2; d.position.copy(V(p[0], p[1], 0.28)); MEAS.add(d); }
+  MEAS.add(label(text, (ok ? 'b' : 'r') + ' near', (r.a[0] + r.b[0]) / 2 - 2.5, (r.a[1] + r.b[1]) / 2 - 7, 0.4));     // 숫자는 띠 앞쪽(보는 쪽)에
+}
+const AUTO = ['prot', 'wall30', 'boundary', 'road', 'rail', 'sc_dist', 'sc_count'];
+const SHORT = {prot: '보호시설', wall30: '방호벽', boundary: '설비↔부지 경계', road: '충전기↔도로', rail: '철도까지', sc_dist: '저장설비↔충전기', sc_count: '저장설비 대수'};
+const FIXABLE = ['sc_dist', 'boundary', 'road', 'wall30', 'prot', 'rail'];
+const f1 = v => (Math.round(v * 10) / 10).toString();
+function short(x) {         // 판정 메모에서 '실제 값 · 기준' 한 줄만 뽑는다
+  const n = x.note || '';
+  let k = n.match(/(제[12]종) ([\d.]+)m 이상 — 실제 ([\d.]+)m ✗/);
+  if (k) return `${k[1]} 보호시설 ${k[3]}m · 기준 ${k[2]}m`;
+  k = n.match(/기준 ([\d.]+)m 이상[^—]*— 실제 ([\d.]+)m/);
+  if (k) return `${SHORT[x.id] || x.title} ${k[2]}m · 기준 ${k[1]}m`;
+  k = n.match(/기준 (\d+)대 이하 — 계획 (\d+)대/);
+  if (k) return `저장설비 ${k[2]}대 · 기준 ${k[1]}대 이하`;
+  return x.title;
+}
+// 기준선: 법이 정한 거리만큼 떨어진 점선. 지키면 초록, 걸리면 빨강. 숫자 표만 붙인다.
+let GUIDE = qs.get('guide') || 'c';
+function dashRibbon(pts, w, color, h, dash = 1.6, gap = 1.1) {        // 굵은 점선(바닥에 붙은 짧은 띠들)
+  const segs = []; let carry = 0, on = true;
+  for (const [a, b] of edges(pts, false)) {
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]); let t = 0;
+    while (t < L) { const step = Math.min((on ? dash : gap) - carry, L - t), t1 = t + step;
+      if (on) segs.push([[a[0] + (b[0] - a[0]) * t / L, a[1] + (b[1] - a[1]) * t / L], [a[0] + (b[0] - a[0]) * t1 / L, a[1] + (b[1] - a[1]) * t1 / L]]);
+      carry += step; t = t1; if (carry >= (on ? dash : gap) - 1e-6) { carry = 0; on = !on; } }
+  }
+  const grp = new THREE.Group(); for (const sgm of segs) grp.add(ribbon(sgm, w, color, h, false, false)); return grp;
+}
+function roundRect(x0, y0, x1, y1, R) {          // 부지 좌표 사각형을 R 만큼 둥글게 키운 둘레(세계 좌표, 닫힌 선)
+  const ring = [];
+  for (const [cx, cy, a0] of [[x1, y1, 0], [x0, y1, 90], [x0, y0, 180], [x1, y0, 270]]) for (let k = 0; k <= 12; k++) { const a = (a0 + k * 7.5) * Math.PI / 180; ring.push(local2w(cx + R * Math.cos(a), cy + R * Math.sin(a))); }
+  ring.push(ring[0]); return ring;
+}
+const bbox = items => { const xs = items.flatMap(x => [x.cx - x.w / 2, x.cx + x.w / 2]), ys = items.flatMap(x => [x.cy - x.d / 2, x.cy + x.d / 2]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+const argmin = (pts, f) => pts.reduce((a, b) => f(b) < f(a) ? b : a);
+let TAGS = [];                // 기준선 숫자 표: 후보 자리 중 화면에서 다른 표와 안 겹치는 곳에 둔다
+function guide(pts, ok, tag, tagAt, more = []) {
+  const col = ok ? 0x03b26c : 0xf04452;
+  MEAS.add(dashRibbon(pts, 0.38, col, 0.22));
+  if (!tag) return;
+  const o = label(tag, 's near ' + (ok ? 'g' : 'r'), tagAt[0], tagAt[1], 0.5); o.userData.cands = [tagAt, ...more]; MEAS.add(o); TAGS.push(o);
+}
+const around = ring => [0, 180, 90, 270, 45, 135, 225, 315].map(t => { const a = (t + site.ang) * Math.PI / 180; return argmin(ring, p => -(p[0] * Math.cos(a) + p[1] * Math.sin(a))); });   // 부지 방향 기준 8방향 끝점
+const along = pts => [0.15, 0.85, 0.5, 0.3, 0.7].map(t => [pts[0][0] + (pts[1][0] - pts[0][0]) * t, pts[0][1] + (pts[1][1] - pts[0][1]) * t]);
+function declutter() {
+  const W = innerWidth, H = innerHeight, placed = [];
+  const rectAt = (o, p) => { const w = o.element.offsetWidth, h = o.element.offsetHeight; if (!w) return null; const v = p.clone().project(camera); if (v.z > 1) return null; const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H; return [x - w / 2 - 3, y - h / 2 - 3, x + w / 2 + 3, y + h / 2 + 3]; };
+  const over = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+  for (const o of [...MEAS.children, ...LAY.children]) if (o.isCSS2DObject && !o.userData.cands) { const r = rectAt(o, o.position); if (r) placed.push(r); }
+  const card = $('#card').getBoundingClientRect(); placed.push([card.left, card.top, card.right, card.bottom]);
+  for (const o of TAGS) {
+    let pick = null;
+    for (const c of o.userData.cands) { const p = V(c[0], c[1], 0.5), r = rectAt(o, p); if (!r) continue; if (!pick) pick = [p, r]; if (r[0] > 0 && r[2] < W && r[1] > 0 && r[3] < H && !placed.some(q => over(r, q))) { pick = [p, r]; break; } }
+    if (pick) { o.position.copy(pick[0]); placed.push(pick[1]); }
+  }
+}
+let dcT = 0; controls.addEventListener('change', () => { clearTimeout(dcT); dcT = setTimeout(declutter, 120); });
+function drawGuides(sheet, m) {
+  if (!L) return;
+  const row = id => sheet.rows.find(x => x.id === id) || {}, num = (re, s) => { const k = (s || '').match(re); return k ? +k[1] : null; };
+  const showProt = GUIDE === 'a' || GUIDE === 'c', showIn = GUIDE === 'b' || GUIDE === 'c';
+  const danger = L.items.filter(x => DANGER.includes(x.type));
+  if (showProt && danger.length) {              // 보호시설 안전거리: 이 둘레 안에 보호시설이 없어야 한다
+    const pn = row('prot').note || '', q1 = num(/제1종 (\d+(?:\.\d+)?)m/, pn), q2 = num(/제2종 (\d+(?:\.\d+)?)m/, pn), [x0, y0, x1, y1] = bbox(danger);
+    for (const [q, d, f] of [[q1, m.lines.p1.d, p => p[1]], [q2, m.lines.p2.d, p => p[0] + p[1] * 0.3]]) if (q) { const ring = roundRect(x0, y0, x1, y1, q); guide(ring, !(d < q), `${q}m`, argmin(ring, f), around(ring)); }     // 숫자 표는 서로 다른 쪽(남쪽 끝, 서쪽 끝)
+  }
+  if (showIn) {
+    const st = L.items.filter(x => x.type === 'storage'), ch = L.items.filter(x => x.type === 'charger');
+    if (st.length && ch.length) { const [x0, y0, x1, y1] = bbox(st), ring = roundRect(x0, y0, x1, y1, 8); guide(ring, row('sc_dist').verdict !== '부적합', '8m', argmin(ring, p => -p[0]), around(ring)); }
+    const qb = num(/기준 ([\d.]+)m 이상/, row('boundary').note);           // 사업소 경계 안쪽선(방호벽 있으면 5m)
+    const loops = !qb ? [] : site.poly ? insetLoops(site.poly, qb) : qb * 2 < Math.min(site.w, site.d) ? [[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [a * (site.w / 2 - qb), b * (site.d / 2 - qb)])] : [];
+    loops.forEach((inner, li) => { const pts = [...inner, inner[0]].map(p => local2w(...p)), k = pts.length - 1; guide(pts, row('boundary').verdict !== '부적합', li ? '' : `경계 ${qb}m`, argmin(pts, p => p[1] - p[0]), [...pts.slice(0, k), ...pts.slice(0, k).map((p, i) => [(p[0] + pts[i + 1][0]) / 2, (p[1] + pts[i + 1][1]) / 2])].filter((_, i) => i % Math.max(1, Math.floor(k / 12)) === 0)); });
+    if (ch.length && isFinite(m.lines.rd.d)) {    // 도로경계에서 5m 선(충전기는 이 선 안쪽)
+      const c = m.lines.rd.it, up = w2local(...m.lines.rd.b)[1] > c.cy, y = up ? c.cy + c.d / 2 + m.lines.rd.d - 5 : c.cy - c.d / 2 - m.lines.rd.d + 5;
+      const pts = [[-site.w / 2, y], [site.w / 2, y]].map(p => local2w(...p)); guide(pts, row('road').verdict !== '부적합', '도로 5m', argmin(pts, p => -p[0]), along(pts));
+    }
+  }
+}
+let checkSeq = 0, lastBad = [], tinted = null;
+async function check() {
+  if (!S || !L) return;
+  const seq = ++checkSeq, m = measure(), fac = $('#fac').value;
+  const r = await fetch('/api/checklist', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: 'gas_annex5_station', facility: fac, inputs: m.inputs})});
+  if (seq !== checkSeq) return;
+  const sheet = await r.json();
+  if (!r.ok) { setCard('자동 검토', '<em class="wait">검사를 못 했어요</em>', esc(sheet.error || r.status), ''); return; }
+  const rows = sheet.rows.filter(x => AUTO.includes(x.id) && x.verdict !== '해당 없음');
+  const zi = zoneInfo(), zsel = $('#zone').value, auto = zi && zsel === zi.main && !zoneManual;
+  const zone = ZONES.find(z => z[0] === zsel), lim = auto ? zi.bcr : zone && typeof zone[1] === 'number' ? zone[1] : null;
+  const hy = auto ? zi.hy : HY[zsel] ? HY[zsel][0] : null;
+  const zrow = {id: 'zone', title: '용도지역 (수소충전소)', verdict: hy ? HY_V[hy] : '확인',
+    note: hy ? `${auto && zi.parts.length > 1 ? zi.parts.map(o => `${o.name} ${Math.round(o.pct)}%`).join(' · ') : zsel} · ${HY_TXT[hy]}` : '용도지역을 못 받았어요. 주소 [바꾸기]에서 고르면 판정',
+    law: hy ? (auto && zi.parts.length > 1 ? zi.rule : `국토계획법 시행령 ${HY[zsel][1]}`) : ''};
+  zrow.short = auto && zi.parts.length > 1 ? `${zi.parts[0].name.replace(/지역$/, '')} 외` : zsel;
+  const gbAll = !!auto && zi.gb >= 50;      // 개발제한구역 안: 용도지역 표가 아니라 개발제한구역법으로 정한다(국토계획법 제80조)
+  if (gbAll) Object.assign(zrow, {verdict: '확인', note: `개발제한구역 (${zi.main}) · 허가 대상인지 확인`, short: '개발제한구역', law: '국토계획법 제80조: 개발제한구역법으로 판단'});
+  const zNote = zrow.verdict === '확인' && hy ? (gbAll ? ' · 개발제한구역 확인' : ' · 용도지역은 조례 확인') : '';
+  const bcrOk = lim ? m.bcr <= lim : null;
+  const bad = rows.filter(x => x.verdict === '부적합');
+  lastBad = bad.map(x => x.id);
+  const zoneNo = hy === 'no' && !gbAll;
+  const nBad = bad.length + (bcrOk === false ? 1 : 0) + (zoneNo ? 1 : 0);
+  // 지도에는 선 둘만: 못 맞춘 거리(없으면 저장↔충전 거리) + 가장 가까운 보호시설
+  MEAS.clear(); TAGS = [];
+  const LN = {prot: m.lines.p1, boundary: m.lines.bd, road: m.lines.rd, sc_dist: m.lines.sc};
+  const drawn = bad.filter(x => LN[x.id] && isFinite(LN[x.id].d));
+  for (const x of drawn) drawLine(LN[x.id], false, `${f1(LN[x.id].d)}m`);
+  if (!drawn.length && isFinite(m.lines.sc.d)) drawLine(m.lines.sc, true, `${f1(m.lines.sc.d)}m ✓`);
+  if (lastBad.includes('sc_dist')) for (const s of L.items.filter(x => x.type === 'storage')) { const o = rectW({...s, w: s.w + 1.6, d: s.d + 1.6}); MEAS.add(ribbon([...o, o[0]], 0.45, 0xf04452, 0.24, true, false)); MEAS.add(flat(o, 0xffdcdf, 0.18, false)); }
+  drawGuides(sheet, m);
+  if (tinted) { tinted.children[0].material.color.set(0xffffff); tinted.children[1].material.color.set(0xaab3be); tinted.children[1].material.opacity = .45; tinted = null; }
+  const p1 = m.lines.p1;
+  if (isFinite(p1.d)) {
+    const f = p1.f, c = cen(f.pts), okP = !lastBad.includes('prot');
+    const g = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(p1.a[0], p1.a[1], 0.5), V(p1.b[0], p1.b[1], 0.5)]), new THREE.LineDashedMaterial({color: 0xf04452, dashSize: 6, gapSize: 5, transparent: true, opacity: .7}));
+    g.computeLineDistances(); MEAS.add(g);
+    const nm = f.name && f.name.length <= 8 ? f.name : (f.use || LBL[f.kind] || '보호시설');
+    MEAS.add(label(`${esc(nm)}${f.levels ? ' ' + f.levels + '층' : ''} · ${Math.round(p1.d)}m`, 'pin s' + (okP ? '' : ' r'), c[0], c[1], (f.h || 6) + 2));
+    if (f._g) { tinted = f._g; f._g.children[0].material.color.set(0xffe3e5); f._g.children[1].material.color.set(0xf4a3aa); f._g.children[1].material.opacity = .9; }
+  }
+  if (pinSite) { pinSite.element.className = 'lab pin farl ' + (nBad ? 'r' : 'b'); pinSite.element.textContent = nBad ? '우리 부지' : '우리 부지 ✓'; }
+  // 카드: 큰 한 줄 + 숫자 한 줄 + 버튼 하나
+  const embed = document.body.classList.contains('embed');
+  if (zoneNo) setCard('자동 검토', '<em>이 용도지역엔 <br>못 지어요</em>', `${esc(auto && zi.parts.length > 1 ? `${zi.parts[0].name} ${Math.round(zi.parts[0].pct)}% 외` : zsel)}<br>수소충전소 불가 (국토계획법 시행령 ${esc(auto ? zi.law : HY[zsel][1])})`,
+    site.poly ? '<button class="btn" id="find">근처 다른 필지 찾기</button>' : '<button class="btn" id="find">기준 지키는 자리 찾기</button>');
+  else if (!nBad) setCard('모두 통과', '이 자리에 <br><em class="ok">설치할 수 있어요</em>', `안전거리 ${rows.length}가지 모두 통과${zNote}`,
+    embed ? '<button class="btn" disabled>신청서에 넣었어요 ✓</button>' : '<button class="btn dark" id="go">신청서에 넣기</button>');
+  else {
+    // AI가 이미 고쳐 봤는데도 남으면: 자리 문제(보호시설·철도)는 다른 자리 찾기, 넓이 문제(경계·간격)는 부지 크기
+    const fx = bad.find(x => FIXABLE.includes(x.id)), stuck = fixTried && lastBad.some(id => id === 'prot' || id === 'rail'),
+      tight = fixTried && !stuck && lastBad.some(id => ['boundary', 'sc_dist', 'road'].includes(id));
+    setCard(stuck || tight ? '자동 검토' : nBad === 1 ? '거의 다 됐어요' : '자동 검토', stuck ? '<em>이 부지 안에서는 <br>못 지켜요</em>' : tight ? '<em>부지가 좁아 <br>다 못 들어가요</em>' : `<em>${nBad === 1 ? '1곳만' : nBad + '곳을'} 고치면 돼요</em>`,
+      esc(bad.length ? short(bad[0]) : `건폐율 ${m.bcr.toFixed(1)}% · 기준 ${lim}% 이하`) + (nBad > 1 ? ` 외 ${nBad - 1}곳` : '') + zNote,
+      (stuck || tight) && site.poly ? (mergeTried ? '<button class="btn" id="find">근처 다른 필지 찾기</button>' : '<button class="btn" id="merge">옆 필지 합쳐 보기</button>') : stuck ? '<button class="btn" id="find">기준 지키는 자리 찾기</button>' : tight ? '<button class="btn" id="size">부지 크기 바꾸기</button>' : fx ? `<button class="btn" data-fix="${fx.id}">AI가 고치기</button>` : '<button class="btn" id="reup">배치도 다시 올리기</button>');
+  }
+  $('#insetPill').innerHTML = nBad ? `<span class="lab r">${esc(zoneNo ? '용도지역 불가' : bad.length ? short(bad[0]) : '건폐율 초과')}</span>` : '<span class="lab b">모두 통과 ✓</span>';
+  // 자세히: 항목마다 한 줄
+  const cls = v => v === '적합' ? 'ok' : v === '부적합' ? 'bad' : 'chk';
+  $('#items').innerHTML = `<div class="row"><div>배치 출처<small>${esc(L.src)}</small></div></div>`
+    + `<div class="row"><div>${esc(zrow.title)}<small>${esc(zrow.note)}${zrow.law ? `<br>${esc(zrow.law)}` : ''}</small></div><b class="${cls(zrow.verdict)}">${esc(zrow.verdict)}</b></div>`
+    + (zi && zi.gb >= 3 && !gbAll ? `<div class="row"><div>개발제한구역<small>부지 ${Math.round(zi.gb)}% · 개발제한구역법 허가 따로 확인</small></div><b class="chk">확인</b></div>` : '') + rows.map(x => `<div class="row"><div>${esc(x.title)}<small>${esc(x.verdict === '부적합' ? short(x) : (x.note || '').split(/[.·] |\. 근거/)[0].slice(0, 60))}</small></div><b class="${cls(x.verdict)}">${esc(x.verdict)}</b></div>`).join('')
+    + `<div class="row"><div>건폐율<small>${m.bcr.toFixed(1)}%${lim ? ` · ${auto && zi.parts.length > 1 ? '가중·최저 기준' : esc(zsel)} ${lim}% 이하` : ' · 주소 [바꾸기]에서 용도지역을 고르면 판정'}</small></div><b class="${bcrOk == null ? 'chk' : bcrOk ? 'ok' : 'bad'}">${bcrOk == null ? '확인' : bcrOk ? '적합' : '부적합'}</b></div>`;
+  save(m, rows, nBad, fac, sheet, lim, zrow, zoneNo);
+  requestAnimationFrame(() => requestAnimationFrame(declutter));
+  return {bad: lastBad, nBad};
+}
+
+// 배치도(PDF·DXF)용: 부지 좌표로 옮긴 주변·설비·주요 거리·검토표. site-plan.js 가 그린다.
+function planSpec(m, rows, sheet, lim, fac, zrow) {
+  const R = Math.max(site.w, site.d) / 2 + 60, r1 = v => Math.round(v * 100) / 100;
+  const loc = pts => pts.map(p => w2local(...p).map(r1)), near = pts => pts.some(p => { const q = w2local(...p); return Math.abs(q[0]) < R && Math.abs(q[1]) < R; });
+  const ln = (r, name) => r && isFinite(r.d) && r.a ? {a: w2local(...r.a).map(r1), b: w2local(...r.b).map(r1), d: r1(r.d), ...(name ? {name} : {})} : null;
+  const row = id => sheet.rows.find(x => x.id === id) || {}, num = (re, t) => { const k = (t || '').match(re); return k ? +k[1] : null; };
+  const pn = row('prot').note || '', q1 = num(/제1종 (\d+(?:\.\d+)?)m/, pn), q2 = num(/제2종 (\d+(?:\.\d+)?)m/, pn), qb = num(/기준 ([\d.]+)m 이상/, row('boundary').note);
+  const v = id => row(id).verdict || '확인 필요', fn = f => f ? (f.name && f.name.length <= 10 ? f.name : (f.use || LBL[f.kind] || '')) : '';
+  const tbl = [];
+  if (zrow) tbl.push({t: '용도지역 (수소충전소)', need: '건축 가능 용도지역', plan: zrow.short || '-', v: zrow.verdict === '확인' ? '확인 필요' : zrow.verdict});
+  if (q1) tbl.push({t: '제1종 보호시설', need: `${q1}m 이상`, plan: isFinite(m.lines.p1.d) ? `${f1(m.lines.p1.d)}m` : '없음', v: !isFinite(m.lines.p1.d) || m.lines.p1.d >= q1 ? '적합' : '부적합'});
+  if (q2) tbl.push({t: '제2종 보호시설', need: `${q2}m 이상`, plan: isFinite(m.lines.p2.d) ? `${f1(m.lines.p2.d)}m` : '없음', v: !isFinite(m.lines.p2.d) || m.lines.p2.d >= q2 ? '적합' : '부적합'});
+  if (row('boundary').id) tbl.push({t: '설비 ↔ 사업소 경계', need: qb ? `${qb}m 이상` : '-', plan: `${f1(m.lines.bd.d)}m`, v: v('boundary')});
+  if (row('road').id) tbl.push({t: '충전설비 ↔ 도로경계', need: m.inputs.road_wall ? '방호벽 설치' : '5m 이상', plan: isFinite(m.lines.rd.d) ? `${f1(m.lines.rd.d)}m` : '-', v: v('road')});
+  if (row('sc_dist').id && row('sc_dist').verdict !== '해당 없음') tbl.push({t: '저장설비 ↔ 충전설비', need: m.inputs.store_charger_wall ? '방호벽 설치' : '8m 이상', plan: `${f1(m.lines.sc.d)}m`, v: v('sc_dist')});
+  if (row('wall30').id && row('wall30').verdict !== '해당 없음') tbl.push({t: '30m 안 건축물 방호벽', need: '방호벽 설치', plan: m.inputs.wall ? '설치' : '없음', v: v('wall30')});
+  if (row('rail').id && row('rail').verdict !== '해당 없음') tbl.push({t: '철도까지', need: '30m 이상', plan: `${m.inputs.d_rail}m`, v: v('rail')});
+  if (row('sc_count').id && row('sc_count').verdict !== '해당 없음') tbl.push({t: '저장설비 대수', need: '3대 이하', plan: `${m.inputs.store_count}대`, v: v('sc_count')});
+  tbl.push({t: '건폐율', need: lim ? `${lim}% 이하` : '용도지역 확인', plan: `${m.bcr.toFixed(1)}%`, v: lim ? (m.bcr <= lim ? '적합' : '부적합') : '확인 필요'});
+  return {v: 1, at: new Date().toISOString(), address: $('#addr').value, fac, cap: +$('#cap').value || null, src: L.src, bsrc: S.src === 'vw' ? '브이월드(건물통합정보·도로명주소)' : 'OpenStreetMap',
+    site: {w: r1(site.w), d: r1(site.d), ang: r1(site.ang), ...(site.poly ? {poly: site.poly.map(p => p.map(r1)), inner: qb ? insetLoops(site.poly, qb).map(l => l.map(p => p.map(r1))) : [], parcel: site.parcel.text, area: Math.round(site.parcel.area), jimok: site.parcel.jimok} : {}), ...(zrow ? {zone: zrow.note, zoneLaw: zrow.law} : {})},
+    parcels: PAR.filter(q => near(q.pts)).map(q => ({pts: loc(q.pts), jb: q.jibun, mine: !!site.parcel?.list.includes(q), road: NOT_SITE.test(q.jimok)})), items: L.items.map(x => ({name: x.name, type: x.type, cx: r1(x.cx), cy: r1(x.cy), w: x.w, d: x.d})), walls: (L.walls || []).map(w => ({x1: r1(w.x1), y1: r1(w.y1), x2: r1(w.x2), y2: r1(w.y2)})),
+    roads: S.roads.filter(r => !/foot|cycle|path|steps|pedestrian|track|bridleway|corridor/.test(r.kind) && near(r.pts)).map(r => ({pts: loc(r.pts), w: r.w, name: r.name, law: r.road_law})),
+    rails: S.rails.filter(r => near(r.pts)).map(r => ({pts: loc(r.pts)})),
+    blds: BLD().filter(b => near(b.pts)).map(b => ({pts: loc(b.pts), cls: b.cls, lv: b.levels, use: b.use})),
+    zones: S.zones.filter(z => z.cls === 1 && near(z.pts)).map(z => ({pts: loc(z.pts)})),
+    lines: {sc: ln(m.lines.sc), rd: ln(m.lines.rd), bd: ln(m.lines.bd), p1: ln(m.lines.p1, fn(m.lines.p1.f)), p2: ln(m.lines.p2, fn(m.lines.p2.f))},
+    req: {q1, q2, qb}, bad: lastBad, rows: tbl};
+}
+function save(m, rows, nBad, fac, sheet, lim, zrow, zoneNo) {     // 신청서·점검표·꾸러미 화면이 읽는 브라우저 저장값에 넣는다
+  const ck = ls('checklist2', {}), cur = ck.gas_annex5_station || {};
+  const vals = {...(cur.vals || {})};
+  for (const [k, v] of Object.entries(m.inputs)) if (v !== '' && v !== null) vals[k] = v;
+  ck.gas_annex5_station = {...cur, fac, vals}; lsSet('checklist2', ck);
+  const out = {at: new Date().toISOString(), address: $('#addr').value, parcel: site.parcel ? `${site.parcel.text} (${Math.round(site.parcel.area).toLocaleString()}㎡)` : '', src: L.src,
+    bad: [...(zoneNo ? [zrow.title] : []), ...rows.filter(x => x.verdict === '부적합').map(x => x.title)], n: rows.length, inputs: m.inputs, bcr: Math.round(m.bcr * 10) / 10,
+    zone: zrow ? {text: zrow.note, verdict: zrow.verdict, law: zrow.law} : null};
+  lsSet('site3d', out);
+  try { if (sheet) lsSet('site3dPlan', planSpec(m, rows, sheet, lim, fac, zrow)); } catch (e) { console.warn('배치도 자료', e); }
+  if (parent !== window) parent.postMessage({type: 'site3d', ...out}, location.origin);
+  $('#saved').innerHTML = `<div class="saved">측정값 ${Object.keys(m.inputs).length}개를 자체점검표에 자동으로 넣었어요. 제출 꾸러미를 받을 때 그대로 들어가요.<br><a href="/checklist?t=gas_annex5_station&f=${encodeURIComponent(fac)}" target="_blank">점검표 보기</a> · <a href="/package" target="_top">제출 꾸러미로</a></div>`;
+}
+
+// ---------------------------------------------------------------- 배치: AI 임시 배치 / 도면 읽기 / 고치기
+// ---------------------------------------------------------------- AI 배치 찾기: 기준을 모두 지키는 자리를 탐색한다
+// 기준 숫자는 점검표 코드(/api/checklist)에서 받아 쓰고, 주변 거리(보호시설·도로·철도)는 부지 위 0.5m 격자에 미리 재 둔
+// 거리 지도에서 읽는다. 설비는 묶음(처리설비+방호벽, 저장설비, 충전기, 관리동)으로 자리·방향을 바꿔 보며 기준 부족분이
+// 0 이 되는 배치 중 여유가 가장 큰 것을 고른다. 최종 판정은 check()(점검표 코드)가 다시 한다.
+const EPS = 0.4;                      // 거리 지도 격자 오차만큼 기준에 더하는 여유(m)
+async function needs() {              // 지금 시설 종류·저장능력에서 보호시설 거리 기준
+  const fac = $('#fac').value, cap = +$('#cap').value || 0;
+  const r = await fetch('/api/checklist', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({id: 'gas_annex5_station', facility: fac, inputs: {capacity: cap || '', d_prot1: 1, d_prot2: 1}})});
+  const pn = ((await r.json()).rows || []).find(x => x.id === 'prot')?.note || '';
+  const q = re => { const k = pn.match(re); return k ? +k[1] : null; };
+  return {q1: q(/제1종 (\d+(?:\.\d+)?)m/), q2: q(/제2종 (\d+(?:\.\d+)?)m/), store: fac === '저장식', cap, fac};
+}
+function distField(st, R) {           // 부지 좌표 격자마다 가장 가까운 보호시설·도로경계·철도까지 거리
+  // 격자 0.5m. 넓은 부지(90m 넘게)는 칸 수가 너무 많아지니 성기게(판정은 따로 정확히 잰다)
+  const h = Math.max(0.5, Math.max(st.w, st.d) / 180), mg = 1, x0 = -st.w / 2 - mg, y0 = -st.d / 2 - mg, nx = Math.ceil((st.w + 2 * mg) / h) + 1, ny = Math.ceil((st.d + 2 * mg) / h) + 1;
+  const a = st.ang * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), toW = (x, y) => [st.cx + x * ca - y * sa, st.cy + x * sa + y * ca];
+  const rad = Math.hypot(st.w, st.d) / 2 + 2, C = [st.cx, st.cy];
+  const segD = (p, pts, closed) => { let m = Infinity; for (const [u, v] of edges(pts, closed)) m = Math.min(m, ptSeg(p, u, v)[0]); return m; };
+  const sets = {
+    p1: {f: [...BLD().filter(b => b.cls === 1), ...S.zones.filter(z => z.cls === 1)], poly: true, cap: (R.q1 || 0) + 25},
+    p2: {f: BLD().filter(b => b.cls === 2), poly: true, cap: (R.q2 || 0) + 25},
+    rd: {f: S.roads.filter(r => r.road_law), poly: false, cap: 30},
+    rl: {f: S.rails, poly: false, cap: 50},
+  };
+  const F = {h, x0, y0, nx, ny};
+  for (const [k, s] of Object.entries(sets)) {
+    const g = new Float32Array(nx * ny).fill(s.cap);
+    const near = s.f.filter(f => segD(C, f.pts, s.poly) - (s.poly ? 0 : (f.w || 0) / 2) < rad + s.cap)
+      .map(f => { const hw = s.poly ? 0 : (f.w || 0) / 2, xs = f.pts.map(p => p[0]), ys = f.pts.map(p => p[1]); return {f, hw, bb: [Math.min(...xs) - hw, Math.min(...ys) - hw, Math.max(...xs) + hw, Math.max(...ys) + hw]}; });
+    if (near.length) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const p = toW(x0 + i * h, y0 + j * h); let v = s.cap;
+      for (const {f, hw, bb} of near) {
+        if (Math.hypot(Math.max(0, bb[0] - p[0], p[0] - bb[2]), Math.max(0, bb[1] - p[1], p[1] - bb[3])) >= v) continue;     // 상자만 봐도 더 멀다
+        const d = s.poly ? (inside(p, f.pts) ? 0 : segD(p, f.pts, true)) : segD(p, f.pts, false) - hw; if (d < v) v = d;
+      }
+      g[j * nx + i] = v;
+    }
+    F[k] = g; F[k + 'Any'] = near.length > 0;
+  }
+  if (st.poly) {                      // 실제 필지: 격자마다 부지 경계까지 거리(안쪽 +, 바깥 -)
+    const g = new Float32Array(nx * ny);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const p = [x0 + i * h, y0 + j * h], d = segD(p, st.poly, true); g[j * nx + i] = inside(p, st.poly) ? d : -d; }
+    F.bd = g;
+  }
+  return F;
+}
+function look(F, k, x, y) {
+  const g = F[k]; let fx = (x - F.x0) / F.h, fy = (y - F.y0) / F.h;
+  fx = Math.max(0, Math.min(F.nx - 1.001, fx)); fy = Math.max(0, Math.min(F.ny - 1.001, fy));
+  const i = fx | 0, j = fy | 0, tx = fx - i, ty = fy - j, o = j * F.nx + i;
+  return (g[o] * (1 - tx) + g[o + 1] * tx) * (1 - ty) + (g[o + F.nx] * (1 - tx) + g[o + F.nx + 1] * tx) * ty;
+}
+function unary(F, it, st) {           // 설비 하나의 주변 거리(테두리를 0.5m 간격으로 짚어 가장 가까운 값)
+  const n = Math.max(1, Math.ceil(it.w / 0.5)), m = Math.max(1, Math.ceil(it.d / 0.5)), x0 = it.cx - it.w / 2, y0 = it.cy - it.d / 2, pts = [];
+  for (let i = 0; i <= n; i++) { const x = x0 + it.w * i / n; pts.push([x, y0], [x, y0 + it.d]); }
+  for (let j = 1; j < m; j++) { const y = y0 + it.d * j / m; pts.push([x0, y], [x0 + it.w, y]); }
+  const o = {p1: Infinity, p2: Infinity, rd: Infinity, rl: Infinity};
+  for (const [x, y] of pts) for (const k of ['p1', 'p2', 'rd', 'rl']) { const v = look(F, k, x, y); if (v < o[k]) o[k] = v; }
+  o.bd = F.bd ? Math.min(...pts.map(([x, y]) => look(F, 'bd', x, y))) : Math.min(st.w / 2 - (Math.abs(it.cx) + it.w / 2), st.d / 2 - (Math.abs(it.cy) + it.d / 2));
+  return o;
+}
+function boxIn(F, st, b) {            // 묶음 상자(방호벽 포함)가 부지 경계 안쪽으로 얼마나 들어와 있나
+  if (!F.bd) return Math.min(st.w / 2 - (Math.abs(b.cx) + b.w / 2), st.d / 2 - (Math.abs(b.cy) + b.d / 2));
+  const n = Math.max(1, Math.ceil(b.w)), m = Math.max(1, Math.ceil(b.d)), x0 = b.cx - b.w / 2, y0 = b.cy - b.d / 2; let v = Infinity;
+  for (let i = 0; i <= n; i++) { const x = x0 + b.w * i / n; v = Math.min(v, look(F, 'bd', x, y0), look(F, 'bd', x, y0 + b.d)); }
+  for (let j = 1; j < m; j++) { const y = y0 + b.d * j / m; v = Math.min(v, look(F, 'bd', x0, y), look(F, 'bd', x0 + b.w, y)); }
+  return v;
+}
+const gapRect = (a, b) => {           // 두 직사각형(부지 좌표) 사이 거리, 겹치면 음수
+  const dx = Math.abs(a.cx - b.cx) - (a.w + b.w) / 2, dy = Math.abs(a.cy - b.cy) - (a.d + b.d) / 2;
+  return dx < 0 && dy < 0 ? Math.max(dx, dy) : Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
+};
+// 기준별 부족분(m)과 여유 점수. it 하나에 대한 값(묶음 안에서 미리 더해 둔다)
+function itemCost(F, R, it, u, opt) {
+  const t = it.type, dz = DANGER.includes(t), eq = dz || t === 'charger', c = {short: 0, hard: 0, soft: 0, why: {}};
+  const add = (k, v) => { if (v > 0) { c.short += v; c.why[k] = Math.max(c.why[k] || 0, v); } };
+  c.hard += Math.max(0, 0.3 - u.bd);                                  // 부지 밖으로 나가지 않게
+  if (u.rd < 0.5) c.hard += 0.5 - u.rd;                               // 도로 위에 놓이지 않게
+  if (dz && R.q1 && F.p1Any) { add('prot', R.q1 + EPS - u.p1); c.soft += 2 * Math.min(u.p1 - R.q1, 15); }
+  if (dz && R.q2 && F.p2Any) { add('prot', R.q2 + EPS - u.p2); c.soft += Math.min(u.p2 - R.q2, 15); }
+  if (eq) { add('boundary', opt.qb + EPS - u.bd); c.soft += 0.5 * Math.min(u.bd - opt.qb, 3); }
+  if (t === 'charger' && F.rdAny) { if (!opt.roadWall) add('road', 5 + EPS - u.rd); if (!opt.box) c.soft -= 0.15 * Math.abs(u.rd - 7); }
+  if (eq && F.rlAny) add('rail', 30 + EPS - u.rl);
+  return c;
+}
+function pairCost(R, a, b, opt) {     // 서로 다른 묶음의 두 설비
+  const c = {short: 0, soft: 0, why: {}}, g = gapRect(a, b);
+  if (R.store && !opt.scWall && ((a.type === 'storage' && b.type === 'charger') || (a.type === 'charger' && b.type === 'storage'))) {
+    const v = 8 + EPS - g; if (v > 0) { c.short += v; c.why.sc_dist = v; } c.soft += Math.min(g - 8, 4);
+  }
+  return c;
+}
+const wallBox = w => ({cx: (w.x1 + w.x2) / 2, cy: (w.y1 + w.y2) / 2, w: Math.abs(w.x2 - w.x1) + 0.2, d: Math.abs(w.y2 - w.y1) + 0.2});
+const clearNeed = (A, B) => A.ch || B.ch ? 3 : 1.5;                    // 묶음 사이 통로(충전기 쪽은 차가 드나들 3m)
+// 묶음 정의: 항목·방호벽은 묶음 중심 기준 부지 좌표
+function makeGroups(R) {
+  const G = [];
+  G.push({key: 'proc', items: [{name: '프리쿨러', type: 'process', dx: -7.5, dy: 0, w: 3, d: 2}, {name: '압축기', type: 'process', dx: -1.5, dy: 0, w: 6, d: 4},
+    {name: '축압기', type: 'compressed', dx: 6, dy: 0, w: 4, d: 3}],
+    walls: [{x1: -10, y1: -3, x2: 9, y2: -3}, {x1: -10, y1: -3, x2: -10, y2: 3}, {x1: 9, y1: -3, x2: 9, y2: 3}], or: 8});
+  if (R.store) {
+    const n = Math.max(1, Math.min(3, Math.ceil((R.cap || 0) / 5000)));
+    G.push({key: 'store', items: Array.from({length: n}, (_, i) => ({name: n > 1 ? `튜브트레일러${i + 1}` : '튜브트레일러', type: 'storage', dx: 0, dy: (i - (n - 1) / 2) * 4, w: 12, d: 2.5})), walls: [], or: 2});
+  } else G.push({key: 'make', items: [{name: '수전해 설비', type: 'process', dx: 0, dy: 0, w: 10, d: 3}],
+    walls: [{x1: -6, y1: -2.5, x2: 6, y2: -2.5}, {x1: -6, y1: -2.5, x2: -6, y2: 2}, {x1: 6, y1: -2.5, x2: 6, y2: 2}], or: 4});
+  G.push({key: 'ch', ch: true, items: [{name: '충전기1', type: 'charger', dx: -4, dy: 0, w: 1.2, d: 0.8}, {name: '충전기2', type: 'charger', dx: 4, dy: 0, w: 1.2, d: 0.8}], walls: [], or: 2});
+  G.push({key: 'bld', items: [{name: '관리동', type: 'building', dx: 0, dy: 0, w: 12, d: 8}], walls: [], or: 2});
+  return G;
+}
+function orient(g, o) {               // o: 0~7 (90도 회전 × 좌우 × 앞뒤 뒤집기)
+  const rot = o & 1, mx = o & 2 ? -1 : 1, my = o & 4 ? -1 : 1;
+  const tp = (x, y) => { x *= mx; y *= my; return rot ? [-y, x] : [x, y]; };
+  const items = g.items.map(it => { const [x, y] = tp(it.dx, it.dy); return {...it, dx: x, dy: y, w: rot ? it.d : it.w, d: rot ? it.w : it.d}; });
+  const walls = g.walls.map(w => { const [a, b] = tp(w.x1, w.y1), [c, d] = tp(w.x2, w.y2); return {x1: a, y1: b, x2: c, y2: d}; });
+  const xs = [...items.flatMap(i => [i.dx - i.w / 2, i.dx + i.w / 2]), ...walls.flatMap(w => [w.x1, w.x2])];
+  const ys = [...items.flatMap(i => [i.dy - i.d / 2, i.dy + i.d / 2]), ...walls.flatMap(w => [w.y1, w.y2])];
+  const bb = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  return {items, walls, bb};
+}
+// 묶음 하나를 (방향, 중심)에 놓았을 때: 설비 목록 + 그 묶음만의 비용(미리 계산, 같은 자리는 다시 안 잰다)
+function realize(F, R, st, g, o, x, y, opt) {
+  const key = g.key + '|' + o + '|' + x + '|' + y;
+  if (opt.memo) { const h = opt.memo.get(key); if (h) return h; }
+  const O = orient(g, o), items = O.items.map(it => ({name: it.name, type: it.type, cx: x + it.dx, cy: y + it.dy, w: it.w, d: it.d, ...(it.idx !== undefined ? {idx: it.idx} : {})}));
+  const c = {short: 0, hard: 0, soft: 0, why: {}};
+  for (const it of items) { const k = itemCost(F, R, it, unary(F, it, st), opt); c.short += k.short; c.hard += k.hard; c.soft += k.soft; for (const [w, v] of Object.entries(k.why)) c.why[w] = Math.max(c.why[w] || 0, v); }
+  const box = {cx: x + (O.bb[0] + O.bb[2]) / 2, cy: y + (O.bb[1] + O.bb[3]) / 2, w: O.bb[2] - O.bb[0], d: O.bb[3] - O.bb[1]};
+  c.hard += Math.max(0, 0.2 - boxIn(F, st, box));   // 방호벽까지 부지 안
+  if (opt.box) {      // 설계 규칙(부지 앞 = 아래쪽 -y, 도로 쪽): 충전기는 앞쪽 가운데(차 들어올 자리), 저장·처리설비는 뒤쪽, 관리동은 앞 모서리
+    const front = b => b.cy - b.d / 2 + st.d / 2, back = b => st.d / 2 - (b.cy + b.d / 2), side = b => st.w / 2 - Math.abs(b.cx) - b.w / 2;
+    if (g.key === 'ch') c.soft -= 0.4 * Math.abs(front(box) - 9) + 0.08 * Math.abs(box.cx);
+    else if (g.key === 'bld') c.soft -= 0.3 * front(box) + 0.15 * side(box);
+    else c.soft -= 0.3 * back(box);
+  }
+  const r = {g, o, x, y, items, walls: O.walls.map(w => ({x1: x + w.x1, y1: y + w.y1, x2: x + w.x2, y2: y + w.y2})), box, ch: g.ch, c};
+  if (opt.memo) opt.memo.set(key, r);
+  return r;
+}
+function total(R, P, opt, extra) {    // 놓인 묶음 전체 비용
+  let short = 0, hard = 0, soft = 0; const why = {};
+  const mergeWhy = w => { for (const [k, v] of Object.entries(w)) why[k] = Math.max(why[k] || 0, v); };
+  for (let i = 0; i < P.length; i++) {
+    short += P[i].c.short; hard += P[i].c.hard; soft += P[i].c.soft; mergeWhy(P[i].c.why);
+    for (let j = i + 1; j < P.length; j++) {
+      if (opt.box) hard += Math.max(0, clearNeed(P[i], P[j]) - gapRect(P[i].box, P[j].box));
+      else {
+        for (const a of P[i].items) for (const b of P[j].items) hard += Math.max(0, (a.type === 'charger' || b.type === 'charger' ? 2 : 1) - gapRect(a, b));
+        for (const [A, B] of [[P[i], P[j]], [P[j], P[i]]]) for (const w of A.walls) { const wb = wallBox(w); for (const b of B.items) hard += Math.max(0, 0.3 - gapRect(wb, b)); }
+      }
+      for (const a of P[i].items) for (const b of P[j].items) { const k = pairCost(R, a, b, opt); short += k.short; soft += k.soft; mergeWhy(k.why); }
+    }
+  }
+  if (extra) soft += extra(P);
+  return {v: (short + hard) * 1000 - soft, short, hard, soft, why};
+}
+// 묶음 하나의 가장 좋은 자리(나머지는 고정)
+function bestFor(F, R, st, P, idx, g, opt, cand, extra) {
+  let best = null;
+  for (const [o, x, y] of cand) {
+    const r = realize(F, R, st, g, o, x, y, opt), Q = P.slice(); Q[idx] = r;
+    const t = total(R, Q.filter(Boolean), opt, extra);
+    if (!best || t.v < best.t.v - 1e-9) best = {r, t};
+  }
+  return best;
+}
+function gridCand(st, g, ors, step = 1) {
+  const out = [];
+  for (const o of ors) {
+    const bb = orient(g, o).bb, x0 = -st.w / 2 - bb[0] + 0.3, x1 = st.w / 2 - bb[2] - 0.3, y0 = -st.d / 2 - bb[1] + 0.3, y1 = st.d / 2 - bb[3] - 0.3;
+    if (x0 > x1 || y0 > y1) continue;
+    for (let x = x0; x <= x1 + 1e-9; x += step) for (let y = y0; y <= y1 + 1e-9; y += step) out.push([o, Math.round(x * 2) / 2, Math.round(y * 2) / 2]);
+  }
+  return out;
+}
+// 처음부터 그리기: 묶음 순서를 바꿔 몇 번 놓아 보고, 묶음마다 번갈아 가장 좋은 자리로 옮긴다
+function designOn(F, R, st, restarts = 4) {
+  let b = designTry(F, R, st, restarts, makeGroups(R));
+  for (const [w, d, n] of [[8, 6, '관리동을 8×6m 로 줄였어요'], [0, 0, '자리가 모자라 관리동은 빼고 배치했어요(관리실은 따로 확인)']]) {
+    if (b && b.t.hard < 0.01 && (b.t.short < 0.01 || b.t.why.prot || b.t.why.rail)) break;     // 넓이 문제일 때만 줄여 본다
+    const G = makeGroups(R).filter(g => g.key !== 'bld' || w); if (w) G.find(g => g.key === 'bld').items[0] = {...G.find(g => g.key === 'bld').items[0], w, d};
+    const c = designTry(F, R, st, restarts, G); if (c && (!b || c.t.v < b.t.v)) { b = c; b.note = n; }
+  }
+  return b;
+}
+function designTry(F, R, st, restarts, G) {
+  const opt = {qb: 5, roadWall: false, scWall: false, box: true, memo: new Map()};      // 처리설비 둘레 방호벽이 있으니 경계 5m
+  const ex = P => { const s = P.find(p => p && (p.g.key === 'store' || p.g.key === 'make')), q = P.find(p => p && p.g.key === 'proc'); return s && q ? -0.25 * Math.max(0, gapRect(s.box, q.box)) : 0; };   // 배관 짧게
+  const ors = g => Array.from({length: g.or}, (_, i) => g.or === 2 ? i : g.or === 4 ? [0, 1, 4, 5][i] : i);
+  // 넓은 부지는 성긴 격자(s m)로 먼저 찾고, 고른 자리 둘레만 1m·0.5m 로 다듬는다(3만㎡ 필지도 몇 초 안)
+  const s = Math.max(1, Math.round(Math.max(st.w, st.d) / 45)), C = G.map(g => gridCand(st, g, ors(g), s));
+  if (C.some(c => !c.length)) return null;                                    // 부지가 작아 묶음이 안 들어감
+  const orders = [[0, 1, 2, 3], [1, 0, 2, 3], [2, 1, 0, 3], [1, 2, 0, 3], [0, 2, 1, 3], [2, 0, 1, 3]].map(o => o.filter(i => i < G.length));
+  let best = null;
+  for (let r = 0; r < restarts; r++) {
+    const P = [];
+    for (const i of orders[r % orders.length]) P[i] = bestFor(F, R, st, P, i, G[i], opt, C[i], ex).r;
+    for (let pass = 0; pass < 3; pass++) {
+      let moved = false;
+      for (let i = 0; i < G.length; i++) { const b = bestFor(F, R, st, P, i, G[i], opt, C[i], ex); if (b.r.x !== P[i].x || b.r.y !== P[i].y || b.r.o !== P[i].o) { P[i] = b.r; moved = true; } }
+      if (!moved) break;
+    }
+    if (s > 1) for (let pass = 0; pass < 2; pass++) for (let i = 0; i < G.length; i++) {     // 성긴 격자 사이 1m 단위
+      const near = []; for (const o of ors(G[i])) for (let dx = -s; dx <= s; dx++) for (let dy = -s; dy <= s; dy++) near.push([o, P[i].x + dx, P[i].y + dy]);
+      P[i] = bestFor(F, R, st, P, i, G[i], opt, near, ex).r;
+    }
+    for (let i = 0; i < G.length; i++) {        // 0.5m 단위로 다듬기
+      const near = []; for (let dx = -1; dx <= 1; dx += 0.5) for (let dy = -1; dy <= 1; dy += 0.5) near.push([P[i].o, P[i].x + dx, P[i].y + dy]);
+      P[i] = bestFor(F, R, st, P, i, G[i], opt, near, ex).r;
+    }
+    const t = total(R, P, opt, ex);
+    if (!best || t.v < best.t.v) best = {P: P.slice(), t};
+  }
+  return best;
+}
+const toLayout = (P, src) => ({items: P.flatMap(p => p.items.map(it => ({...it}))), walls: P.flatMap(p => p.walls), src});
+const DIR8 = ['동', '북동', '북', '북서', '서', '남서', '남', '남동'];
+const dirW = (X, Y) => DIR8[((Math.round(Math.atan2(Y, X) / (Math.PI / 4)) % 8) + 8) % 8];
+const dirOf = (dx, dy) => { const a = site.ang * Math.PI / 180; return dirW(dx * Math.cos(a) - dy * Math.sin(a), dx * Math.sin(a) + dy * Math.cos(a)); };   // 부지 좌표 이동 -> 동서남북
+const WHY = {prot: '보호시설 거리', boundary: '설비↔부지 경계', road: '충전기↔도로경계', rail: '철도 거리', sc_dist: '저장설비↔충전기'};
+const whyText = why => Object.entries(why).map(([k, v]) => `${WHY[k] || k} ${f1(v)}m 부족`).join(', ');
+
+async function design() {             // 버튼 'AI가 배치 그리기'
+  if (!S) return;
+  busy('AI가 기준을 모두 지키는 배치를 찾는 중'); await new Promise(r => setTimeout(r, 30));
+  try {
+    const R = await needs(), F = distField(site, R), b = designOn(F, R, site);
+    if (!b) {
+      L = null; MEAS.clear(); TAGS = []; drawLayout(); $('#items').innerHTML = '';
+      if (site.poly) { log(`필지(${esc(site.parcel.text)}, ${Math.round(site.parcel.area).toLocaleString()}㎡)가 작거나 좁아 설비 묶음이 들어가지 않아요`, 'e'); setCard('자동 검토', '<em>부지가 좁아 <br>다 못 들어가요</em>', `${esc(site.parcel.text)} · ${Math.round(site.parcel.area).toLocaleString()}㎡`, '<button class="btn" id="merge">옆 필지 합쳐 보기</button>'); }
+      else log(`부지 ${site.w}×${site.d}m 가 작아 설비 묶음이 들어가지 않아요. 주소 [바꾸기]에서 부지 크기를 넓혀 주세요`, 'e');
+      const zi = zoneInfo();             // 배치를 못 해도 용도지역은 알려 준다. 못 짓는 곳이면 그게 먼저
+      if (zi && zi.hy === 'no' && zi.gb < 50 && !zoneManual) setCard('자동 검토', '<em>이 용도지역엔 <br>못 지어요</em>', `${esc(zi.main)}<br>수소충전소 불가 (국토계획법 시행령 ${esc(zi.law)})`, '<button class="btn" id="find">근처 다른 필지 찾기</button>');
+      busy(''); return;
+    }
+    L = toLayout(b.P, 'AI 자동 배치');
+    const GN = {proc: '처리설비+방호벽', store: '저장설비', make: '제조설비+방호벽', ch: '충전기', bld: '관리동'};
+    log(`AI 자동 배치: 설비 묶음 ${b.P.length}개(${b.P.map(p => GN[p.g.key]).join(', ')})를 방향·자리 바꿔 가며 검토했어요. 기준 거리: 보호시설 제1종 ${R.q1 ?? '-'}m·제2종 ${R.q2 ?? '-'}m, 경계 5m(방호벽), 도로경계 5m${R.store ? ', 저장↔충전 8m' : ''}`);
+    if (b.note) log(b.note, 'w');
+    if (b.t.short > 0.01) log(b.t.why.prot || b.t.why.rail ? `이 부지 안에서는 다 못 지켜요: ${whyText(b.t.why)}. ${site.poly ? "'옆 필지 합쳐 보기'나 지도에서 다른 필지를 눌러 볼 수 있어요" : "'기준 지키는 자리 찾기'로 다른 자리를 찾아볼 수 있어요"}` : `부지가 좁아 다 못 지켜요: ${whyText(b.t.why)}. ${site.poly ? "'옆 필지 합쳐 보기'를 눌러 보세요" : '주소 [바꾸기]에서 부지 크기를 넓혀 주세요'}`, 'e');
+    else if (b.t.hard > 0.01) log('설비가 부지에 빠듯하게 들어가요. 부지 크기를 확인해 주세요', 'w');
+    $('#thumb').style.display = 'none'; fixTried = b.t.short > 0.01;
+    drawLayout(true); await check();
+  } catch (e) { log('배치를 찾지 못했어요: ' + esc(e.message), 'e'); }
+  busy('');
+}
+
+// 고치기: 지금 배치에서 덜 옮기는 쪽으로. 처리설비는 둘레 방호벽과 한 덩어리로, 나머지는 하나씩 자리를 옮겨 보고,
+// 그래도 안 되는 거리는 방호벽으로 막는다(별표 5: 저장↔충전, 충전기↔도로경계는 방호벽이면 예외).
+let fixTried = false;
+function fixOn(F, R, st, Lx) {
+  const items = Lx.items.map((x, i) => ({...x, idx: i})), walls = (Lx.walls || []).map(w => ({...w}));
+  const pr = items.filter(x => x.type === 'process' || x.type === 'compressed'), own = new Set(), groups = [];
+  if (pr.length) {
+    const [x0, y0, x1, y1] = bbox(pr), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cb = {cx, cy, w: x1 - x0, d: y1 - y0};
+    walls.forEach((w, k) => { if (gapRect(wallBox(w), cb) < 4) own.add(k); });
+    groups.push({g: {key: 'proc', items: pr.map(it => ({...it, dx: it.cx - cx, dy: it.cy - cy})), walls: walls.filter((w, k) => own.has(k)).map(w => ({x1: w.x1 - cx, y1: w.y1 - cy, x2: w.x2 - cx, y2: w.y2 - cy})), or: 1}, x: cx, y: cy, k: 1.5});
+  }
+  for (const it of items) if (!pr.includes(it)) groups.push({g: {key: 'i' + it.idx, ch: it.type === 'charger', items: [{...it, dx: 0, dy: 0}], walls: [], or: 1}, x: it.cx, y: it.cy, k: it.type === 'building' ? 2 : 1});
+  const free = walls.filter((w, k) => !own.has(k)), G = groups.map(z => z.g), base = groups.map(z => [z.x, z.y]);
+  const opt = {qb: walls.length ? 5 : 10, roadWall: false, scWall: false};
+  const disp = P => -P.reduce((s, p, i) => s + Math.hypot(p.x - base[i][0], p.y - base[i][1]) * groups[i].k, 0) * 3;
+  const run = () => {
+    opt.memo = new Map();
+    let P = G.map((g, i) => realize(F, R, st, g, 0, base[i][0], base[i][1], opt));
+    const FX = free.map(w => ({g: null, items: [], walls: [w], box: wallBox(w), c: {short: 0, hard: 0, soft: 0, why: {}}})), tot = Q => total(R, [...Q, ...FX], opt, disp);
+    const sweep = (i, cand) => { let best = null; for (const [x, y] of cand) { const r = realize(F, R, st, G[i], 0, x, y, opt), Q = P.slice(); Q[i] = r; const t = tot(Q); if (!best || t.v < best.t.v - 1e-9) best = {r, t}; } return best.r; };
+    for (let pass = 0; pass < 4; pass++) {           // 1) 하나씩: ±18m 를 1m 로 훑고 0.5m 로 다듬기
+      let moved = false;
+      for (let i = 0; i < G.length; i++) {
+        const c0 = [[P[i].x, P[i].y], base[i]]; for (let dx = -18; dx <= 18; dx++) for (let dy = -18; dy <= 18; dy++) c0.push([Math.round((P[i].x + dx) * 2) / 2, Math.round((P[i].y + dy) * 2) / 2]);
+        let r = sweep(i, c0); const c1 = []; for (let dx = -1; dx <= 1; dx += 0.5) for (let dy = -1; dy <= 1; dy += 0.5) c1.push([r.x + dx, r.y + dy]);
+        r = sweep(i, c1);
+        if (r.x !== P[i].x || r.y !== P[i].y) { P[i] = r; moved = true; }
+      }
+      if (!moved) break;
+    }
+    let t = tot(P);
+    if (t.why.prot) {                                // 2) 보호시설 거리가 모자라면 배치 전체를 통째로 옮겨 본다
+      let best = {P, t};
+      for (let dx = -st.w; dx <= st.w; dx += 1) for (let dy = -st.d; dy <= st.d; dy += 1) {
+        const Q = P.map((p, i) => realize(F, R, st, G[i], 0, p.x + dx, p.y + dy, opt)), tt = tot(Q);
+        if (tt.v < best.t.v) best = {P: Q, t: tt};
+      }
+      P = best.P; t = best.t;
+    }
+    return {P, t};
+  };
+  let res = run(); const added = [];
+  if (res.t.why.sc_dist && R.store) {                // 3) 저장설비와 가장 가까운 충전기 사이 방호벽
+    opt.scWall = true;
+    const all = res.P.flatMap(p => p.items), ch = all.filter(x => x.type === 'charger');
+    for (const s of all.filter(x => x.type === 'storage')) {
+      const c = ch.reduce((a, b) => gapRect(s, b) < gapRect(s, a) ? b : a), dx = c.cx - s.cx, dy = c.cy - s.cy;
+      if (Math.abs(dy) - (s.d + c.d) / 2 >= Math.abs(dx) - (s.w + c.w) / 2) { const y = dy > 0 ? (s.cy + s.d / 2 + c.cy - c.d / 2) / 2 : (s.cy - s.d / 2 + c.cy + c.d / 2) / 2; free.push({x1: Math.min(s.cx - s.w / 2, c.cx - c.w / 2) - 1, y1: y, x2: Math.max(s.cx + s.w / 2, c.cx + c.w / 2) + 1, y2: y}); }
+      else { const x = dx > 0 ? (s.cx + s.w / 2 + c.cx - c.w / 2) / 2 : (s.cx - s.w / 2 + c.cx + c.w / 2) / 2; free.push({x1: x, y1: Math.min(s.cy - s.d / 2, c.cy - c.d / 2) - 1, x2: x, y2: Math.max(s.cy + s.d / 2, c.cy + c.d / 2) + 1}); }
+    }
+    added.push('저장설비와 충전기 사이 방호벽');
+  }
+  if (res.t.why.road) opt.roadWall = true;
+  if (added.length || opt.roadWall) { G.forEach((g, i) => { base[i] = [res.P[i].x, res.P[i].y]; }); res = run(); }
+  const out = {items: res.P.flatMap(p => p.items).sort((a, b) => a.idx - b.idx).map(({idx, ...x}) => x), walls: [...res.P.flatMap(p => p.walls), ...free]};
+  if (opt.roadWall) {                                // 4) 충전기 앞(실제 가장 가까운 도로경계 쪽)에 방호벽
+    const keep = L; L = {...Lx, ...out}; const rd = measure().lines.rd; L = keep;
+    const chs = out.items.filter(x => x.type === 'charger');
+    if (rd.b && chs.length) { const c = chs.find(x => x.name === rd.it.name) || chs[0], up = w2local(...rd.b)[1] > c.cy, xs = chs.flatMap(x => [x.cx - x.w / 2, x.cx + x.w / 2]);
+      const y = up ? Math.max(...chs.map(x => x.cy + x.d / 2)) + 1 : Math.min(...chs.map(x => x.cy - x.d / 2)) - 1;
+      out.walls.push({x1: Math.min(...xs) - 1.5, y1: y, x2: Math.max(...xs) + 1.5, y2: y}); added.push('충전기와 도로 사이 방호벽'); }
+  }
+  return {L: out, t: res.t, added};
+}
+async function fix() {                // 버튼 'AI가 고치기'
+  if (!S || !L) return;
+  busy('AI가 고칠 자리를 찾는 중'); await new Promise(r => setTimeout(r, 30));
+  try {
+    const R = await needs(), F = distField(site, R), before = L.items.map(x => ({...x}));
+    const r = fixOn(F, R, site, L);
+    const m0 = measure().inputs;
+    if (m0.bld_30m && !(r.L.walls || []).length) {     // 사람 있는 건물 30m 안: 처리설비 둘레 방호벽(별표 5)
+      const pr = r.L.items.filter(x => x.type === 'process' || x.type === 'compressed');
+      if (pr.length) { const [x0, y0, x1, y1] = bbox(pr), e = 1; r.L.walls.push({x1: x0 - e, y1: y0 - e, x2: x1 + e, y2: y0 - e}, {x1: x0 - e, y1: y0 - e, x2: x0 - e, y2: y1 + e}, {x1: x1 + e, y1: y0 - e, x2: x1 + e, y2: y1 + e}); r.added.push('처리설비 둘레 방호벽'); }
+    }
+    const moved = r.L.items.map((x, i) => [x, Math.hypot(x.cx - before[i].cx, x.cy - before[i].cy), x.cx - before[i].cx, x.cy - before[i].cy]).filter(z => z[1] >= 0.5);
+    L = {...L, items: r.L.items, walls: r.L.walls, src: L.src.replace(/ \+ (AI 수정|직접 옮김)/g, '') + ' + AI 수정'};
+    const grp = [];                                    // 같이 옮긴 것(처리설비 묶음)은 한 번에
+    for (const z of moved) { const g = grp.find(q => Math.abs(q[2] - z[2]) < 0.01 && Math.abs(q[3] - z[3]) < 0.01); if (g) g[4].push(z[0].name); else grp.push([...z, [z[0].name]]); }
+    if (moved.length) log('AI 수정: ' + grp.map(([x, d, dx, dy, ns]) => `${esc(ns.length > 1 ? `${ns[0]} 등 ${ns.length}개(방호벽 포함)` : x.name)}를 ${dirOf(dx, dy)}쪽으로 ${f1(d)}m`).join(', ') + ' 옮김');
+    if (r.added.length) log('AI 수정: ' + r.added.join(', ') + ' 추가');
+    if (!moved.length && !r.added.length) log('AI 수정: 옮겨서 나아지는 자리가 없었어요', 'w');
+    if (r.t.short > 0.01) log(`이 부지 안에서는 다 못 지켜요: ${whyText(r.t.why)}`, 'e');
+    fixTried = true;
+    drawLayout(); await check();
+  } catch (e) { log('고치지 못했어요: ' + esc(e.message), 'e'); }
+  busy('');
+}
+
+function quickOK(c, R, P1, P2) {
+  const a = c.ang * Math.PI / 180, toW = (x, y) => [c.cx + x * Math.cos(a) - y * Math.sin(a), c.cy + x * Math.sin(a) + y * Math.cos(a)];
+  const mx = Math.max(0, c.w / 2 - 7), my = Math.max(0, c.d / 2 - 7), far = (p, fs, q) => !q || fs.every(f => Math.hypot(f.pts[0][0] - p[0], f.pts[0][1] - p[1]) > q + 400 || dist([p], f.pts, false, true).d >= q);
+  for (const sx of [-1, 0, 1]) for (const sy of [-1, 0, 1]) { const p = toW(sx * mx, sy * my); if (far(p, P1, R.q1 && R.q1 + 4) && far(p, P2, R.q2 && R.q2 + 4)) return true; }
+  return false;
+}
+// 기준 지키는 자리 찾기: 도로를 따라 부지 후보를 옮겨 가며, 이 부지 크기로 기준을 모두 지키는 가장 가까운 자리
+async function findSite() {
+  if (!S) return;
+  busy('AI가 기준을 지키는 자리를 찾는 중'); await new Promise(r => setTimeout(r, 30));
+  try {
+    const R = await needs(), cur = {...site}, lim = BH - Math.hypot(site.w, site.d) / 2 - 20, tries = [];
+    for (const r of S.roads) {
+      if (!r.road_law) continue;
+      for (const [a, b] of edges(r.pts, false)) {
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.floor(len / 10)), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+        for (let k = 0; k <= n; k++) {
+          const q = [a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n];
+          for (const s of [ang, ang + Math.PI]) {
+            const uy = [-Math.sin(s), Math.cos(s)], off = site.d / 2 + r.w / 2 + 3;
+            const c = {cx: q[0] + uy[0] * off, cy: q[1] + uy[1] * off, ang: s * 180 / Math.PI, w: site.w, d: site.d};
+            if (Math.abs(c.cx - BC[0]) > lim || Math.abs(c.cy - BC[1]) > lim) continue;
+            tries.push({c, r, d: Math.hypot(c.cx - cur.cx, c.cy - cur.cy)});
+          }
+        }
+      }
+    }
+    tries.sort((a, b) => a.d - b.d);
+    const P1 = [...BLD().filter(b => b.cls === 1), ...S.zones.filter(z => z.cls === 1)], P2 = BLD().filter(b => b.cls === 2);
+    let found = null, looked = 0, designed = 0;
+    for (const t of tries.slice(0, 600)) {
+      if (t.d < 5 || blocked(t.c, t.r)) continue;
+      looked++;
+      if (looked % 8 === 0) { $('#busyT').textContent = `기준을 지키는 자리를 찾는 중 (후보 ${looked}곳 검토)`; await new Promise(r => setTimeout(r, 0)); }
+      if (!quickOK(t.c, R, P1, P2)) continue;        // 빠른 거르기: 부지 안쪽 9점 중 보호시설 거리를 넉넉히 지키는 곳이 있는지
+      const F = distField(t.c, R);
+      designed++;
+      const b = designOn(F, R, t.c, 2);
+      if (b && b.t.short < 0.01 && b.t.hard < 0.01) { found = {t, b}; break; }
+      if (designed >= 14) break;
+    }
+    if (!found) { log(`주변 ${looked}곳을 살펴봤지만 이 부지 크기로 기준을 모두 지키는 자리를 못 찾았어요. 저장능력을 줄이거나 부지를 넓혀 보세요`, 'e'); busy(''); return; }
+    site = found.t.c; markInSite(); L = toLayout(found.b.P, 'AI 자동 배치 (자리 찾기)'); fixTried = false;
+    log(`기준을 지키는 자리를 찾았어요: 지금 자리에서 ${dirW(site.cx - cur.cx, site.cy - cur.cy)}쪽 약 ${Math.round(found.t.d)}m, ${esc(found.t.r.name || '도로')} 옆 (후보 ${looked}곳 검토)`);
+    buildWorld(); drawLayout(true); await check();
+  } catch (e) { log('자리를 찾지 못했어요: ' + esc(e.message), 'e'); }
+  busy('');
+}
+
+function applyRead(d) {
+  if (site.poly) { if (d.site?.w) log(`도면의 부지는 ${d.site.w}×${d.site.d}m 예요. 실제 필지(${esc(site.parcel.text)}) 경계로 검사해요`, 'w'); }
+  else { site.w = d.site?.w || site.w; site.d = d.site?.d || site.d; $('#sw').value = site.w; $('#sd').value = site.d; }
+  fixTried = false;
+  L = {items: d.items.filter(x => x.w > 0 && x.d > 0), walls: d.walls || [], src: '올린 배치도 (AI가 읽음)'};
+  log(`AI가 도면에서 설비 ${L.items.length}개, 방호벽 ${L.walls.length}개, 부지 ${site.w}×${site.d}m 를 읽었어요${d.cached ? ' (같은 도면, 저장된 결과)' : ''}`);
+  log(esc(L.items.map(x => `${x.name}(${TYPE[x.type]?.n || x.type}) ${x.w}×${x.d}m`).join(' · ')));
+  if (d.notes) log('AI 메모: ' + esc(d.notes), 'w');
+  drawLayout(true); check();
+}
+async function pdfToPng(buf) {
+  const pdfjs = await import('/vendor/pdfjs/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+  const doc = await pdfjs.getDocument({data: buf}).promise, pg = await doc.getPage(1), vp = pg.getViewport({scale: 1600 / pg.getViewport({scale: 1}).width});
+  const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+  await pg.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
+  return c.toDataURL('image/png');
+}
+async function readDrawing(buf, type, name) {
+  if (!S) await loadSite();
+  busy('AI가 배치도를 읽는 중 (30초쯤)');
+  try {
+    const img = type === 'application/pdf' ? await pdfToPng(buf) : await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(new Blob([buf], {type})); });
+    $('#thumb').src = img; $('#thumb').style.display = 'block';
+    log(`배치도 받음: ${esc(name)}`);
+    const r = await fetch('/api/site/drawing', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({image: img})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+    applyRead(d);
+  } catch (e) { log('도면을 읽지 못했어요: ' + esc(e.message), 'e'); }
+  busy('');
+}
+$('#upbtn').onclick = () => $('#up').click();
+$('#up').onchange = async e => { const f = e.target.files[0]; if (f) readDrawing(await f.arrayBuffer(), f.type || 'application/pdf', f.name); e.target.value = ''; };
+$('#sample').onclick = async () => { const b = await fetch('/site/' + encodeURIComponent('예시_배치도.pdf')).then(r => r.arrayBuffer()); await readDrawing(b, 'application/pdf', '예시_배치도.pdf (가상 설계)'); };
+$('#auto').onclick = () => design();
+$('#find2').onclick = () => site.poly ? suggestMerge() : findSite();
+async function download(kind) {       // 배치도 받기: PDF(제출용) / DXF(설계사용)
+  if (!L) return;
+  try {
+    busy(kind === 'pdf' ? '배치도 PDF 를 그리는 중' : 'CAD 파일을 만드는 중');
+    const sp = ls('site3dPlan', null); if (!sp) throw new Error('먼저 배치를 검사해 주세요');
+    const data = kind === 'pdf' ? await SitePlan.pdf(sp) : SitePlan.dxf(sp);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type: kind === 'pdf' ? 'application/pdf' : 'application/dxf'}));
+    a.download = SitePlan.fname(sp, kind); document.body.appendChild(a); a.click(); a.remove();
+    log(kind === 'pdf' ? `배치도 PDF 받음 (A3, 축척 1/${SitePlan.scaleOf(sp).den}, 안전거리 검토표 포함)` : 'CAD 파일(DXF) 받음 (단위 m, 부지 중심 0,0, 오토캐드 R12)');
+  } catch (e) { log('배치도를 만들지 못했어요: ' + esc(e.message), 'e'); }
+  busy('');
+}
+$('#dl').onclick = () => download('pdf'); $('#dxf').onclick = () => download('dxf');
+$('#load').onclick = () => { L = null; $('#pop').hidden = true; if (PICK) startPick($('#addr').value.trim() || DEMO.addr); else loadSite(); };
+['#cap', '#fac', '#zone'].forEach(s => $(s).addEventListener('change', check));
+$('#zone').addEventListener('change', () => { zoneManual = !!$('#zone').value; }, true);
+['#sw', '#sd'].forEach(s => $(s).addEventListener('change', () => {
+  const z = SZ(); lsSet('site3dSize', [z.w, z.d]); if (!S) return; fixTried = false;
+  if (site.poly) { placeSite(); markInSite(); log(`부지 크기를 직접 정해서 지적도 필지 대신 예시 부지(${z.w}×${z.d}m)로 바꿨어요. 지도에서 필지를 누르면 다시 실제 필지로 돌아가요`, 'w'); buildWorld(); }
+  else { site.w = z.w; site.d = z.d; }
+  drawLayout(); check();
+}));
+{ const z = ls('site3dSize', null); if (Array.isArray(z)) { $('#sw').value = z[0]; $('#sd').value = z[1]; } }
+// 끌어서 옮기기: 설비, 또는 '부지 옮겨 보기'를 켜면 부지 전체
+const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), mouse = new THREE.Vector2();
+let drag = null, moveSite = false, tick = 0;
+$('#moveSite').onclick = () => { if (site.poly && !moveSite) return log('실제 필지는 옮길 수 없어요. 지도에서 다른 필지를 누르면 부지가 바뀌어요', 'w'); moveSite = !moveSite; $('#moveSite').classList.toggle('on', moveSite); log(moveSite ? '부지 옮겨 보기: 부지를 끌면 다른 자리에서 다시 검사해요' : '부지 옮겨 보기 끔', 'w'); };
+function hitGround(e) {
+  const r = renderer.domElement.getBoundingClientRect(); mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(mouse, camera); const p = new THREE.Vector3(); ray.ray.intersectPlane(plane, p); return [p.x, -p.z];
+}
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (!L) return;
+  const r = renderer.domElement.getBoundingClientRect(); mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const w = hitGround(e);
+  if (moveSite) { if (inside(w, sitePoly())) drag = {site: true, off: [site.cx - w[0], site.cy - w[1]]}; }
+  else { const h = ray.intersectObjects(eqMeshes, true)[0]; if (h) { let o = h.object; while (o && o.userData.i === undefined) o = o.parent; const it = L.items[o.userData.i], lp = w2local(...w); drag = {it, off: [it.cx - lp[0], it.cy - lp[1]]}; } }
+  if (drag) { controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId); }
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const w = hitGround(e);
+  if (drag.site) { site.cx = w[0] + drag.off[0]; site.cy = w[1] + drag.off[1]; }
+  else { const lp = w2local(...w); drag.it.cx = Math.round((lp[0] + drag.off[0]) * 2) / 2; drag.it.cy = Math.round((lp[1] + drag.off[1]) * 2) / 2; }
+  drawLayout(); if (++tick % 4 === 0) check();
+});
+renderer.domElement.addEventListener('pointerup', () => { if (!drag) return; fixTried = false; if (!drag.site && !/수정|옮김/.test(L.src)) L.src = L.src.replace(' + 직접 옮김', '') + ' + 직접 옮김'; drag = null; controls.enabled = true; check(); });
+
+let clickAt = null;
+renderer.domElement.addEventListener('pointerdown', e => { clickAt = [e.clientX, e.clientY]; }, true);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (PK.mode === 'pin' && clickAt && Math.hypot(e.clientX - clickAt[0], e.clientY - clickAt[1]) <= 5) return pinPanTo(hitGround(e));   // 핀 고르기: 누른 곳으로 지도 옮기기
+  if (PK.mode || !clickAt || !S || !PAR.length || drag || moveSite || $('#busy').classList.contains('on') || Math.hypot(e.clientX - clickAt[0], e.clientY - clickAt[1]) > 5) return;
+  const q = parAt(hitGround(e)); if (q) pickParcel(q, addMode || e.shiftKey);
+}, true);
+$('#addPar').onclick = () => { addMode = !addMode; $('#addPar').classList.toggle('on', addMode); log(addMode ? '필지 합치기 켬: 지금 부지와 맞닿은 필지를 누르면 합쳐져요(합친 필지를 다시 누르면 빠져요)' : '필지 합치기 끔: 필지를 누르면 그 필지로 부지가 바뀌어요', 'w'); };
+
+// 확대 창: 같은 장면을 부지 가까이에서
+const box = $('#inset');
+const r2 = new THREE.WebGLRenderer({antialias: true, alpha: true}); r2.setPixelRatio(Math.min(2, devicePixelRatio)); r2.shadowMap.enabled = true; r2.shadowMap.type = THREE.PCFSoftShadowMap; r2.localClippingEnabled = true;
+r2.setClearColor(0xeceef1, 1); box.prepend(r2.domElement);
+const cam2 = new THREE.PerspectiveCamera(30, 1, 2, 3000);
+function placeCam2() { cam2.position.copy(az(site.ang - 20, 92 * siteK(), 40, site.cx, site.cy)); cam2.lookAt(V(site.cx, site.cy, 0)); }
+
+let OFFK = 1;                         // 카드 자리만큼 화면을 비키는 정도(0: 가운데 핀 고를 때, 1: 검토 화면)
+function applyOff() {
+  const w = innerWidth, h = innerHeight, wide = w > 900;
+  camera.aspect = w / h;
+  camera.setViewOffset(w, h, wide ? 175 * OFFK : 0, wide ? 0 : Math.min(120, h * 0.17) * OFFK, w, h); camera.updateProjectionMatrix();     // 카드 자리만큼 비켜서(주소 고르는 동안은 가운데)
+}
+function resize() {
+  renderer.setSize(innerWidth, innerHeight); lab.setSize(innerWidth, innerHeight); applyOff();
+  const bw = box.clientWidth, bh = box.clientHeight; if (bw) { r2.setSize(bw, bh); cam2.aspect = bw / bh; cam2.updateProjectionMatrix(); }
+}
+addEventListener('resize', resize); resize();
+let lastNear = 0;
+const ANIM = [];                      // 연출용 시간 애니메이션 {t0, dur, fn(k 0~1), done}
+let PAUSE3D = false;                  // 평면 지도를 보는 동안은 3D 를 그리지 않는다(배터리·속도)
+(function loop() {
+  requestAnimationFrame(loop); if (PAUSE3D) return; controls.update();
+  const d = camera.position.distanceTo(controls.target), nr = Math.max(1, d * 0.12);      // 멀리서 볼 때 바닥이 깜빡이지 않게 가까운 면을 거리에 맞춘다
+  if (Math.abs(nr - lastNear) > lastNear * 0.05) { camera.near = nr; camera.far = d * 3 + 3000; camera.updateProjectionMatrix(); lastNear = nr; }
+  const now = performance.now();   // 설비가 하나씩 솟아오르는 연출(0.7초)
+  for (const g of [...eqMeshes, ...EQX]) if (g.userData.t0 !== undefined) { const k = Math.min(1, Math.max(0.001, (now - g.userData.t0) / 900)); g.scale.y = Math.max(0.001, 1 + 2.2 * (k - 1) ** 3 + 1.2 * (k - 1) ** 2); if (k >= 1) delete g.userData.t0; }
+  for (let i = ANIM.length - 1; i >= 0; i--) { const a = ANIM[i], k = Math.min(1, Math.max(0, (now - a.t0) / a.dur)); if (now >= a.t0) a.fn(k); if (k >= 1) { ANIM.splice(i, 1); a.done && a.done(); } }
+  renderer.render(scene, camera); lab.render(scene, camera);
+  if (box.clientWidth) r2.render(scene, cam2);
+})();
+
+// 화면 단추
+if (document.body.classList.contains('embed')) $('#home').hidden = true;
+$('#addrChip').onclick = () => { $('#pop').hidden = !$('#pop').hidden; if (!$('#pop').hidden) $('#addr').focus(); };
+$('#addr').addEventListener('keydown', e => { if (e.key === 'Enter') $('#load').click(); });
+// 결과 카드 탭: 결과(판정·요약·신청서) | 근거(항목별 판정·과정 기록) | 설계도(배치 미리보기·PDF·DXF)
+function cardTab(t) {
+  document.querySelectorAll('#ctabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  ['tRes', 'tWhy', 'tPlan'].forEach(id => { $('#' + id).hidden = id !== t; });
+  if (t === 'tPlan') drawPv();
+}
+$('#ctabs').onclick = e => { const b = e.target.closest('button'); if (b) cardTab(b.dataset.t); };
+$('#cnote').onclick = e => { const a = e.target.closest('[data-go]'); if (a) cardTab(a.dataset.go); };
+$('#pvw').onclick = () => $('#dl').click();
+// 결과 탭의 3칸 요약: 근거 표(#items)에서 안전거리 통과 수 · 용도지역 · 건폐율을 뽑는다
+function sumCard() {
+  const rows = [...$('#items').querySelectorAll('.row')].map(r => ({t: r.firstElementChild.firstChild.textContent.trim(), s: r.querySelector('small')?.textContent || '', b: r.querySelector('b')}));
+  const safe = rows.filter(r => r.b && !/^(용도지역|건폐율|개발제한)/.test(r.t)), z = rows.find(r => r.t.startsWith('용도지역') && r.b), c = rows.find(r => r.t.startsWith('건폐율') && r.b);
+  const has = safe.length > 0;
+  $('#sumc').hidden = $('#cnote').hidden = !has;
+  if (!has) { $('#sumc').innerHTML = ''; return; }
+  const ok = safe.filter(r => r.b.textContent === '적합').length, zt = z ? {적합: '가능', 확인: '조례 확인', 부적합: '불가'}[z.b.textContent] || z.b.textContent : '-';
+  $('#sumc').innerHTML = `<div>안전거리<b class="${ok === safe.length ? 'ok' : 'bad'}">${ok}/${safe.length} 통과</b></div>`
+    + `<div>용도지역<b class="${z ? z.b.className : ''}">${zt}</b></div>`
+    + `<div>건폐율<b class="${c ? c.b.className : ''}">${c ? (c.s.match(/^[\d.]+%/) || ['-'])[0] : '-'}</b></div>`;
+}
+new MutationObserver(() => { sumCard(); if (!$('#tPlan').hidden) drawPv(); }).observe($('#items'), {childList: true});
+// 설계도 탭 미리보기: 배치도(PDF)와 같은 자료(site3dPlan)로 부지·필지·주변 건물·도로·설비를 위에서 본 그림
+function drawPv() {
+  const cv = $('#pv'), g = cv.getContext('2d'), W = cv.width, H = cv.height, sp = L ? ls('site3dPlan', null) : null;
+  g.fillStyle = '#fafbfc'; g.fillRect(0, 0, W, H);
+  if (!sp || !sp.items) { g.fillStyle = '#8b95a1'; g.font = '600 26px sans-serif'; g.textAlign = 'center'; g.fillText('배치가 없어요 · AI 다시 배치를 눌러 보세요', W / 2, H / 2); return; }
+  const poly = sp.site.poly ? sp.site.poly[0] && Array.isArray(sp.site.poly[0][0]) ? sp.site.poly[0] : sp.site.poly : [[-sp.site.w / 2, -sp.site.d / 2], [sp.site.w / 2, -sp.site.d / 2], [sp.site.w / 2, sp.site.d / 2], [-sp.site.w / 2, sp.site.d / 2]];
+  const all = [...poly, ...sp.items.flatMap(i => [[i.cx - i.w / 2, i.cy - i.d / 2], [i.cx + i.w / 2, i.cy + i.d / 2]])];
+  const x0 = Math.min(...all.map(p => p[0])), x1 = Math.max(...all.map(p => p[0])), y0 = Math.min(...all.map(p => p[1])), y1 = Math.max(...all.map(p => p[1]));
+  const pad = 26, k = Math.min((W - 2 * pad) / Math.max(1, x1 - x0), (H - 2 * pad) / Math.max(1, y1 - y0)), ox = W / 2 - k * (x0 + x1) / 2, oy = H / 2 + k * (y0 + y1) / 2;
+  const P = p => [ox + k * p[0], oy - k * p[1]];
+  const path = (pts, close = true) => { g.beginPath(); pts.forEach((p, i) => { const q = P(p); i ? g.lineTo(...q) : g.moveTo(...q); }); if (close) g.closePath(); };
+  for (const r of sp.roads || []) { path(r.pts, false); g.strokeStyle = '#eceef1'; g.lineWidth = Math.max(2, k * (r.w || 6)); g.lineCap = 'round'; g.stroke(); }
+  for (const q of sp.parcels || []) { path(q.pts); g.strokeStyle = 'rgba(107,118,132,.35)'; g.lineWidth = 1; g.stroke(); }
+  for (const b of sp.blds || []) { path(b.pts); g.fillStyle = b.cls === 1 ? '#ffe3e6' : b.cls === 2 ? '#fff1d6' : '#e9ecef'; g.fill(); }
+  path(poly); g.fillStyle = 'rgba(49,130,246,.10)'; g.fill(); g.strokeStyle = '#3182f6'; g.lineWidth = 2.5; g.stroke();
+  for (const l of sp.site.inner || []) { path(l); g.setLineDash([6, 5]); g.strokeStyle = 'rgba(3,178,108,.8)'; g.lineWidth = 1.5; g.stroke(); g.setLineDash([]); }
+  const col = {process: '#ffd43b', compressed: '#ff922b', storage: '#4dabf7', charger: '#51cf66', building: '#ffffff', other: '#ced4da'};
+  for (const i of sp.items) { const a = P([i.cx - i.w / 2, i.cy + i.d / 2]); g.fillStyle = col[i.type] || col.other; g.fillRect(a[0], a[1], i.w * k, i.d * k); g.strokeStyle = '#4e5968'; g.lineWidth = 1.2; g.strokeRect(a[0], a[1], i.w * k, i.d * k); }
+  for (const w of sp.walls || []) { g.beginPath(); g.moveTo(...P([w.x1, w.y1])); g.lineTo(...P([w.x2, w.y2])); g.strokeStyle = '#4e5968'; g.lineWidth = 3; g.stroke(); }
+  const sb = [5, 10, 20, 50, 100].find(v => v * k >= 50) || 100; g.fillStyle = '#4e5968'; g.fillRect(16, H - 20, sb * k, 4); g.font = '600 18px sans-serif'; g.textAlign = 'left'; g.fillText(`${sb}m`, 20 + sb * k, H - 13);
+}
+$('#card').addEventListener('click', e => {
+  const f = e.target.closest('[data-fix]'); if (f) return fix();
+  if (e.target.closest('#find')) return site.poly ? findParcel() : findSite();
+  if (e.target.closest('#merge')) return suggestMerge();
+  if (e.target.closest('#size')) { $('#pop').hidden = false; $('#sw').focus(); $('#sw').select(); return; }
+  if (e.target.closest('#reup')) return $('#up').click();
+  if (e.target.closest('#go')) (top || window).location.href = '/package';
+});
+
+// ---------------------------------------------------------------- 처음 화면: 주소 찾기 -> 가운데 핀으로 땅 고르기 -> 확인 연출
+// 사람이 처음 들어오면(?view= ?run= ?embed= 가 없으면) 이 순서로 간다. 저장·시연용 주소창 링크는 loadSite()로 바로 검토
+const PICK = !qs.get('embed') && !qs.get('view') && !qs.get('run');
+const PK = {mode: '', q: null, p: [0, 0], raf: 0, hl: null, zc: new Map(), sug: [], sugQ: '', sugI: -1, sugT: 0, sugSeq: 0};
+function setMode(m) {                  // search · load · map(평면 지도) · pin(3D 판 핀, 지도 못 쓸 때) · rv · main
+  PK.mode = m === 'main' ? '' : m;
+  const pick = ['search', 'load', 'map', 'pin'].includes(m), sheet = m === 'pin' || m === 'map';
+  document.body.classList.toggle('pick', pick); document.body.classList.toggle('m-rv', m === 'rv'); document.body.dataset.pick = m;
+  $('#pk').hidden = m !== 'search'; $('#psheet').hidden = !sheet; $('#cpin').hidden = !sheet; $('#rv').hidden = m !== 'rv'; $('#psP').hidden = m !== 'map';
+  if (m === 'map') $('#fmap').hidden = false; else if (m !== 'rv') $('#fmap').hidden = true;      // rv: 지도가 기울며 사라지는 중
+  PAUSE3D = m === 'map';
+  if (m === 'map') { if (!PK.tick) PK.tick = setInterval(progRender, 250); } else { clearInterval(PK.tick); PK.tick = 0; }
+  if (pick) { OFFK = 0; applyOff(); }
+  controls.autoRotate = m === 'search'; controls.autoRotateSpeed = 0.5;
+  const pan = m === 'pin';             // 핀 고르기: 위에서 내려다본 채 지도만 끈다(돌리기 없음)
+  controls.enableRotate = !pan;
+  controls.mouseButtons = {LEFT: pan ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN};
+  controls.touches = {ONE: pan ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN};
+  controls.minDistance = pan ? 70 : 25;
+}
+async function pickBackdrop() {       // 검색 화면 뒤: 시연 모형이 천천히 돈다
+  try { const d = await fetch(DEMO.file).then(r => r.json()); if (PK.mode !== 'search' || S) return; S = d; PAR = []; ZN = []; placeSite(); markInSite(); buildWorld(); frame('all'); $('#log').innerHTML = ''; } catch (e) {}
+}
+function showSearch(msg = '') {
+  const from = PK.mode; D = null; if (PK.going) mapGoEnd();
+  setMode('search');
+  if (from === 'map' && PK.pre && S) { for (const b of S.buildings) if (b._g) b._g.scale.y = 1; PK.pre = null; frame('all'); }   // 미리 만든 판을 세워서 뒤 배경으로
+  if (from !== 'map' && S && W.children.length) { if (PK.hl) { LAY.remove(PK.hl); PK.hl = null; } sun.castShadow = true; buildWorld(); LAY.clear(); frame('all'); }
+  $('#pkErr').textContent = msg; $('#pkErr').hidden = !msg;
+  sugShow([]); setTimeout(() => { $('#pq').focus(); $('#pq').select(); }, 60);
+}
+// 검색창 자동완성(브이월드 동네·장소·도로명·지번 검색, AZZAS3D 서버 경유). 치는 대로 아래에 후보가 쭉 뜬다
+const KIND = {road: '도로명', parcel: '지번', place: '장소', district: '동네'};
+const hiQ = (t, q) => { const ws = [q, ...q.split(/\s+/).filter(w => w.length >= 2)], k = (ws.map(w => w.replace(/\s+/g, '')).find(w => w && t.replace(/\s+/g, '').includes(w)) || ''); if (!k) return esc(t); const at = t.replace(/\s+/g, '').indexOf(k);
+  let a = -1, b = -1, n = 0; for (let x = 0; x < t.length; x++) { if (/\s/.test(t[x])) continue; if (n === at) a = x; n++; if (n === at + k.length) { b = x + 1; break; } }
+  return a < 0 || b < 0 ? esc(t) : esc(t.slice(0, a)) + '<u>' + esc(t.slice(a, b)) + '</u>' + esc(t.slice(b)); };
+function sugShow(items, q = '', note = '') {
+  PK.sug = items; PK.sugQ = q; PK.sugI = -1;
+  $('#pkSug').hidden = !items.length && !note;
+  $('#pkSug').innerHTML = note ? `<div class="pk-note">${note}</div>` : items.map((it, i) => `<button data-i="${i}"><span><b>${hiQ(it.text, q)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}</span><i class="k-${it.kind}">${KIND[it.kind] || ''}</i></button>`).join('');
+}
+async function fetchSug(q) {
+  const seq = ++PK.sugSeq;
+  try {
+    const d = await fetch(`/api/site/parcel/search?q=${encodeURIComponent(q)}`, {signal: AbortSignal.timeout(12000)}).then(r => r.ok ? r.json() : {items: []});
+    if (seq !== PK.sugSeq || $('#pq').value.trim() !== q || PK.mode !== 'search') return null;
+    const items = d.items || [];
+    sugShow(items, q, items.length ? '' : `'${esc(q)}'와 맞는 곳이 없어요. 건물·장소 이름, 동네 이름, 도로명·지번 주소로 써 보세요`);
+    return items;
+  } catch (e) { if (seq === PK.sugSeq) sugShow([], q, '검색 서버가 늦어요. 잠시 뒤 다시 쳐 보세요'); return null; }
+}
+$('#pq').addEventListener('input', () => {
+  clearTimeout(PK.sugT); const q = $('#pq').value.trim(); $('#pkErr').hidden = true;
+  if (q.length < 2) return sugShow([]);
+  if (!PK.sug.length || PK.sugQ.replace(/\s/g, '') === '') sugShow([], '', '<span class="spin s"></span>찾는 중');
+  PK.sugT = setTimeout(() => fetchSug(q), 220);
+});
+$('#pq').addEventListener('keydown', e => {
+  if (e.isComposing) return;           // 한글 조합 중 Enter 는 글자 확정용
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && PK.sug.length) {
+    e.preventDefault(); PK.sugI = (PK.sugI + (e.key === 'ArrowDown' ? 1 : -1) + PK.sug.length + (PK.sugI < 0 && e.key === 'ArrowUp' ? 1 : 0)) % PK.sug.length;
+    [...$('#pkSug').children].forEach((b, i) => b.classList.toggle('on', i === PK.sugI)); $('#pkSug').children[PK.sugI].scrollIntoView({block: 'nearest'});
+  } else if (e.key === 'Enter') { e.preventDefault(); goSearch(PK.sugI >= 0 ? PK.sug[PK.sugI] : null); }
+  else if (e.key === 'Escape') sugShow([]);
+});
+$('#pkSug').addEventListener('mousedown', e => e.preventDefault());
+$('#pkSug').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) goSearch(PK.sug[+b.dataset.i]); });
+$('#pqGo').onclick = () => goSearch(null);
+$('#pkEx').addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b) startPick(b.dataset.a); });
+async function goSearch(it) {
+  if (it) return startPick(it.kind === 'place' && it.sub ? it.sub : it.text, {lat: it.lat, lon: it.lon});
+  const q = $('#pq').value.trim(); if (!q) return $('#pq').focus();
+  if (PK.sugQ !== q && q.length >= 2) { clearTimeout(PK.sugT); await fetchSug(q); }      // 후보가 아직 안 왔으면 받아 보고 정한다
+  // 후보 중 입력과 끝이 똑같은 주소가 있으면 그것, 없으면 입력 그대로 찾고 못 찾으면 첫 후보
+  const norm = t => t.replace(/\s+/g, ' ').trim(), cand = PK.sugQ === q ? PK.sug : [];
+  if (cand.length && !/\d/.test(q)) return goSearch(cand[0]);          // 숫자 없는 이름(강원대학교 등)은 맨 위 후보로
+  const ex = cand.find(x => x.kind !== 'place' && norm(x.text).endsWith(norm(q)));
+  if (ex) return startPick(ex.text, {lat: ex.lat, lon: ex.lon});
+  startPick(q, null, cand[0]);
+}
+// 주소 -> 평면 지도(바로 뜸)에서 위치·필지 고르기. 지도 라이브러리를 못 불러왔으면 예전처럼 3D 판 위 가운데 핀
+function startPick(addr, ll, alt) { return LF ? mapPick(addr, ll, alt) : startPick3D(addr, ll, alt); }
+async function startPick3D(addr, ll, alt) {
+  sugShow([]); $('#pop').hidden = true; L = null; MEAS.clear(); LAY.clear(); PK.hl = null; PK.zc.clear();
+  setMode('load'); $('#pk').hidden = true; busy('주소 주변 지도를 불러오는 중');
+  try { await loadData(addr, ll); }
+  catch (e) {
+    busy('');
+    if (alt) return startPick(alt.kind === 'place' && alt.sub ? alt.sub : alt.text, {lat: alt.lat, lon: alt.lon});
+    return showSearch(`'${addr}'을(를) 못 찾았어요. 아래 후보에서 고르거나 건물 이름·도로명·지번으로 써 보세요`);
+  }
+  busy('');
+  site = {cx: 0, cy: 0, ang: 0, ...SZ()}; markInSite();          // 판 자리만 잡는다. 부지는 핀으로 고른다
+  curView = 'site'; buildWorld(); pinLook();
+  setMode('pin');
+  // 첫 핀 자리: 주소 자리 필지(도로·하천이면 가장 가까운 쓸 수 있는 필지)
+  let p = [0, 0], q = PAR.length ? parAt(p) : null;
+  if (PAR.length && (!q || NOT_SITE.test(q.jimok))) { const o = PAR.filter(x => !NOT_SITE.test(x.jimok) && x.a >= 150).map(x => ({x, d: dist([p], x.pts, false, true).d})).sort((a, b) => a.d - b.d)[0]; if (o && o.d < 60) { q = o.x; p = inside(cen(q.pts), q.pts) ? cen(q.pts) : p; } }
+  controls.target.copy(V(p[0], p[1], 0)); camera.position.copy(V(p[0], p[1] - 0.02, 360)); controls.maxDistance = 700; controls.update();
+  PK.q = undefined; $('#pinTip').hidden = false; pinUpdate();
+}
+function pinLook() {                  // 핀 고르기 지도: 건물은 납작한 회색 바닥(지도처럼), 그림자 끔, 큰 길 이름
+  sun.castShadow = false;
+  for (const b of S.buildings) if (b._g) { b._g.scale.y = 0.03; b._g.children[0].material.color.set(0xe4e7eb); b._g.children[1].material.opacity = 0.3; }
+  let n = 0; const at = {};            // 표는 LAY 에 바로 단다(묶음 안에 넣으면 지울 때 글자가 화면에 남는다)
+  for (const r of S.roads.filter(r => r.name && r.road_law).sort((a, b) => b.w - a.w)) for (const [a, b] of edges(r.pts, false)) {
+    const l = Math.hypot(b[0] - a[0], b[1] - a[1]), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    if (l < 30 || !inBoard(m, 15)) continue;
+    const seen = at[r.name] || (at[r.name] = []);
+    if (seen.some(q => Math.hypot(q[0] - m[0], q[1] - m[1]) < 140) || n >= 40) continue;
+    seen.push(m); LAY.add(label(esc(r.name), 'n', m[0], m[1], 1)); n++;
+  }
+}
+controls.addEventListener('change', () => { if (PK.mode === 'pin' && !PK.raf) PK.raf = requestAnimationFrame(() => { PK.raf = 0; pinUpdate(); }); });
+controls.addEventListener('start', () => { if (PK.mode !== 'pin') return; $('#cpin').classList.remove('drop'); $('#cpin').classList.add('up'); $('#pinTip').hidden = true; });
+controls.addEventListener('end', () => { if (PK.mode !== 'pin') return; const c = $('#cpin'); c.classList.remove('up'); void c.offsetWidth; c.classList.add('drop'); });
+function pinPanTo(p) {                // 지도를 누르면 그 자리로 부드럽게 옮긴다
+  const t0 = controls.target.clone(), c0 = camera.position.clone(), d = V(p[0], p[1], 0).sub(t0); d.y = 0;
+  $('#pinTip').hidden = true;
+  ANIM.push({t0: performance.now(), dur: 380, fn: k => { const e = 1 - (1 - k) ** 3; controls.target.copy(t0).addScaledVector(d, e); camera.position.copy(c0).addScaledVector(d, e); pinUpdate(); }});
+}
+const zoneOfPar = q => { if (!PK.zc.has(q)) PK.zc.set(q, ZN.length ? zoneCalc(q.pts) : null); return PK.zc.get(q); };
+const zText = z => z.parts.length > 1 ? z.parts.map(o => o.name).join(' · ') : z.main;
+function pinUpdate() {
+  const t = controls.target, lim = BH - 30;                 // 판 밖으로는 못 나가게
+  const cx = Math.max(BC[0] - lim, Math.min(BC[0] + lim, t.x)), cz = Math.max(-BC[1] - lim, Math.min(-BC[1] + lim, t.z));
+  if (cx !== t.x || cz !== t.z) { camera.position.x += cx - t.x; camera.position.z += cz - t.z; t.x = cx; t.z = cz; }
+  const p = [t.x, -t.z]; PK.p = p;
+  const q = PAR.length ? parAt(p) : null;
+  if (PAR.length && q === PK.q) return;
+  PK.q = q;
+  const {ok, tone} = sheetText(p, q);
+  if (PK.hl) { LAY.remove(PK.hl); PK.hl = null; }
+  const pts = q ? q.pts : [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [p[0] + a * SZ().w / 2, p[1] + b * SZ().d / 2]);
+  const col = !ok ? [0xf1f3f5, 0x9aa4b0] : tone === 'bad' ? [0xffe4e6, 0xf04452] : [0xdbe9ff, 0x3182f6];
+  const fl = flat(pts, col[0], 1.2, false), rb = ribbon([...pts, pts[0]], 0.9, col[1], 1.3, true, false);   // 납작한 건물 위로 보이게(깊이 무시)
+  Object.assign(fl.material, {transparent: true, opacity: 0.7, depthTest: false}); rb.material.depthTest = false; fl.renderOrder = 5; rb.renderOrder = 6;
+  const g = new THREE.Group(); g.add(fl, rb); LAY.add(g); PK.hl = g;
+}
+// 핀이 가리키는 땅: 지번·지목·면적 + 용도지역 판정 한 줄. 고를 수 없는 땅이면 확인 단추를 끈다
+function sheetText(p, q) {
+  let ok = true, tone = 'ok', t1, z1 = '';
+  const inMap = PK.mode === 'map' && D;
+  const z = q ? zoneOfPar(q) : ZN.length ? (() => { const nm = zoneAt(p); return nm ? {main: nm, parts: [{name: nm}], hy: HY[nm][0], gb: ZN.some(z => z.gb && z.polys.some(poly => inPolyH(p, poly))) ? 100 : 0} : null; })() : null;
+  if (inMap && D.st.par === 'wait') { ok = false; t1 = '<span class="spin s"></span>지적도에서 필지 찾는 중'; z1 = '잠깐이면 돼요. 그동안 핀을 내 땅에 맞춰 주세요'; }
+  else if (PAR.length && !q) { ok = false; t1 = '필지가 없는 자리예요'; z1 = '핀을 땅(필지) 위로 옮겨 주세요'; }
+  else if (q) {
+    const nm = JIMOK[q.jimok] || q.jimok || '지목 모름';
+    t1 = `${esc(dongOf(q.addr))} ${esc(q.jibun.replace(/[^\d-]+$/, ''))} · ${esc(nm)} · ${Math.round(q.a).toLocaleString()}㎡`;
+    if (NOT_SITE.test(q.jimok)) { ok = false; z1 = `${esc(nm)}${/[가-힣]$/.test(nm) && (nm.charCodeAt(nm.length - 1) - 0xac00) % 28 ? '이라' : '라'} 충전소 부지로 고를 수 없어요`; }
+  } else t1 = `핀 자리에 예시 부지 ${SZ().w}×${SZ().d}m를 놓아요`;
+  if (ok) {
+    if (!z) z1 = inMap && D.st.zone === 'wait' ? '<span class="spin s" style="display:inline-block;vertical-align:-3px;margin-right:6px"></span>용도지역 확인 중' : ZN.length ? '용도지역은 확인 뒤 알려 드려요' : '용도지역을 못 받았어요 (확인 뒤 직접 고를 수 있어요)';
+    else if (z.gb >= 50) { tone = 'chk'; z1 = `<b class="chk">개발제한구역</b> · 허가 대상인지 따로 확인`; }
+    else { tone = z.hy === 'no' ? 'bad' : z.hy === 'ord' ? 'chk' : 'ok'; z1 = `<b class="${tone}">${esc(zText(z))}</b> · 수소충전소 ${esc(HY_SHORT[z.hy])}`; }
+    if (q && q.a < 300) z1 += ' · 작은 필지라 옆 필지를 합쳐야 할 수 있어요';
+  }
+  $('#psT').innerHTML = t1; $('#psZ').innerHTML = z1; if (!PK.going) $('#pkGo').disabled = !ok;
+  miniRender();
+  return {ok, tone};
+}
+// 접힌 아래 칸의 둘째 줄: 용도지역(굵은 글씨) 또는 안내 한마디 · 3D 준비 상태
+function miniRender() {
+  if (PK.mode !== 'map') return;
+  const z = $('#psZ'), b = z.querySelector('b'), d = D;
+  let a = b ? b.outerHTML : z.querySelector('.spin') ? '용도지역 확인 중' : esc(z.textContent.split(' · ')[0]);
+  let st = '';
+  if (d && $('#pkGo').disabled === false || PK.going) {
+    const pend = d ? STEPS.filter(([k]) => d.st[k] === 'wait') : [], fail = d && d.st.osm === 'fail';
+    const rem = d ? Math.max(0, ...pend.map(([k]) => eta(k) - (performance.now() - (k === 'osm' && d.t0o ? d.t0o : d.t0)))) : 0;
+    st = PK.building ? '<span class="spin s"></span>3D 판 만드는 중' : !pend.length ? (fail ? '<span class="bad">주변 건물 못 받음 · 누르면 다시</span>' : '<span class="okc">3D 준비 끝 ✓</span>')
+      : PK.going ? '준비되면 바로 넘어가요' : rem > 1500 ? `3D 약 ${Math.ceil(rem / 1000)}초` : '3D 곧 준비돼요';
+  }
+  const h = [a, st].filter(Boolean).join(' · ');
+  if ($('#psM').innerHTML !== h) $('#psM').innerHTML = h;
+}
+$('#psheet').addEventListener('click', e => { if (PK.mode === 'map' && !e.target.closest('button')) $('#psheet').classList.toggle('open'); });
+$('#pkTop').onclick = () => $('#pkBack').click();
+new MutationObserver(() => { $('#pkTop span').textContent = $('#pkBack').textContent; $('#pkTop').disabled = $('#pkBack').disabled; }).observe($('#pkBack'), {childList: true, characterData: true, subtree: true, attributes: true});
+$('#pkBack').onclick = () => { if (PK.going) return mapGoEnd(); showSearch(); };
+$('#pkGo').onclick = () => {
+  if (PK.mode === 'map') return mapGo();
+  const q = PK.q;
+  if (q) { useParcels([q]); if (q.addr) { $('#addr').value = lastAddr = q.addr; $('#addrTxt').textContent = q.addr; } }   // 신청서·꾸러미에 들어갈 주소도 고른 필지로
+  else { site = {cx: PK.p[0], cy: PK.p[1], ang: 0, ...SZ()}; markInSite(); log(`부지: 핀 자리에 예시 부지 ${site.w}×${site.d}m (지적도가 없어 네모로 검토)`, 'w'); }
+  reveal();
+};
+// 확인 연출(6~8초, 건너뛰기 가능): 카메라가 부지 앞으로 내려오고 건물이 가까운 것부터 솟아오르며, 확인 목록이 하나씩 켜진다
+async function reveal(built = false) {      // built: 평면 지도에서 넘어올 때 판을 미리 만들어 둠(넘어가는 순간 멈춤 없게)
+  if (PK.hl) { LAY.remove(PK.hl); PK.hl = null; }
+  setMode('rv'); REVEAL = true; L = null; fixTried = false; mergeTried = false; controls.enabled = false;
+  let skip = false; const wakers = new Set();
+  const wait = ms => skip ? Promise.resolve() : new Promise(r => { const f = () => { clearTimeout(t); wakers.delete(f); r(); }, t = setTimeout(f, ms); wakers.add(f); });
+  const rows = [...$('#rvList').children];
+  const setRow = (i, st, txt = '') => { rows[i].className = 'rvr ' + st; rows[i].querySelector('small').textContent = txt; $('#rvBar').style.width = `${Math.round(100 * rows.filter(r => /ok|bad|chk|skip/.test(r.className)).length / rows.length)}%`; };
+  rows.forEach((r, i) => setRow(i, ''));
+  $('#rvT').textContent = site.parcel ? site.parcel.text : '핀 자리 예시 부지';
+  $('#rvL').textContent = site.parcel ? `${site.parcel.jimok} · ${Math.round(site.parcel.area).toLocaleString()}㎡` : `${site.w}×${site.d}m`;
+  $('#rvSkip').onclick = () => { skip = true; wakers.forEach(f => f()); for (const a of ANIM) a.t0 = -1e9; for (const g of [...eqMeshes, ...EQX]) if (g.userData.t0 !== undefined) g.userData.t0 = -1e9; };
+  // 부지가 정해졌으니 판을 다시 그린다(부지 안 기존 건물은 윤곽만). 카메라는 핀 고르던 자리에서 출발
+  const cp = camera.position.clone(), ct = controls.target.clone();
+  if (!built) { sun.castShadow = true; buildWorld(); camera.position.copy(cp); controls.target.copy(ct); controls.update(); } OFFK = 0; applyOff();
+  view.classList.add('rvh'); MEAS.visible = false; drawLayout();
+  const blds = S.buildings.filter(b => b._g).map(b => { const c = cen(b.pts); return {g: b._g, d: Math.hypot(c[0] - site.cx, c[1] - site.cy)}; });
+  const now = performance.now() + (built ? 300 : 0), dMax = Math.max(1, ...blds.map(o => o.d)), endT = V(site.cx, site.cy, 0), endP = az(site.ang - 20, 205 * siteK(), 40, site.cx, site.cy);
+  for (const o of blds) { o.g.scale.y = 0.03; ANIM.push({t0: now + 300 + 1300 * Math.sqrt(o.d / dMax), dur: 600, fn: k => { o.g.scale.y = 0.03 + 0.97 * (1 - (1 - k) ** 3); }}); }
+  ANIM.push({t0: now + 100, dur: built ? 2300 : 1900, fn: k => { const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2; controls.target.lerpVectors(ct, endT, e); camera.position.lerpVectors(cp, endP, e); OFFK = e; applyOff(); }});
+  try {
+    setRow(0, 'on'); await wait(1000);
+    const c = [0, 0, 0]; S.buildings.forEach(b => c[b.cls]++); const z1 = S.zones.filter(z => z.cls === 1).length;
+    setRow(0, 'ok', `${S.buildings.length}동 · 보호시설 제1종 ${c[1] + z1}곳 · 제2종 ${c[2]}곳`);
+    setRow(1, 'on'); await wait(750);
+    const zi = zoneInfo();
+    if (!zi) setRow(1, 'chk', ZN.length ? '용도지역을 판단하지 못했어요' : '용도지역을 못 받았어요 · 직접 고르기');
+    else if (zi.gb >= 50) setRow(1, 'chk', `개발제한구역 (${zi.main}) · 허가 대상 확인`);
+    else setRow(1, zi.hy === 'no' ? 'bad' : zi.hy === 'ord' ? 'chk' : 'ok', `${zText(zi)} · ${HY_SHORT[zi.hy]}`);
+    setRow(2, 'on'); await wait(250);   // 카메라가 다 내려온 뒤에 배치 계산(계산하는 동안 화면이 잠깐 멈춘다)
+    const t3 = performance.now();
+    await design();
+    if (skip) for (const g of eqMeshes) if (g.userData.t0 !== undefined) g.userData.t0 = -1e9;
+    if (!L) { setRow(2, 'bad', '부지가 좁아 설비가 다 안 들어가요'); setRow(3, 'skip', '배치가 없어 건너뜀'); setRow(4, 'skip', '배치가 없어 건너뜀'); }
+    else {
+      setRow(2, 'ok', `설비 ${L.items.length}개${L.walls?.length ? ` · 방호벽 ${L.walls.length}개` : ''}`);
+      let back = null;
+      if (!skip) {
+        const core = L.items.filter(i => /process|compressed|storage/.test(i.type)), its = core.length ? core : L.items;
+        const x0 = Math.min(...its.map(i => i.cx - i.w / 2)), x1 = Math.max(...its.map(i => i.cx + i.w / 2)), y0 = Math.min(...its.map(i => i.cy - i.d / 2)), y1 = Math.max(...its.map(i => i.cy + i.d / 2));
+        const fc = local2w((x0 + x1) / 2, (y0 + y1) / 2), span = Math.max(x1 - x0, y1 - y0), fT = V(fc[0], fc[1], 1.5), fP = az(site.ang - 30, Math.max(46, span * 2.6) * Math.max(1, 1.15 / camera.aspect), 30, fc[0], fc[1]);
+        const p0 = camera.position.clone(), t0c = controls.target.clone();
+        ANIM.push({t0: performance.now(), dur: 1100, fn: k => { const e = 1 - (1 - k) ** 3; controls.target.lerpVectors(t0c, fT, e); camera.position.lerpVectors(p0, fP, e); OFFK = 1 - e; applyOff(); }});
+        back = () => { const p1 = camera.position.clone(), t1 = controls.target.clone(); ANIM.push({t0: performance.now(), dur: 1300, fn: k => { const e = k < .5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2; controls.target.lerpVectors(t1, endT, e); camera.position.lerpVectors(p1, endP, e); OFFK = e; applyOff(); }}); };
+      }
+      await wait(L.items.length * 260 + 1700);   // 설비가 하나씩 솟는 걸 다 보여 주고
+      if (back) back();
+      MEAS.visible = true; view.classList.remove('rvh'); declutter();
+      const m = measure(), pd = Math.min(m.lines.p1.d, m.lines.p2.d);
+      setRow(3, 'on'); await wait(500);
+      setRow(3, lastBad.includes('prot') ? 'bad' : 'ok', lastBad.includes('prot') ? `보호시설과 거리가 모자라요 (가장 가까운 곳 ${f1(pd)}m)` : isFinite(pd) ? `가장 가까운 보호시설 ${f1(pd)}m · 통과` : '가까운 보호시설 없음 · 통과');
+      setRow(4, 'on'); await wait(500);
+      const ib = lastBad.filter(id => id !== 'prot');
+      setRow(4, ib.length ? 'bad' : 'ok', ib.length ? `${ib.map(id => SHORT[id] || id).join(' · ')} 부족` : `경계 ${f1(m.lines.bd.d)}m${isFinite(m.lines.rd.d) ? ` · 도로 ${f1(m.lines.rd.d)}m` : ''} · 통과`);
+    }
+    await wait(800);
+  } catch (e) { log('확인 중 문제가 생겼어요: ' + esc(e.message), 'e'); }
+  for (const a of ANIM) a.t0 = -1e9;
+  REVEAL = false; busy(''); MEAS.visible = true; view.classList.remove('rvh');
+  setMode('main'); OFFK = 1; applyOff(); frame('site'); controls.enabled = true; cardTab('tRes');
+  const cd = $('#card'); cd.classList.remove('enter'); void cd.offsetWidth; cd.classList.add('enter');
+  requestAnimationFrame(() => requestAnimationFrame(declutter));
+  document.body.dataset.ready = '1';
+}
+
+// ---------------------------------------------------------------- 평면 지도(OpenStreetMap)에서 위치·필지 고르기
+// 주소를 고르면 평면 지도가 바로 뜬다(가운데 핀, 확대하면 지적도 경계, 핀 아래 필지는 파랑). 그동안 주변 건물·지적도·용도지역을
+// 동시에 받고 남은 시간을 보여 준다. [이 땅으로 확인]을 누르면 같은 자리에서 지도가 기울며 3D 판으로 넘어가 건물이 솟는다.
+const LF = window.L;                   // Leaflet(이 파일의 L 은 배치 자료라서 이름을 따로 둔다)
+let MAP = null, PLY = null, HLY = null;
+const kxOf = la => 111320 * Math.cos(la * Math.PI / 180);
+const toW = (lat, lon) => [(lon - D.lon) * kxOf(D.la), (lat - D.la) * 111320];
+const toLL = p => [D.la + p[1] / 111320, D.lon + p[0] / kxOf(D.la)];
+function mapInit() {
+  if (MAP) return;
+  MAP = LF.map('fmap', {zoomControl: false, attributionControl: false, preferCanvas: true, minZoom: 13, maxZoom: 20, zoomSnap: 0.5, wheelPxPerZoomLevel: 100});
+  LF.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxNativeZoom: 19, maxZoom: 20, attribution: '지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · 지적도 © 국토교통부(브이월드)'}).addTo(MAP);
+  LF.control.attribution({position: 'topright', prefix: false}).addTo(MAP);
+  LF.control.zoom({position: 'topright', zoomInTitle: '크게', zoomOutTitle: '작게'}).addTo(MAP);
+  PLY = LF.layerGroup();
+  const el = MAP.getContainer();
+  el.addEventListener('pointerdown', () => { PK.touched = true; }); el.addEventListener('wheel', () => { PK.touched = true; }, {passive: true});
+  MAP.on('dragstart', () => { PK.drag = true; clearTimeout(PK.preT); $('#psheet').classList.remove('open'); }); MAP.on('dragend', () => { PK.drag = false; });
+  MAP.on('movestart', () => { clearTimeout(PK.preT); if (PK.mode !== 'map') return; $('#cpin').classList.remove('drop'); $('#cpin').classList.add('up'); if (PK.touched) $('#pinTip').hidden = true; });
+  MAP.on('move', () => { if (PK.mode === 'map' && !PK.raf) PK.raf = requestAnimationFrame(() => { PK.raf = 0; mapPin(); }); });
+  MAP.on('moveend', () => { if (PK.mode !== 'map') return; const c = $('#cpin'); c.classList.remove('up'); void c.offsetWidth; c.classList.add('drop'); mapPin(); mapRecenter(); preSchedule(); });
+  MAP.on('zoomend', mapLines);
+  MAP.on('click', e => { if (PK.mode === 'map' && !PK.going) MAP.panTo(e.latlng); });
+}
+function mapLines() { if (!MAP) return; const on = MAP.getZoom() >= 17; if (on && !MAP.hasLayer(PLY)) PLY.addTo(MAP); else if (!on && MAP.hasLayer(PLY)) PLY.remove(); }
+function mapParcels() { PLY.clearLayers(); if (PAR.length) LF.polygon(PAR.map(q => [q.ll]), {color: '#6b7684', weight: 0.9, opacity: 0.55, fill: false, interactive: false}).addTo(PLY); mapLines(); }
+function mapPin(force) {
+  if (!MAP || !D || PK.mode !== 'map') return;
+  const c = MAP.getCenter(), p = toW(c.lat, c.lng); PK.p = p;
+  const q = PAR.length ? parAt(p) : null;
+  const key = `${q ? q.pnu + q.jibun : '-'}|${D.seq}|${D.st.par}${D.st.zone}`;
+  if (!force && key === PK.key) return;
+  PK.key = key; PK.q = q;
+  const r = sheetText(p, q);
+  if (HLY) { HLY.remove(); HLY = null; }
+  if (q) { const col = !r.ok ? '#8b95a1' : r.tone === 'bad' ? '#f04452' : '#3182f6'; HLY = LF.polygon(q.ll, {color: col, weight: 2.6, fillColor: col, fillOpacity: r.ok ? 0.2 : 0.1, interactive: false}).addTo(MAP); }
+}
+// 받은 자리에서 160m 넘게 옮기면 새 자리 둘레로 다시 받는다(약 50m 격자로 맞춰 근처를 다시 열면 캐시가 맞는다)
+function mapRecenter() {
+  if (!D || PK.going) return;
+  const c = MAP.getCenter(), p = toW(c.lat, c.lng);
+  if (Math.hypot(p[0], p[1]) < 160) return;
+  const r = v => Math.round(v * 2000) / 2000;
+  PAR = []; ZN = []; PK.zc.clear(); PLY.clearLayers(); PK.snapped = true;
+  startLoad({lat: r(c.lat), lon: r(c.lng), text: PK.addr, src: '지도에서 고른 자리'});
+  progRender(); mapPin(true);
+}
+// 처음 지적도가 오면: 손대기 전이고 핀 자리가 도로·하천 등이면 가장 가까운 쓸 수 있는 필지로 핀을 옮긴다(3D 첫 핀과 같은 규칙)
+function mapSnap() {
+  if (PK.snapped || PK.touched || !PAR.length) return; PK.snapped = true;
+  const c = MAP.getCenter(), p = toW(c.lat, c.lng), q = parAt(p);
+  if (q && !NOT_SITE.test(q.jimok)) return;
+  const o = PAR.filter(x => !NOT_SITE.test(x.jimok) && x.a >= 150).map(x => ({x, d: dist([p], x.pts, false, true).d})).sort((a, b) => a.d - b.d)[0];
+  if (o && o.d < 60) { const m = cen(o.x.pts), t = inside(m, o.x.pts) ? m : o.x.pts[0]; MAP.panTo(toLL(t), {duration: 0.5}); }
+}
+// 다 받았고 핀 아래가 고를 수 있는 필지면, 지도에서 손을 뗀 지 0.9초 뒤 그 필지로 3D 판을 미리 만들어 GPU 에 올려 둔다(확인을 누르면 바로 넘어가게)
+function preSchedule() {
+  clearTimeout(PK.preT);
+  PK.preT = setTimeout(() => {
+    const d = D, q = PK.q;
+    if (!d || PK.mode !== 'map' || PK.going || PK.drag || !q || NOT_SITE.test(q.jimok) || d.st.osm !== 'ok' || d.st.par === 'wait' || d.st.zone === 'wait') return;
+    if (PK.pre && PK.pre.d === d && PK.pre.q === q) return;
+    S = d.S; PAR = d.PAR || []; ZN = d.ZN || [];
+    useParcels([q], true); sun.castShadow = true; buildWorld();
+    for (const b of S.buildings) if (b._g) b._g.scale.y = 0.03;
+    const p = PK.p; controls.target.copy(V(p[0], p[1], 0)); camera.position.copy(V(p[0], p[1] - 0.02, 900)); controls.update();
+    renderer.compile(scene, camera); renderer.render(scene, camera);
+    PK.pre = {d, q};
+  }, 900);
+}
+onLoadStep = (d, k) => {
+  if (d !== D || PK.mode !== 'map') return;
+  if (k === 'par') { PAR = d.PAR || []; mapParcels(); mapSnap(); }
+  if (k === 'zone') { ZN = d.ZN || []; PK.zc.clear(); }
+  mapPin(true); progRender(); preSchedule();
+};
+// 진행 표시: 단계 목록 + 남은 초 + 막대. 단계별 예상 시간은 지난번에 실제로 걸린 시간(이 브라우저)으로 어림한다
+const STEPS = [['par', '지적도'], ['zone', '용도지역'], ['osm', '주변 건물']];
+function progRender() {
+  const d = D; if (!d || PK.mode !== 'map') return;
+  const now = performance.now(), el = k => now - (k === 'osm' && d.t0o ? d.t0o : d.t0), pend = STEPS.filter(([k]) => d.st[k] === 'wait');
+  let num = 0, den = 0;
+  for (const [k] of STEPS) { const w = eta(k); den += w; num += d.st[k] !== 'wait' ? w : w * Math.min(0.92, el(k) / w); }
+  $('#ppBar').style.width = $('#psMb').style.width = `${Math.round(100 * num / den)}%`;
+  const rem = Math.max(0, ...pend.map(([k]) => eta(k) - el(k))), done = !pend.length, fail = d.st.osm === 'fail';
+  $('#psP').classList.toggle('done', done && !fail); $('#psP').classList.toggle('fail', done && fail);
+  $('#psMb').classList.toggle('done', done && !fail); $('#psMb').classList.toggle('fail', done && fail);
+  $('#ppT').textContent = PK.building ? '3D 판 만드는 중' : done ? (fail ? '주변 건물을 못 받았어요' : '3D 준비 끝') : PK.going ? '준비되면 바로 3D로 넘어가요' : '3D 모형 준비 중';
+  const sTxt = PK.building ? '1~2초' : done ? (fail ? '<button class="pp-re" id="ppRe">다시 받기</button>' : '바로 확인할 수 있어요') : rem > 1500 ? `약 ${Math.ceil(rem / 1000)}초 남음` : '거의 다 됐어요';
+  if ($('#ppS').innerHTML !== sTxt) $('#ppS').innerHTML = sTxt;
+  const st = STEPS.map(([k, n]) => `<span class="${d.st[k] === 'wait' ? '' : d.st[k]}"><i></i>${n}${d.st[k] === 'ok' && d.T[k] ? ` <small>${(d.T[k] / 1000).toFixed(1)}초</small>` : ''}</span>`).join('');
+  if (PK.stH !== st) { $('#ppSt').innerHTML = st; PK.stH = st; }
+  miniRender();
+}
+$('#ppS').addEventListener('click', e => { if (e.target.closest('#ppRe') && D) { retryOsm(D); progRender(); } });
+async function mapPick(addr, ll, alt) {
+  sugShow([]); $('#pop').hidden = true;
+  let g = ll ? {lat: +ll.lat, lon: +ll.lon, text: addr, src: '브이월드 주소 검색'} : null;
+  if (!g) {
+    setMode('load'); busy('주소를 찾는 중');
+    try { g = await geocode(addr); }
+    catch (e) {
+      busy('');
+      if (alt) return mapPick(alt.kind === 'place' && alt.sub ? alt.sub : alt.text, {lat: alt.lat, lon: alt.lon});
+      return showSearch(`'${addr}'을(를) 못 찾았어요. 아래 후보에서 고르거나 건물 이름·도로명·지번으로 써 보세요`);
+    }
+    busy('');
+  }
+  Object.assign(PK, {addr, touched: false, snapped: false, key: '', going: false, building: false, stH: '', pre: null, drag: false});
+  PAR = []; ZN = []; PK.zc.clear();
+  setMode('map'); mapInit(); MAP.invalidateSize();
+  PLY.clearLayers(); if (HLY) { HLY.remove(); HLY = null; }
+  MAP.setView([g.lat, g.lon], 18, {animate: false});
+  startLoad(g);
+  $('#pinTip').hidden = false; $('#psK').textContent = '핀이 가리키는 땅';
+  progRender(); mapPin(true);
+}
+function mapLock(on) { for (const h of ['dragging', 'scrollWheelZoom', 'doubleClickZoom', 'touchZoom', 'boxZoom', 'keyboard']) MAP[h] && MAP[h][on ? 'disable' : 'enable'](); }
+function mapGoEnd() {
+  PK.going = false; if (MAP) mapLock(false);
+  $('#pkGo').classList.remove('wait'); $('#pkGo').textContent = '이 땅으로 확인'; $('#pkBack').textContent = '주소 다시 찾기';
+  if (PK.mode === 'map') { PK.key = ''; mapPin(true); progRender(); }
+}
+// [이 땅으로 확인]: 다 받을 때까지 기다렸다가(남은 시간 표시) 같은 자리·같은 축척의 3D 판으로 바꾼다
+async function mapGo() {
+  const d = D; if (!d || PK.going) return;
+  if (d.st.osm === 'fail') retryOsm(d);                                    // 못 받았던 주변 건물은 누르면 다시 받는다
+  PK.going = true; mapLock(true);
+  $('#pkGo').classList.add('wait'); $('#pkGo').innerHTML = '<span class="spin s"></span>준비되면 바로 넘어가요'; $('#pkBack').textContent = '취소'; progRender();
+  let ok = true;
+  try { await d.osm; } catch (e) { ok = false; }
+  await Promise.all([d.par, d.zone]);
+  if (!PK.going || d !== D || PK.mode !== 'map') return;                  // 취소했거나 다른 자리로 옮김
+  if (!ok) { mapGoEnd(); return; }                                         // 진행 표시에 [다시 받기]
+  PAR = d.PAR || []; ZN = d.ZN || [];
+  const c = MAP.getCenter(), p = toW(c.lat, c.lng), q = PAR.length ? parAt(p) : null;
+  if (q && NOT_SITE.test(q.jimok)) { mapGoEnd(); return; }
+  PK.building = true; $('#pinTip').hidden = true; progRender();
+  $('#pkGo').innerHTML = '<span class="spin s"></span>3D 판 만드는 중'; $('#pkBack').disabled = true;
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));     // 글자가 먼저 그려지게
+  setAddr(q && q.addr ? q.addr : PK.addr); if (q && q.addr) d.g.text = q.addr;   // 신청서·꾸러미에 들어갈 주소도 고른 필지로
+  applyData(d);
+  L = null; MEAS.clear(); LAY.clear(); PK.hl = null;
+  if (q) useParcels([q]);
+  else { site = {cx: p[0], cy: p[1], ang: 0, ...SZ()}; markInSite(); log(`부지: 핀 자리에 예시 부지 ${site.w}×${site.d}m (지적도가 없어 네모로 검토)`, 'w'); }
+  // 평면 지도와 같은 자리·같은 축척으로 3D 카메라를 위에서 내려다보게 둔 뒤 연출 시작(지도는 기울며 흐려진다)
+  const mpp = 156543.03392 * Math.cos(c.lat * Math.PI / 180) / 2 ** MAP.getZoom(), dd = mpp * innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
+  // 판을 지도 뒤에서 만들고(건물은 납작하게) 한 번 그려 GPU 에 올린다(지도를 보는 동안 미리 만들어 뒀으면 그대로 쓴다). 그다음 지도를 기울이며 걷어 낸다
+  PAUSE3D = false; OFFK = 0; applyOff();
+  if (!(PK.pre && PK.pre.d === d && PK.pre.q === q)) { sun.castShadow = true; buildWorld(); }
+  PK.pre = null;
+  for (const b of S.buildings) if (b._g) b._g.scale.y = 0.03;
+  controls.maxDistance = Math.max(controls.maxDistance, dd * 1.2); controls.minDistance = 25;
+  controls.target.copy(V(p[0], p[1], 0)); camera.position.copy(V(p[0], p[1] - 0.02, dd)); controls.update();
+  view.classList.add('rvh'); MEAS.visible = false; drawLayout();
+  renderer.compile(scene, camera); renderer.render(scene, camera); lab.render(scene, camera);
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const fm = $('#fmap');
+  PK.going = false; PK.building = false; mapLock(false); $('#pkGo').classList.remove('wait'); $('#pkGo').textContent = '이 땅으로 확인'; $('#pkBack').textContent = '주소 다시 찾기'; $('#pkBack').disabled = false;
+  reveal(true);
+  fm.classList.add('out'); setTimeout(() => { if (PK.mode !== 'map') fm.hidden = true; fm.classList.remove('out'); }, 1700);
+}
+function pickInit() {
+  const ex = [[DEMO.addr, 'H강동 수소충전소 자리'], ['서울 강서구 화곡동 1000', '화곡동 1000'], ['서울 금천구 가산동 60-26', '가산동 60-26']];
+  const mine = memo.site || memo.address; if (mine && !ex.some(e => e[0] === mine)) ex.unshift([mine, `신청서 주소 · ${mine}`]);
+  $('#pkEx').innerHTML = '<span>예시</span>' + ex.map(([v, t]) => `<button data-a="${esc(v)}">${esc(t)}</button>`).join('');
+  const a = qs.get('addr');
+  if (a) return startPick(a);
+  pickBackdrop(); showSearch();
+}
+
+// 신청서에서 넘어온 주소(없으면 시연 주소)
+const memo = ls('formMemo', {});
+$('#addr').value = qs.get('addr') || memo.site || memo.address || DEMO.addr;
+const stCap = ls('site3dCap', null); if (stCap) $('#cap').value = stCap;
+$('#cap').addEventListener('change', () => lsSet('site3dCap', $('#cap').value));
+if (PICK) pickInit(); else loadSite().then(async () => {        // 시연·화면 저장용: ?run=sample (예시 배치도 읽기), ?run=fix (읽은 뒤 AI 수정), ?view=all|site|top
+  const run = qs.get('run');
+  if (run === 'sample' || run === 'fix') { await $('#sample').onclick(); if (run === 'fix') { for (let i = 0; i < 50 && !document.querySelector('[data-fix]'); i++) await new Promise(r => setTimeout(r, 200)); const b = document.querySelector('[data-fix]'); if (b) b.click(); } }
+  if (qs.get('view')) frame(qs.get('view'));
+  document.body.dataset.ready = '1';
+});
+window.__site = {get camera() { return camera; }, get controls() { return controls; }, get D() { return D; }, get MAP() { return MAP; }, get PAR() { return PAR; }, get ZN() { return ZN; }, zoneInfo, zoneAt, useParcels, pickParcel, suggestMerge, findParcel, insetPoly, get L() { return L; }, set L(v) { L = v; }, get S() { return S; }, get site() { return site; }, measure, check, frame, drawLayout, design, fix, findSite, needs, distField, designOn, guide: g => { GUIDE = g; return check(); }};
+</script>
+</body></html>

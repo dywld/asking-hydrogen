@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs');
 const projects = require('./lib/projects');
 const files = require('./lib/files');
+const updates = require('./lib/updates');
+const assist = require('./lib/assist');
 
 const SERVER = (process.env.H2_SERVER || 'https://hydrogen-guide.tmdfoqhdl030.workers.dev').replace(/\/$/, '');
 const ORIGIN = new URL(SERVER).origin;
@@ -63,8 +65,10 @@ function createWindow() {
     });
   });
 
-  if (process.env.H2_SHOT) require('./test/shot')(win);   // 화면 점검(개발용)
-  loadServer();
+  if (process.env.H2_SHOT) require('./test/shot')(win);
+  if (process.env.H2_ASSIST_SHOT) require('./test/assist_shot')(win);   // 화면 점검(개발용)
+  // 켤 때 새 버전 확인: 앱 파일(설치 파일 저장소) 또는 화면(서버 version.json)이 새로 나왔으면 업데이트 화면부터.
+  updates.start(win, { server: SERVER, loadServer, page: path.join(__dirname, 'update.html') });
 }
 
 // ── 화면(app-ui.js)이 부르는 기능 ──
@@ -108,6 +112,9 @@ handle('file:save', async (name, b64) => {
   if (cur) projects.addFile(cur, p);
   return p;
 });
+
+// 신청 도우미: 민원 사이트를 앱 안 창에 열고 빈칸 채우기·서류 올리기(제출·결제·로그인은 사용자가).
+assist.setup(() => win, p => mine(p));
 
 // 서류 폴더 검토: 고른 폴더만 읽는다(앱이 아무 폴더나 뒤지지 않게, 고른 경로를 기억해 둔다).
 let picked = null;

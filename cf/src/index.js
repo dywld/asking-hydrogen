@@ -10,6 +10,9 @@ import { chatExtras } from './chat_extras.js'; // 캐시·발표 잠금·규제 
 import { toolButtons } from './tools_suggest.js';   // 답 아래 점검표·규정·꾸러미 버튼
 import { checkLimit } from './limit.js';      // Gemini 쓰는 주소 사용량 제한
 import { handleKgsUpdates, readKgsState } from './kgs_updates.js';
+import { handleSite } from './site.js';
+import { rawAnswer } from './raw_eval.js';   // 모델 비교 채점용(팀 30문항만)
+import { llmFetch, setLlm, llmName, llmAll, llmLabel, llmProvider, resetUsage, usageList } from './llm.js';   // OPENAI_API_KEY 가 있으면 ChatGPT 로
 import { handleApp } from './app.js';          // /api/app/* (윈도우 앱: 서류 폴더 검토·알림)
 
 const HANGUL = /[가-힣]+/g, CJK = /[一-鿿ぁ-ゟ゠-ヿ]+/g, WORD = /[A-Za-z0-9]+/g;
@@ -76,9 +79,18 @@ function guessForm(q) {
   return null;
 }
 
+// 간단한 질문: 짧고(40자 이하) 절차·비교·정리·서류처럼 길게 풀어야 하는 말이 없거나,
+// 확정 자료(안전거리 표 등)가 바로 답인 짧은 질문. 체크리스트·이어지는 긴 대화는 제외.
+const COMPLEX = /절차|순서|단계|과정|비교|차이|정리|모두|전부|목록|방법|어떻게|왜|이유|설명|계획|서류|신청서|체크|검토|분석|사례|전체|종류|조건|요건|경우/;
+function isSimple(q, fixed, checklist, prev) {
+  if (checklist || prev.length > 4) return false;
+  if (fixed.length && q.length <= 60) return true;
+  return q.length <= 40 && !COMPLEX.test(q);
+}
+
 // 모델 하나에 스트리밍으로 묻는다. 성공하면 글 조각을 차례로 넘긴다.
 async function* streamGemini(model, contents, key) {
-  const r = await fetch(`${API}/${model}:streamGenerateContent?alt=sse&key=${key}`, {
+  const r = await llmFetch(`${API}/${model}:streamGenerateContent?alt=sse&key=${key}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: DATA.system }] },
       generationConfig: { temperature: 0.2, maxOutputTokens: 2048 } }),
@@ -118,6 +130,7 @@ function cleanObj(p, keys, n = 30) {
   return out;
 }
 function askFor(q, profile) {
+  if (DATA.ask_skip && new RegExp(DATA.ask_skip).test(q)) return null;   // 해외 제도 질문은 묻지 않는다
   for (const [need, steps] of ASK) {
     if (!need.test(q)) continue;
     if (steps[0][0] === 'dist' && DIST_OTHER.test(q)) return null;
@@ -195,6 +208,7 @@ async function chat(req, env) {
   const db = countDB(env.DB, rows), base = env;
   let kgs = [];
   env = new Proxy(base, { get: (t, k) => k === 'DB' ? db : k === 'KGS' ? kgs : t[k] });
+  resetUsage();
   const body = await req.json().catch(() => ({}));
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const q = String(messages.at(-1)?.text || '').trim().slice(0, 2000);
@@ -202,7 +216,7 @@ async function chat(req, env) {
   const { readable, writable } = new TransformStream();
   const w = writable.getWriter();
   const ev = o => w.write(enc.encode(JSON.stringify(o) + '\n'));
-  const done = extra => { if (!body.debug) console.log('d1 rows', rows.n, rows.list.join(' | ')); return ev({ type: 'done', ...extra }); };
+  const done = extra => { if (!body.debug) console.log('d1 rows', rows.n, rows.list.join(' | ')); return ev({ type: 'done', usage: usageList(), ...extra }); };
   const country = ['한국', '일본'].includes(body.country) ? body.country : null;
   const facility = typeof body.facility === 'string' && body.facility ? body.facility.slice(0, 10) : null;
   const asOf = /^\d{4}-\d{2}-\d{2}$/.test(String(body.as_of || '').trim()) ? String(body.as_of).trim() : null;
@@ -326,8 +340,13 @@ async function chat(req, env) {
       contents.push({ role: 'user', parts: [{ text: `=== 검색된 법령 조문 ===\n${context}\n\n=== 질문 ===\n${q}` }] });
       if (weak) ev({ type: 'lowconf' });
       const system = DATA.system + (checklist ? DATA.chat.checklist_system : '');
+      // 모델 비교용: 모델에 보낼 지시문과 대화(근거 조문 포함)만 돌려준다. 모델은 부르지 않는다.
+      if (body.debug === 'context') { ev({ type: 'context', system, contents }); return done(); }
       const useJudge = body.mode === 'demo';
       const models = (DATA.chat.model_sets[body.mode] || DATA.models).filter(m => !X.isExhausted(m));
+      // ChatGPT 일 때 간단한 질문은 빠른 모델(OPENAI_FAST_MODEL, 기본 gpt-6-luna)로 바로 답한다. 실패하면 원래 모델로.
+      if (llmProvider() === 'openai' && env.OPENAI_FAST_MODEL !== 'off' && isSimple(q, fixed, checklist, prevMsgs))
+        models.unshift('oa:' + (env.OPENAI_FAST_MODEL || 'gpt-6-luna'));
       let last = null;
       for (const model of models) {
         let buf = '', sent = 0;
@@ -356,6 +375,7 @@ async function chat(req, env) {
         const sib = await X.siblings(env, hits);
         let v = X.verify(text, hits, userFacts, sib), removed = [];
         let bad = v.nums.concat(v.refs);
+        const bad0 = bad.slice();   // 처음 걸린 것(진단용으로 verify 이벤트에 싣는다)
         if (bad.length) {
           const fixedText = await X.correctAnswer(model, text, context, bad, key);
           if (fixedText) {
@@ -378,7 +398,7 @@ async function chat(req, env) {
         ev({ type: 'cited', refs: cited });
         ev({ type: 'followups', items: follow });
         const warns = v.warnings.concat(removed.length ? [`근거 확인이 안 되어 뺀 내용 ${removed.length}곳`] : []);
-        ev({ type: 'verify', warnings: warns, nums: v.nums, refs: v.refs, removed });
+        ev({ type: 'verify', warnings: warns, nums: v.nums, refs: v.refs, removed, first: bad0 });
         const uncited = X.uncitedSentences(bodyText);
         if (uncited.length) ev({ type: 'uncited', items: uncited });
         let judged = null;
@@ -388,10 +408,10 @@ async function chat(req, env) {
         }
         if (ckey && !warns.length && !weak && !(judged && judged.length)) {
           const t = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
-          await X.cachePut(env, ckey, { t, model, q, sources: shown, body: bodyText, cited, followups: follow,
+          await X.cachePut(env, ckey, { t, model: llmLabel(model), q, sources: shown, body: bodyText, cited, followups: follow,
             warnings: [], nums: v.nums, refs: v.refs, lowconf: weak });
         }
-        return done({ model, kind: 'gemini' });
+        return done(llmProvider() !== 'gemini' ? { model: llmLabel(model), kind: llmProvider() } : { model, kind: 'gemini' });
       }
       ev({ type: 'text', t: `지금 구글 서버가 붐벼서 답변을 받지 못했습니다. 아래 근거 조문은 정상이니 잠시 뒤 다시 물어봐 주세요.\n(마지막 오류: ${last || '시도할 모델이 없음'})` });
       done();
@@ -426,6 +446,9 @@ function toBackup(req, env, url) {
 
 export default {
   async fetch(req, env) {
+    // AI 공급자: OPENAI_API_KEY 가 있으면 ChatGPT. 키 검사(GEMINI_API_KEY)는 그대로 두고, 그 자리에 표시만 넣는다(실제 키는 llm.js 가 쓴다).
+    setLlm(env);
+    if (llmProvider() !== 'gemini' && !env.GEMINI_API_KEY) { const base = env; env = new Proxy(base, { get: (t, k) => k === 'GEMINI_API_KEY' ? llmProvider() : t[k] }); }
     const url = new URL(req.url);
     const p = url.pathname;
     if (p === '/api/kgs-updates') return handleKgsUpdates(req, env, tokenize);
@@ -434,9 +457,15 @@ export default {
     }
     const limited = await checkLimit(req, env, p);
     if (limited) return limited;
+    if (p.startsWith('/api/site/')) return handleSite(req, env, p);
+    if (p === '/api/raw-eval' && req.method === 'POST') {
+      const b = await req.json().catch(() => ({}));
+      const out = await rawAnswer(env, String(b.q || ''), String(b.model || ''));
+      return out ? json(out) : json({ error: 'not allowed' }, 403);
+    }
     if (p === '/api/status') {
       return json({ articles: DATA.articles, korea: DATA.korea, japan: DATA.articles - DATA.korea,
-        has_key: !!env.GEMINI_API_KEY, model: DATA.models[0], mode: 'daily', need_code: false,
+        has_key: !!env.GEMINI_API_KEY, model: llmProvider() !== 'gemini' ? llmName() : DATA.models[0], provider: llmProvider(), docs_provider: llmAll() ? llmProvider() : 'gemini', mode: 'daily', need_code: false,
         semantic: false, rerank: false, cache: 0, ollama: false, pdf: false, host: 'cloudflare' });
     }
     if (p === '/api/chat' && req.method === 'POST') {

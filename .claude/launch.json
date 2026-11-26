@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["-y", "wrangler@4.156.2", "dev", "--cwd", "cf", "--port", "8788", "--local"],
       "port": 8788
+    },
+    {
+      "name": "extra",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8779", "-d", "cf/public_extra"],
+      "port": 8779
     }
   ]
 }
